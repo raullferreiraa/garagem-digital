@@ -5,82 +5,97 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cultura da Lata 027 - Garagem</title>
     <style>
-        body {
-            background-color: #121212;
-            color: #e0e0e0;
-            font-family: 'Courier New', Courier, monospace;
-            margin: 0;
-            padding: 40px 20px;
+        body { 
+            background-color: #0f0f0f;
+            color: #efefef; 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            margin: 0; 
+            padding: 40px 20px; 
+            font-size: 18px; 
         }
-        h1 {
-            text-align: center;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            border-bottom: 1px solid #333;
+
+        h1 { 
+            font-size: 2.2em;
+            font-weight: 800;
+            text-align: center; 
+            text-transform: uppercase; 
+            letter-spacing: -1px; 
+            border-bottom: 2px solid #ff4757; 
             padding-bottom: 20px;
+            margin-bottom: 40px;
         }
-        .formulario-container {
-            background-color: #1e1e1e;
-            border: 1px dashed #555;
-            padding: 20px;
-            border-radius: 4px;
-            max-width: 600px;
-            margin: 0 auto 40px auto;
+        .formulario-container { 
+            background-color: #1e1e1e; 
+            border: 1px dashed #555; 
+            padding: 20px; 
+            border-radius: 4px; 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            transition: 0.3s; 
         }
-        .formulario-container h2 {
-            margin-top: 0;
-            font-size: 1.1em;
-            color: #aaa;
-            text-transform: uppercase;
-        }
-        label { display: block; margin-bottom: 5px; color: #888; font-size: 0.8em; }
-        input, button, select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 15px;
-            background-color: #121212;
-            border: 1px solid #333;
-            color: #fff;
-            font-family: inherit;
-            box-sizing: border-box;
+        h2 { font-size: 1.1em; color: #aaa; text-transform: uppercase; text-align: center; }
+        
+        input, button, select { 
+            width: 100%; padding: 12px; margin-bottom: 15px; 
+            background-color: #121212; border: 1px solid #333; 
+            color: #fff; font-family: inherit; box-sizing: border-box; 
+            text-transform: uppercase; 
         }
         .linha-inputs { display: flex; gap: 10px; }
-        button {
-            background-color: #ff4757;
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            text-transform: uppercase;
-            border: none;
-            transition: 0.3s;
-        }
+        
+        button { background-color: #ff4757; color: white; font-weight: bold; cursor: pointer; border: none; }
         button:hover { background-color: #ff2a3d; }
-        .btn-excluir {
-            background-color: transparent;
-            color: #555;
-            border: 1px solid #333;
-            font-size: 0.7em;
-            padding: 5px;
-            width: auto;
-            margin-top: 10px;
+        
+        .filtros-container { 
+            background-color: #1e1e1e; border: 1px solid #333; 
+            padding: 15px; display: flex; gap: 10px; 
+            max-width: 600px; margin: 0 auto 20px auto; flex-wrap: wrap; 
+        }
+        .filtros-container input, .filtros-container select { margin-bottom: 0; width: auto; flex-grow: 1; }
+        
+        .galeria { display: flex; flex-direction: column; gap: 20px; max-width: 600px; margin: 0 auto; }
+        .carro-card h2 {
+            font-size: 1.4em;
+            font-weight: 900;
+            letter-spacing: 1px;
+            background-color: #222; 
+            padding: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid #ff4757; 
+        }
+        .foto-carro { width: 100%; height: 300px; object-fit: cover; border-bottom: 1px solid #333; background-color: #000; }
+        .card-info { padding: 20px; text-transform: uppercase; }
+        .specs { 
+            margin: 10px 0; 
+            color: #ddd; 
+            font-size: 0.95em; 
+            letter-spacing: 0.5px;
+        }
+        .destaque { 
+            color: #ff4757; 
+            font-weight: 900; 
+            font-size: 1.1em; 
+        }
+        
+        .btn-excluir, .btn-editar { 
+            width: auto; padding: 5px 15px; font-size: 0.75em; 
+            margin-top: 10px; background-color: transparent; 
+            border: 1px solid #333; color: #888; cursor: pointer;
         }
         .btn-excluir:hover { color: #ff4757; border-color: #ff4757; }
-        .galeria { display: flex; flex-direction: column; gap: 20px; max-width: 600px; margin: 0 auto; }
-        .carro-card { background-color: #1e1e1e; border: 1px solid #333; padding: 0; border-radius: 4px; overflow: hidden; }
-        .foto-carro { width: 100%; height: 300px; object-fit: cover; border-bottom: 1px solid #333; background-color: #000; }
-        .card-info { padding: 20px; }
-        .carro-modelo { font-size: 1.5em; color: #fff; margin: 0 0 10px 0; }
-        .specs { margin: 5px 0; color: #aaa; }
-        .destaque { color: #ff4757; font-weight: bold; }
+        .btn-editar:hover { color: #fff; border-color: #fff; }
     </style>
 </head>
 <body>
 
     <h1>Cultura da Lata 027</h1>
 
-    <div class="formulario-container">
-        <h2>Registrar Novo Projeto</h2>
+    <div class="formulario-container" id="container-form">
+        <h2 id="titulo-form">Registrar Novo Projeto</h2>
         <form id="form-carro">
+            <input type="hidden" id="input-id" value="">
+            <input type="hidden" id="input-senha-edicao-oculta" value="">
+            
             <input type="text" id="input-dono" placeholder="Nome do Dono" required>
             <input type="text" id="input-modelo" placeholder="Modelo do Carro" required>
             <div class="linha-inputs">
@@ -89,56 +104,117 @@
             </div>
             <input type="text" id="input-placa" placeholder="Placa (opcional)">
             <div class="linha-inputs">
-                <input type="text" id="input-suspensao" placeholder="Suspensão" required>
+                <select id="input-suspensao" required>
+                    <option value="" disabled selected hidden>SELECIONE A SUSPENSÃO</option>
+                    <option value="Fixa">Fixa</option>
+                    <option value="Ar">Ar</option>
+                    <option value="Rosca">Rosca</option>
+                </select>
                 <input type="number" id="input-aro" placeholder="Aro" required>
             </div>
-            
-            <label>Foto da Máquina:</label>
+            <label style="font-size: 0.7em; color: #555; text-transform: uppercase;">Foto da Máquina:</label>
             <input type="file" id="input-foto" accept="image/*">
             
-            <label>Senha para futuras edições/exclusão:</label>
-            <input type="password" id="input-senha" placeholder="Crie uma senha" required>
+            <div id="bloco-senha-cadastro">
+                <input type="password" id="input-senha" placeholder="Crie uma Senha para o Projeto" required>
+            </div>
             
-            <button type="submit">Estacionar na Garagem</button>
+            <button type="submit" id="btn-submit">Estacionar na Garagem</button>
         </form>
+    </div>
+
+    <div class="filtros-container">
+        <input type="text" id="filtro-modelo" placeholder="Modelo">
+        <select id="filtro-suspensao">
+            <option value="">TODAS AS SUSPENSÕES</option>
+            <option value="Fixa">Fixa</option>
+            <option value="Ar">Ar</option>
+            <option value="Rosca">Rosca</option>
+        </select>
+        <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
+        <button onclick="carregarGaragem()" style="width: auto; padding: 0 15px;">Buscar</button>
     </div>
     
     <div class="galeria" id="lista-carros"></div>
 
     <script>
         const API_URL = 'http://127.0.0.1:5000';
+        let todosCarros = []; 
 
         async function carregarGaragem() {
-            const resposta = await fetch(`${API_URL}/carros`);
-            const carros = await resposta.json();
+            const mod = document.getElementById('filtro-modelo').value;
+            const sus = document.getElementById('filtro-suspensao').value;
+            const aro = document.getElementById('filtro-aro').value;
+            const params = new URLSearchParams();
+            if(mod) params.append('modelo', mod);
+            if(sus) params.append('suspensao', sus);
+            if(aro) params.append('aro', aro);
+
+            const res = await fetch(`${API_URL}/carros?${params.toString()}`);
+            todosCarros = await res.json();
+            
             const galeria = document.getElementById('lista-carros');
             galeria.innerHTML = ''; 
 
-            carros.forEach(carro => {
-                const imgTag = carro.foto_url 
-                    ? `<img src="${API_URL}/uploads/${carro.foto_url}" class="foto-carro">` 
-                    : `<div class="foto-carro" style="display:flex;align-items:center;justify-content:center;color:#333">SEM FOTO</div>`;
+            todosCarros.forEach(carro => {
+                const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
+                const card = document.createElement('div');
+                card.className = 'carro-card';
+                card.innerHTML = `
+                    ${img ? `<img src="${img}" class="foto-carro">` : '<div class="foto-carro" style="display:flex;align-items:center;justify-content:center;color:#333">SEM FOTO</div>'}
+                    <div class="card-info">
+                        <h2 style="margin:0">${carro.modelo} (${carro.ano})</h2>
+                        <p class="specs">Proprietário: ${carro.nome_dono}</p>
+                        <p class="specs">Cor: ${carro.cor}</p>
+                        <p class="specs">Placa: ${carro.placa || '---'}</p>
+                        
+                        <p class="specs">
+                            <span style="display:block; margin-top:12px; color:#666; font-size:0.75em; font-weight:bold;">FICHA TÉCNICA:</span>
+                            <span class="destaque">ARO ${carro.aro_roda} | SUSPENSÃO ${carro.tipo_suspensao}</span>
+                        </p>
 
-                const card = `
-                    <div class="carro-card">
-                        ${imgTag}
-                        <div class="card-info">
-                            <h2 class="carro-modelo">${carro.modelo} (${carro.ano})</h2>
-                            <p class="specs">Dono: ${carro.nome_dono}</p>
-                            <p class="specs">Cor: ${carro.cor}</p>
-                            <p class="specs">Placa: ${carro.placa ? carro.placa : 'Não informada'}</p>
-                            <p class="specs">Setup: <span class="destaque">Aro ${carro.aro_roda} | Suspensão ${carro.tipo_suspensao}</span></p>
-                            <button class="btn-excluir" onclick="solicitarExclusao(${carro.id})">Remover Projeto</button>
-                        </div>
+                        <button class="btn-editar">Editar</button>
+                        <button class="btn-excluir">Remover</button>
                     </div>
                 `;
-                galeria.innerHTML += card;
+                
+                
+                card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
+                card.querySelector('.btn-excluir').onclick = () => solicitarExclusao(carro.id);
+                
+                galeria.appendChild(card);
             });
+        }
+
+        async function prepararEdicao(carro) {
+            const senha = prompt("ACESSO RESTRITO: Digite a senha do projeto para editar:");
+                if (senha === null || senha.trim() === "") {
+                    alert("Edição cancelada. A senha é obrigatória.");
+                    return;
+                }
+
+            document.getElementById('input-senha-edicao-oculta').value = senha;
+            document.getElementById('input-id').value = carro.id;
+            document.getElementById('input-dono').value = carro.nome_dono;
+            document.getElementById('input-modelo').value = carro.modelo;
+            document.getElementById('input-ano').value = carro.ano;
+            document.getElementById('input-cor').value = carro.cor;
+            document.getElementById('input-placa').value = carro.placa || '';
+            document.getElementById('input-suspensao').value = carro.tipo_suspensao;
+            document.getElementById('input-aro').value = carro.aro_roda;
+            document.getElementById('bloco-senha-cadastro').style.display = "none";
+            document.getElementById('input-senha').required = false;
+            document.getElementById('btn-submit').innerText = "Confirmar Alterações";
+            document.getElementById('titulo-form').innerText = "Editando Projeto";
+            document.getElementById('container-form').style.borderColor = "#ff4757";
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         document.getElementById('form-carro').addEventListener('submit', async function(e) {
             e.preventDefault();
-
+            const id = document.getElementById('input-id').value;
+            
             const formData = new FormData();
             formData.append('nome_dono', document.getElementById('input-dono').value);
             formData.append('modelo', document.getElementById('input-modelo').value);
@@ -147,42 +223,49 @@
             formData.append('placa', document.getElementById('input-placa').value);
             formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
             formData.append('aro_roda', document.getElementById('input-aro').value);
-            formData.append('senha_edicao', document.getElementById('input-senha').value);
             
-            const fotoArquivo = document.getElementById('input-foto').files[0];
-            if (fotoArquivo) {
-                formData.append('foto', fotoArquivo);
-            }
+            const senhaFinal = id ? document.getElementById('input-senha-edicao-oculta').value : document.getElementById('input-senha').value;
+            formData.append('senha_edicao', senhaFinal);
+            
+            const foto = document.getElementById('input-foto').files[0];
+            if (foto) formData.append('foto', foto);
 
-            const resposta = await fetch(`${API_URL}/carros`, {
-                method: 'POST',
-                body: formData 
-            });
+            const url = id ? `${API_URL}/carros/${id}` : `${API_URL}/carros`;
+            const metodo = id ? 'PUT' : 'POST';
 
-            if (resposta.ok) {
-                this.reset();
+            const res = await fetch(url, { method: metodo, body: formData });
+            
+            if (res.ok) {
+                alert("Operação realizada com sucesso!");
+                resetarFormulario();
                 carregarGaragem();
             } else {
-                alert("Erro ao salvar.");
+                const erro = await res.json();
+                alert("Erro: " + (erro.erro || "Senha incorreta"));
             }
         });
 
-        async function solicitarExclusao(id) {
-            const senha = prompt("Digite a senha do dono para remover este projeto:");
-            if (!senha) return;
+        function resetarFormulario() {
+            document.getElementById('form-carro').reset();
+            document.getElementById('input-id').value = "";
+            document.getElementById('input-senha-edicao-oculta').value = "";
+            document.getElementById('bloco-senha-cadastro').style.display = "block";
+            document.getElementById('input-senha').required = true;
+            document.getElementById('btn-submit').innerText = "Estacionar na Garagem";
+            document.getElementById('titulo-form').innerText = "Registrar Novo Projeto";
+            document.getElementById('container-form').style.borderColor = "#555";
+            document.getElementById('input-suspensao').selectedIndex = 0;
+        }
 
-            const resposta = await fetch(`${API_URL}/carros/${id}`, {
+        async function solicitarExclusao(id) {
+            const senha = prompt("Digite a senha do dono para remover:");
+            if (!senha) return;
+            const res = await fetch(`${API_URL}/carros/${id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ senha: senha })
+                body: JSON.stringify({ senha })
             });
-
-            if (resposta.ok) {
-                alert("Projeto removido com sucesso!");
-                carregarGaragem();
-            } else {
-                alert("Senha incorreta ou erro no servidor.");
-            }
+            if (res.ok) { carregarGaragem(); } else { alert("Senha incorreta"); }
         }
 
         carregarGaragem();
