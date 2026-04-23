@@ -25,24 +25,29 @@ O foco visual utiliza uma estética "low profile", escura e minimalista, inspira
 
 ### Registro de Projetos
 ![Interface de Registro](screenshots/01-registro-projeto.png)
+
 *O formulário de cadastro permite inserir as especificações técnicas e definir uma senha de proteção para o projeto.*
 
 ### Visualização de Cards (Ficha Técnica)
 ![Card Detalhado do Omega](screenshots/02-card-carro.png)
+
 *Os projetos são exibidos em cards padronizados, com destaque para a Ficha Técnica gerada dinamicamente.*
 
 ### Sistema de Filtros e Busca
 O sistema permite filtrar projetos por modelo, tipo de suspensão e tamanho do aro em tempo real.
 ![Filtros Dinâmicos em Ação](screenshots/03-resultado-pesquisa.png)
+
 *Exemplo de busca refinada retornando resultados específicos do banco de dados.*
 
 ### Edição Protegida
 Toda alteração nos dados do veículo exige a autenticação via senha definida no cadastro.
 ![Formulário de Edição](screenshots/04-editando-projeto.png)
+
 *O modo de edição destaca o formulário com uma borda diferenciada e altera o fluxo de salvamento do sistema.*
 
 ### Visão Geral do Sistema
 ![Página Completa](screenshots/05-pagina-completa.png)
+
 *Visão completa da aplicação, integrando cadastro, filtros e galeria.*
 
 ## 🚀 Como rodar o projeto na sua máquina
