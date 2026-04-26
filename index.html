@@ -124,6 +124,25 @@
             background-color: transparent;
         }
 
+        .abas-garagem {
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+        }
+
+        .abas-garagem button {
+            background-color: transparent;
+            border: 1px solid #333;
+            color: #888;
+        }
+
+        .abas-garagem button.ativo {
+            background-color: #ff4757;
+            border-color: #ff4757;
+            color: #fff;
+        }
+
         .conteudo-app {
             display: none;
         }
@@ -414,7 +433,8 @@
                 padding: 15px 10px;
             }
 
-            .auth-tabs {
+            .auth-tabs,
+            .abas-garagem {
                 flex-direction: column;
                 gap: 0;
             }
@@ -507,6 +527,16 @@
             </form>
         </div>
 
+        <div class="abas-garagem">
+            <button type="button" id="aba-todos" class="ativo" onclick="mostrarTodosProjetos()">
+                Todos os projetos
+            </button>
+
+            <button type="button" id="aba-meus" onclick="mostrarMeusProjetos()">
+                Meus projetos
+            </button>
+        </div>
+
         <div class="filtros-container">
             <input type="text" id="filtro-modelo" placeholder="Modelo">
 
@@ -534,6 +564,7 @@
     <script>
         const API_URL = 'http://127.0.0.1:5000';
         let todosCarros = []; 
+        let modoGaragem = "todos";
 
         function getUsuarioLogado() {
             const usuario = localStorage.getItem('usuarioLogado');
@@ -553,6 +584,24 @@
             }
 
             return String(carro.usuario_id) === String(usuario.id);
+        }
+
+        function mostrarTodosProjetos() {
+            modoGaragem = "todos";
+
+            document.getElementById('aba-todos').classList.add('ativo');
+            document.getElementById('aba-meus').classList.remove('ativo');
+
+            carregarGaragem();
+        }
+
+        function mostrarMeusProjetos() {
+            modoGaragem = "meus";
+
+            document.getElementById('aba-meus').classList.add('ativo');
+            document.getElementById('aba-todos').classList.remove('ativo');
+
+            carregarGaragem();
         }
 
         function atualizarTelaUsuario() {
@@ -674,6 +723,12 @@
             if (sus) params.append('suspensao', sus);
             if (aro) params.append('aro', aro);
 
+            const usuario = getUsuarioLogado();
+
+            if (modoGaragem === "meus" && usuario) {
+                params.append('usuario_id', usuario.id);
+            }
+
             try {
                 const res = await fetch(`${API_URL}/carros?${params.toString()}`);
                 todosCarros = await res.json();
@@ -684,7 +739,7 @@
                 if (!Array.isArray(todosCarros) || todosCarros.length === 0) {
                     galeria.innerHTML = `
                         <div style="text-align:center; color:#666; padding: 30px;">
-                            Nenhum projeto encontrado na garagem.
+                            ${modoGaragem === "meus" ? "Você ainda não cadastrou nenhum projeto." : "Nenhum projeto encontrado na garagem."}
                         </div>
                     `;
                     return;
