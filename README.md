@@ -1,8 +1,10 @@
 # Garagem Digital - Cultura da Lata 027 🚘
 
-Uma aplicação web Full Stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados e projetos em andamento.
+Uma aplicação web Full Stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados, daily cars e projetos em andamento.
 
-O projeto nasceu com a proposta de criar uma "garagem digital" fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica e a cultura automotiva local.
+O projeto nasceu com a proposta de criar uma **garagem digital** fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica, sua história e a cultura automotiva local.
+
+Atualmente, a aplicação evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva com cadastro de usuários, login, garagem pessoal, feed geral de projetos e controle de propriedade por usuário.
 
 A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
 
@@ -13,6 +15,7 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 - **Back-end:** Python + Flask
 - **Banco de Dados:** MySQL / MariaDB
 - **Front-end:** HTML5, CSS3 e JavaScript Vanilla
+- **Autenticação:** Cadastro e login de usuários
 - **Segurança:** Hash de senha com Werkzeug
 - **Upload:** Validação de imagem e nomes únicos com UUID
 - **Configuração:** Variáveis de ambiente com python-dotenv
@@ -22,11 +25,20 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 
 ## ⚙️ Funcionalidades
 
+- [x] **Cadastro de Usuários:** criação de contas com nome, email e senha.
+- [x] **Login de Usuários:** autenticação simples para acessar a aplicação.
+- [x] **Hash de Senha:** senhas dos usuários não são salvas em texto puro no banco.
 - [x] **Catálogo Dinâmico:** listagem de veículos consumindo API REST.
-- [x] **Cadastro de Projetos:** criação de novos veículos com ficha técnica.
-- [x] **Edição Protegida:** alteração de dados somente mediante senha definida no cadastro.
-- [x] **Exclusão Protegida:** remoção de projetos também protegida por senha.
-- [x] **Hash de Senha:** senhas não são salvas em texto puro no banco.
+- [x] **Feed Geral:** aba com todos os projetos cadastrados na plataforma.
+- [x] **Garagem Pessoal:** aba com apenas os projetos do usuário logado.
+- [x] **Cadastro de Projetos:** criação de veículos com ficha técnica completa.
+- [x] **Vínculo com Usuário:** cada projeto fica associado ao usuário que cadastrou.
+- [x] **Controle de Propriedade:** apenas o dono do projeto pode editar ou remover.
+- [x] **Selo de Identificação:** projetos do usuário logado exibem a tag “Seu projeto”.
+- [x] **Edição de Projetos:** alteração de dados do veículo pelo proprietário.
+- [x] **Exclusão de Projetos:** remoção permitida somente ao dono do projeto.
+- [x] **História do Projeto:** campo para descrição, modificações e proposta visual.
+- [x] **Visualização Detalhada:** modal com informações completas do carro.
 - [x] **Upload de Imagens:** envio de fotos via formulário.
 - [x] **Validação de Upload:** aceita apenas PNG, JPG, JPEG e WEBP.
 - [x] **Nome Único para Imagens:** evita sobrescrita de arquivos com UUID.
@@ -34,57 +46,75 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 - [x] **Filtros de Busca:** busca por modelo, tipo de suspensão e aro.
 - [x] **Mensagem de Lista Vazia:** feedback visual quando não há projetos encontrados.
 - [x] **Modo de Edição:** interface muda visualmente ao editar um projeto.
+- [x] **Interface Responsiva:** ajustes para melhor uso em dispositivos móveis.
+- [x] **Página Completa Documentada:** screenshot geral mostrando a aplicação em funcionamento.
 - [x] **SQL Limpo:** script de banco sem dados pessoais ou sensíveis.
 
 ---
 
 ## 📸 Interface e Demonstração
 
+### Cadastro e Login de Usuários
+
+![Cadastro e Login](screenshots/01-login-cadastro.png)
+
+*Área inicial da aplicação com autenticação de usuários.*
+
 ### Registro de Projetos
 
-![Interface de Registro](screenshots/01-registro-projeto.png)
+![Registro de Projeto](screenshots/02-registro-projeto.png)
 
-*Formulário de cadastro com ficha técnica, upload de imagem e senha de proteção do projeto.*
+*Formulário de cadastro com ficha técnica, upload de imagem e história do projeto.*
 
-### Visualização de Cards
+### Feed Geral de Projetos
 
-![Card Detalhado do Omega](screenshots/02-card-carro.png)
+![Feed Geral](screenshots/03-feed-geral.png)
 
-*Cards automotivos com imagem, proprietário, modelo, ano, cor, placa e ficha técnica.*
+*Aba com todos os projetos cadastrados na Garagem Digital.*
 
-### Sistema de Filtros
+### Garagem Pessoal
 
-![Filtros Dinâmicos em Ação](screenshots/03-resultado-pesquisa.png)
+![Garagem Pessoal](screenshots/04-meus-projetos.png)
 
-*Busca por modelo, tipo de suspensão e aro.*
+*Aba “Meus projetos”, exibindo apenas os veículos cadastrados pelo usuário logado.*
 
-### Edição Protegida
+### Visualização Detalhada
 
-![Formulário de Edição](screenshots/04-editando-projeto.png)
+![Visualização Detalhada](screenshots/05-visualizacao-detalhada.png)
 
-*Modo de edição protegido por senha, com alteração visual no formulário.*
+*Modal com imagem, ficha técnica completa e história do projeto.*
 
-### Visão Geral
+### Edição pelo Proprietário
 
-![Página Completa](screenshots/05-pagina-completa.png)
+![Edição de Projeto](screenshots/06-editando-projeto.png)
 
-*Visão completa da aplicação integrando cadastro, filtros e galeria.*
+*Modo de edição disponível apenas para o usuário proprietário do projeto.*
+
+### Página Completa
+
+![Página Completa](screenshots/07-pagina-completa.png)
+
+*Visão geral da aplicação com autenticação, cadastro de projetos, filtros e listagem da garagem.*
 
 ---
 
-## 🔐 Melhorias de Segurança
+## 🔐 Segurança e Controle de Acesso
 
-O projeto foi evoluído para aplicar boas práticas básicas de segurança:
+O projeto foi evoluído para aplicar boas práticas básicas de segurança e organização:
 
 - credenciais do banco removidas do código-fonte;
 - uso de arquivo `.env` para configuração local;
 - `.env` ignorado pelo Git;
 - `.env.example` disponível como modelo;
-- senhas armazenadas com hash;
+- senhas de usuários armazenadas com hash;
 - validação de formato de imagem no front-end e no back-end;
 - limite de tamanho para upload;
 - geração de nomes únicos para imagens;
-- remoção de dados pessoais do script SQL.
+- remoção de dados pessoais do script SQL;
+- vínculo de projetos ao usuário proprietário;
+- edição e exclusão permitidas apenas ao dono do projeto.
+
+> Observação: a autenticação atual é simples e adequada para fins de estudo/portfólio. Futuramente, o projeto pode evoluir para uso de sessões, tokens JWT ou outro modelo mais robusto de autenticação.
 
 ---
 
@@ -92,15 +122,17 @@ O projeto foi evoluído para aplicar boas práticas básicas de segurança:
 
 O projeto utiliza MySQL/MariaDB.
 
-O arquivo `garagem_digital.sql` cria automaticamente:
+O arquivo `garagem_digital.sql` cria a estrutura necessária para a aplicação, incluindo:
 
-- o banco `garagem_digital`;
-- a tabela `carros`;
-- os campos principais da ficha técnica;
-- campos de data `criado_em` e `atualizado_em`;
-- um dado fictício de demonstração.
+- banco `garagem_digital`;
+- tabela `usuarios`;
+- tabela `carros`;
+- relacionamento entre carros e usuários;
+- campos principais da ficha técnica;
+- campo de história/descrição do projeto;
+- campos de data `criado_em` e `atualizado_em`.
 
-> Observação: o dado inicial é apenas demonstrativo. Para testar edição e exclusão corretamente, recomenda-se cadastrar novos veículos pela aplicação, pois as senhas são geradas com hash no momento do cadastro.
+> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas e vínculos sejam salvos corretamente.
 
 ---
 
@@ -189,14 +221,18 @@ garagem-digital/
 
 Próximas evoluções planejadas:
 
-- [ ] Adicionar campo de descrição/história do projeto.
-- [ ] Criar visualização detalhada de cada carro.
+- [ ] Adicionar sistema de curtidas em projetos.
+- [ ] Adicionar comentários em projetos.
+- [ ] Criar perfis públicos de usuários.
+- [ ] Criar sistema de equipes/clubes automotivos.
+- [ ] Permitir que usuários adicionem carros a uma equipe.
+- [ ] Criar grupos para postagens, fotos e discussões.
 - [ ] Adicionar categorias como Antigo, Rebaixado, Turbo, Daily e Projeto em andamento.
 - [ ] Adicionar ordenação por mais recentes, ano, aro e modelo.
 - [ ] Separar CSS e JavaScript em arquivos próprios.
-- [ ] Melhorar responsividade mobile.
+- [ ] Melhorar autenticação com sessões ou tokens.
 - [ ] Criar deploy online.
-- [ ] Atualizar prints e gravar demonstração do sistema.
+- [ ] Gravar demonstração do sistema.
 
 ---
 
@@ -206,16 +242,20 @@ Durante o desenvolvimento, foram praticados conceitos como:
 
 - criação de API REST com Flask;
 - integração entre front-end, back-end e banco de dados;
+- autenticação básica de usuários;
+- relacionamento entre tabelas no banco de dados;
+- associação de registros ao usuário proprietário;
+- controle de permissão para edição e exclusão;
 - manipulação de formulários com `FormData`;
 - upload e armazenamento de arquivos;
 - consultas SQL com filtros dinâmicos;
-- proteção de operações com senha;
 - uso de hash para armazenamento seguro;
 - configuração de ambiente com `.env`;
-- organização de projeto para GitHub e portfólio.
+- organização de projeto para GitHub e portfólio;
+- evolução incremental de um CRUD para uma aplicação com características sociais.
 
 ---
 
 ## 👨‍💻 Autor
 
-Projeto desenvolvido por **Raul Ferreira** como parte dos estudos em Ciência da Computação na UVV, unindo desenvolvimento web, persistência de dados e cultura automotiva.
+Projeto desenvolvido por **Raul Ferreira** como parte dos estudos em Ciência da Computação na UVV, unindo desenvolvimento web, persistência de dados, aprendizado prático e cultura automotiva.
