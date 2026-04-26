@@ -19,6 +19,7 @@ CREATE TABLE carros (
     tipo_suspensao VARCHAR(50),
     aro_roda INT,
     foto_url VARCHAR(255),
+    historia TEXT,
     senha_edicao VARCHAR(255) NOT NULL,
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

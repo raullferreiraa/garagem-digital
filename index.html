@@ -42,7 +42,7 @@
             text-align: center; 
         }
         
-        input, button, select { 
+        input, button, select, textarea { 
             width: 100%; 
             padding: 12px; 
             margin-bottom: 15px; 
@@ -52,6 +52,12 @@
             font-family: inherit; 
             box-sizing: border-box; 
             text-transform: uppercase; 
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+            line-height: 1.5;
         }
 
         .linha-inputs { 
@@ -145,6 +151,27 @@
             letter-spacing: 0.5px;
         }
 
+        .historia-projeto {
+            margin-top: 16px;
+            padding: 14px;
+            border-left: 3px solid #ff4757;
+            background-color: #181818;
+            color: #bbb;
+            font-size: 0.9em;
+            line-height: 1.5;
+            text-transform: none;
+            letter-spacing: 0.2px;
+        }
+
+        .historia-projeto strong {
+            display: block;
+            color: #ff4757;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+        }
+
         .destaque { 
             color: #ff4757; 
             font-weight: 900; 
@@ -207,6 +234,8 @@
             </div>
 
             <input type="text" id="input-placa" placeholder="Placa (opcional)">
+
+            <textarea id="input-historia" placeholder="História do projeto, modificações, proposta visual..."></textarea>
 
             <div class="linha-inputs">
                 <select id="input-suspensao" required>
@@ -310,6 +339,13 @@
                                 </span>
                             </p>
 
+                            ${carro.historia ? `
+                                <div class="historia-projeto">
+                                    <strong>História do projeto</strong>
+                                    ${carro.historia}
+                                </div>
+                            ` : ''}
+
                             <button class="btn-editar">Editar</button>
                             <button class="btn-excluir">Remover</button>
                         </div>
@@ -342,6 +378,7 @@
             document.getElementById('input-ano').value = carro.ano;
             document.getElementById('input-cor').value = carro.cor;
             document.getElementById('input-placa').value = carro.placa || '';
+            document.getElementById('input-historia').value = carro.historia || '';
             document.getElementById('input-suspensao').value = carro.tipo_suspensao;
             document.getElementById('input-aro').value = carro.aro_roda;
 
@@ -370,6 +407,7 @@
             formData.append('ano', document.getElementById('input-ano').value);
             formData.append('cor', document.getElementById('input-cor').value.trim());
             formData.append('placa', document.getElementById('input-placa').value.trim());
+            formData.append('historia', document.getElementById('input-historia').value.trim());
             formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
             formData.append('aro_roda', document.getElementById('input-aro').value);
             
@@ -446,6 +484,7 @@
 
             document.getElementById('input-id').value = "";
             document.getElementById('input-senha-edicao-oculta').value = "";
+            document.getElementById('input-historia').value = "";
 
             document.getElementById('bloco-senha-cadastro').style.display = "block";
             document.getElementById('input-senha').required = true;

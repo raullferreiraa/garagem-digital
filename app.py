@@ -67,7 +67,7 @@ def listar_carros():
 
         sql = """
             SELECT id, nome_dono, modelo, ano, cor, placa,
-                   tipo_suspensao, aro_roda, foto_url
+                   tipo_suspensao, aro_roda, foto_url, historia
             FROM carros
             WHERE 1=1
         """
@@ -100,6 +100,7 @@ def listar_carros():
 @app.route('/carros', methods=['POST'])
 def cadastrar_carro():
     dados = request.form
+    historia = dados.get('historia', '')
     senha = dados.get('senha_edicao')
 
     if not senha or senha.strip() == "":
@@ -116,9 +117,9 @@ def cadastrar_carro():
         sql = """
             INSERT INTO carros (
                 nome_dono, modelo, ano, cor, placa,
-                tipo_suspensao, aro_roda, foto_url, senha_edicao
+                tipo_suspensao, aro_roda, foto_url, historia, senha_edicao
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(sql, (
@@ -130,6 +131,7 @@ def cadastrar_carro():
             dados['tipo_suspensao'],
             dados['aro_roda'],
             nome_foto,
+            historia,
             senha_hash
         ))
 
@@ -150,6 +152,7 @@ def cadastrar_carro():
 @app.route('/carros/<int:id>', methods=['PUT'])
 def editar_carro(id):
     dados = request.form
+    historia = dados.get('historia', '')
     senha_cliente = str(dados.get('senha_edicao', '')).strip()
 
     try:
@@ -186,7 +189,8 @@ def editar_carro(id):
                 placa=%s,
                 tipo_suspensao=%s,
                 aro_roda=%s,
-                foto_url=%s
+                foto_url=%s,
+                historia=%s
             WHERE id=%s
         """
 
@@ -199,6 +203,7 @@ def editar_carro(id):
             dados['tipo_suspensao'],
             dados['aro_roda'],
             nome_foto,
+            historia,
             id
         ))
 
