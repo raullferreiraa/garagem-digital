@@ -3,6 +3,9 @@ from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import mysql.connector
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
@@ -11,10 +14,10 @@ UPLOAD_FOLDER = 'uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 db_config = {
-    'host': 'localhost',
-    'user': 'root',
-    'password': '', 
-    'database': 'garagem_digital'
+    'host': os.getenv('DB_HOST'),
+    'user': os.getenv('DB_USER'),
+    'password': os.getenv('DB_PASSWORD'),
+    'database': os.getenv('DB_NAME')
 }
 
 @app.route('/uploads/<filename>')
@@ -130,5 +133,8 @@ def excluir_carro(id):
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
+
+    debug_mode = os.getenv("DEBUG") == "True"
+
     print("SERVIÇO DA GARAGEM LIGADO NA PORTA 5000!")
-    app.run(debug=True)
+    app.run(debug=debug_mode)

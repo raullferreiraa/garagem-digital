@@ -1,3 +1,12 @@
-uploads/
 __pycache__/
-venv/
+*.pyc
+
+.env
+
+uploads/
+
+.DS_Store
+Thumbs.db
+
+.vscode/
+.idea/
