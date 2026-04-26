@@ -202,14 +202,28 @@
             letter-spacing: 0.5px;
         }
 
+        .titulo-card {
+            position: relative;
+        }
+
+        .titulo-card h2 {
+            padding-right: 115px;
+        }
+
         .dono-badge {
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
             display: inline-block;
-            margin-top: 8px;
             padding: 5px 9px;
             border: 1px solid #ff4757;
             color: #ff4757;
-            font-size: 0.7em;
+            background-color: #181818;
+            font-size: 0.62em;
             font-weight: bold;
+            letter-spacing: 0.8px;
+            white-space: nowrap;
         }
 
         .historia-projeto {
@@ -403,6 +417,16 @@
             .auth-tabs {
                 flex-direction: column;
                 gap: 0;
+            }
+
+            .titulo-card h2 {
+                padding-right: 0;
+            }
+
+            .dono-badge {
+                position: static;
+                transform: none;
+                margin: 8px 0 0 10px;
             }
         }
     </style>
@@ -677,12 +701,12 @@
                         ${img ? `<img src="${img}" class="foto-carro">` : '<div class="foto-carro" style="display:flex;align-items:center;justify-content:center;color:#333">SEM FOTO</div>'}
 
                         <div class="card-info">
-                            <h2 style="margin:0">${carro.modelo} (${carro.ano})</h2>
+                            <div class="titulo-card">
+                                <h2 style="margin:0">${carro.modelo} (${carro.ano})</h2>
+                                ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
+                            </div>
 
                             <p class="specs">Proprietário: ${carro.nome_dono}</p>
-
-                            ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
-
                             <p class="specs">Cor: ${carro.cor}</p>
                             <p class="specs">Placa: ${carro.placa || '---'}</p>
                             
