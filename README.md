@@ -1,73 +1,112 @@
 # Garagem Digital - Cultura da Lata 027 🚘
 
-Uma aplicação web Full Stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua (antigos, rebaixados e modificados), fora dos algoritmos das redes sociais tradicionais. 
+Uma aplicação web Full Stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados e projetos em andamento.
 
-O foco visual utiliza uma estética "low profile", escura e minimalista, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
+O projeto nasceu com a proposta de criar uma "garagem digital" fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica e a cultura automotiva local.
+
+A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
+
+---
 
 ## 🛠️ Tecnologias Utilizadas
 
-* **Back-end:** Python + Flask (API RESTful)
-* **Banco de Dados:** MySQL (Relacional)
-* **Front-end:** HTML5, CSS3 (Modern Sans-Serif) e JavaScript (Vanilla)
-* **Controle de Versão:** Git / GitHub
+- **Back-end:** Python + Flask
+- **Banco de Dados:** MySQL / MariaDB
+- **Front-end:** HTML5, CSS3 e JavaScript Vanilla
+- **Segurança:** Hash de senha com Werkzeug
+- **Upload:** Validação de imagem e nomes únicos com UUID
+- **Configuração:** Variáveis de ambiente com python-dotenv
+- **Controle de Versão:** Git / GitHub
 
-## ⚙️ Funcionalidades (O Motor)
+---
 
-- [x] **Catálogo Dinâmico:** Listagem de veículos consumindo API REST com renderização dinâmica no Front-end.
-- [x] **Ficha Técnica Detalhada:** Exibição padronizada de especificações como Aro e Tipo de Suspensão.
-- [x] **Cadastro de Projetos (POST):** Inserção de dados técnicos e validação de campos obrigatórios.
-- [x] **Edição de Projetos (PUT):** Interface para atualizar dados de um veículo existente, protegida por validação de senha do proprietário.
-- [x] **Exclusão de Projetos (DELETE):** Remoção definitiva de registros do banco de dados, também protegida por senha.
-- [x] **Upload de Imagens:** Processamento de arquivos via `multipart/form-data` e armazenamento no servidor.
-- [x] **Filtros de Busca:** Sistema de filtragem por modelo, tipo de suspensão e tamanho do aro.
+## ⚙️ Funcionalidades
+
+- [x] **Catálogo Dinâmico:** listagem de veículos consumindo API REST.
+- [x] **Cadastro de Projetos:** criação de novos veículos com ficha técnica.
+- [x] **Edição Protegida:** alteração de dados somente mediante senha definida no cadastro.
+- [x] **Exclusão Protegida:** remoção de projetos também protegida por senha.
+- [x] **Hash de Senha:** senhas não são salvas em texto puro no banco.
+- [x] **Upload de Imagens:** envio de fotos via formulário.
+- [x] **Validação de Upload:** aceita apenas PNG, JPG, JPEG e WEBP.
+- [x] **Nome Único para Imagens:** evita sobrescrita de arquivos com UUID.
+- [x] **Limite de Upload:** arquivos limitados a 5 MB.
+- [x] **Filtros de Busca:** busca por modelo, tipo de suspensão e aro.
+- [x] **Mensagem de Lista Vazia:** feedback visual quando não há projetos encontrados.
+- [x] **Modo de Edição:** interface muda visualmente ao editar um projeto.
+- [x] **SQL Limpo:** script de banco sem dados pessoais ou sensíveis.
+
+---
 
 ## 📸 Interface e Demonstração
 
 ### Registro de Projetos
+
 ![Interface de Registro](screenshots/01-registro-projeto.png)
 
-*O formulário de cadastro permite inserir as especificações técnicas e definir uma senha de proteção para o projeto.*
+*Formulário de cadastro com ficha técnica, upload de imagem e senha de proteção do projeto.*
 
-### Visualização de Cards (Ficha Técnica)
+### Visualização de Cards
+
 ![Card Detalhado do Omega](screenshots/02-card-carro.png)
 
-*Os projetos são exibidos em cards padronizados, com destaque para a Ficha Técnica gerada dinamicamente.*
+*Cards automotivos com imagem, proprietário, modelo, ano, cor, placa e ficha técnica.*
 
-### Sistema de Filtros e Busca
-O sistema permite filtrar projetos por modelo, tipo de suspensão e tamanho do aro em tempo real.
+### Sistema de Filtros
+
 ![Filtros Dinâmicos em Ação](screenshots/03-resultado-pesquisa.png)
 
-*Exemplo de busca refinada retornando resultados específicos do banco de dados.*
+*Busca por modelo, tipo de suspensão e aro.*
 
 ### Edição Protegida
-Toda alteração nos dados do veículo exige a autenticação via senha definida no cadastro.
+
 ![Formulário de Edição](screenshots/04-editando-projeto.png)
 
-*O modo de edição destaca o formulário com uma borda diferenciada e altera o fluxo de salvamento do sistema.*
+*Modo de edição protegido por senha, com alteração visual no formulário.*
 
-### Visão Geral do Sistema
+### Visão Geral
+
 ![Página Completa](screenshots/05-pagina-completa.png)
 
-*Visão completa da aplicação, integrando cadastro, filtros e galeria.*
+*Visão completa da aplicação integrando cadastro, filtros e galeria.*
+
+---
+
+## 🔐 Melhorias de Segurança
+
+O projeto foi evoluído para aplicar boas práticas básicas de segurança:
+
+- credenciais do banco removidas do código-fonte;
+- uso de arquivo `.env` para configuração local;
+- `.env` ignorado pelo Git;
+- `.env.example` disponível como modelo;
+- senhas armazenadas com hash;
+- validação de formato de imagem no front-end e no back-end;
+- limite de tamanho para upload;
+- geração de nomes únicos para imagens;
+- remoção de dados pessoais do script SQL.
+
+---
+
+## 🗄️ Banco de Dados
+
+O projeto utiliza MySQL/MariaDB.
+
+O arquivo `garagem_digital.sql` cria automaticamente:
+
+- o banco `garagem_digital`;
+- a tabela `carros`;
+- os campos principais da ficha técnica;
+- campos de data `criado_em` e `atualizado_em`;
+- um dado fictício de demonstração.
+
+> Observação: o dado inicial é apenas demonstrativo. Para testar edição e exclusão corretamente, recomenda-se cadastrar novos veículos pela aplicação, pois as senhas são geradas com hash no momento do cadastro.
+
+---
 
 ## 🚀 Como rodar o projeto na sua máquina
 
-1. **Clone este repositório:**
-   `git clone https://github.com/raullferreiraa/garagem-digital.git`
+### 1. Clone este repositório
 
-2. **Banco de Dados:**
-   Importe o arquivo `garagem_digital.sql` (incluso na raiz) no seu MySQL (via phpMyAdmin ou terminal) para estruturar a tabela `carros` automaticamente.
-
-3. **Dependências do Python:**
-   Instale as bibliotecas necessárias:
-   `pip install flask mysql-connector-python flask-cors werkzeug`
-
-4. **Inicie o servidor:**
-   Execute o comando: `python app.py`
-   *(O sistema criará a pasta `uploads` automaticamente se ela não existir).*
-
-5. **Acesse a Garagem:**
-   Abra o arquivo `index.html` diretamente no seu navegador.
-
----
-*Projeto desenvolvido por Raul Ferreira como parte dos estudos de Ciência da Computação na UVV, focado em integração de sistemas e persistência de dados.*
+```bash
+git clone https://github.com/raullferreiraa/garagem-digital.git
