@@ -110,3 +110,112 @@ O arquivo `garagem_digital.sql` cria automaticamente:
 
 ```bash
 git clone https://github.com/raullferreiraa/garagem-digital.git
+```
+
+### 2. Acesse a pasta do projeto
+
+```bash
+cd garagem-digital
+```
+
+### 3. Instale as dependências
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Configure as variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
+
+Exemplo:
+
+```env
+DB_HOST=localhost
+DB_USER=root
+DB_PASSWORD=
+DB_NAME=garagem_digital
+
+DEBUG=True
+```
+
+### 5. Configure o banco de dados
+
+Importe o arquivo:
+
+```txt
+garagem_digital.sql
+```
+
+Você pode importar pelo phpMyAdmin ou pelo terminal do MySQL.
+
+### 6. Inicie o servidor Flask
+
+```bash
+python app.py
+```
+
+O servidor será iniciado em:
+
+```txt
+http://127.0.0.1:5000
+```
+
+### 7. Acesse a aplicação
+
+Abra o arquivo `index.html` diretamente no navegador.
+
+---
+
+## 📁 Estrutura do Projeto
+
+```txt
+garagem-digital/
+├── app.py
+├── index.html
+├── garagem_digital.sql
+├── requirements.txt
+├── .env.example
+├── .gitignore
+├── screenshots/
+└── uploads/
+```
+
+> A pasta `uploads/` é criada automaticamente durante a execução do projeto e não é versionada no GitHub.
+
+---
+
+## 🧭 Roadmap
+
+Próximas evoluções planejadas:
+
+- [ ] Adicionar campo de descrição/história do projeto.
+- [ ] Criar visualização detalhada de cada carro.
+- [ ] Adicionar categorias como Antigo, Rebaixado, Turbo, Daily e Projeto em andamento.
+- [ ] Adicionar ordenação por mais recentes, ano, aro e modelo.
+- [ ] Separar CSS e JavaScript em arquivos próprios.
+- [ ] Melhorar responsividade mobile.
+- [ ] Criar deploy online.
+- [ ] Atualizar prints e gravar demonstração do sistema.
+
+---
+
+## 🎯 Aprendizados
+
+Durante o desenvolvimento, foram praticados conceitos como:
+
+- criação de API REST com Flask;
+- integração entre front-end, back-end e banco de dados;
+- manipulação de formulários com `FormData`;
+- upload e armazenamento de arquivos;
+- consultas SQL com filtros dinâmicos;
+- proteção de operações com senha;
+- uso de hash para armazenamento seguro;
+- configuração de ambiente com `.env`;
+- organização de projeto para GitHub e portfólio.
+
+---
+
+## 👨‍💻 Autor
+
+Projeto desenvolvido por **Raul Ferreira** como parte dos estudos em Ciência da Computação na UVV, unindo desenvolvimento web, persistência de dados e cultura automotiva.
