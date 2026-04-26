@@ -25,23 +25,13 @@
             margin-bottom: 40px;
         }
 
-        .formulario-container { 
-            background-color: #1e1e1e; 
-            border: 1px dashed #555; 
-            padding: 20px; 
-            border-radius: 4px; 
-            max-width: 600px; 
-            margin: 0 auto 40px auto; 
-            transition: 0.3s; 
-        }
-
         h2 { 
             font-size: 1.1em; 
             color: #aaa; 
             text-transform: uppercase; 
             text-align: center; 
         }
-        
+
         input, button, select, textarea { 
             width: 100%; 
             padding: 12px; 
@@ -60,11 +50,6 @@
             line-height: 1.5;
         }
 
-        .linha-inputs { 
-            display: flex; 
-            gap: 10px; 
-        }
-        
         button { 
             background-color: #ff4757; 
             color: white; 
@@ -80,6 +65,72 @@
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+        }
+
+        .auth-container,
+        .formulario-container { 
+            background-color: #1e1e1e; 
+            border: 1px dashed #555; 
+            padding: 20px; 
+            border-radius: 4px; 
+            max-width: 600px; 
+            margin: 0 auto 40px auto; 
+            transition: 0.3s; 
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .auth-tabs button {
+            background-color: transparent;
+            border: 1px solid #333;
+            color: #888;
+        }
+
+        .auth-tabs button.ativo {
+            background-color: #ff4757;
+            border-color: #ff4757;
+            color: #fff;
+        }
+
+        .usuario-barra {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto 25px auto;
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            padding: 15px;
+            box-sizing: border-box;
+            text-transform: uppercase;
+        }
+
+        .usuario-barra strong {
+            color: #ff4757;
+        }
+
+        .usuario-barra button {
+            margin-top: 12px;
+            background-color: transparent;
+            border: 1px solid #555;
+            color: #aaa;
+        }
+
+        .usuario-barra button:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+            background-color: transparent;
+        }
+
+        .conteudo-app {
+            display: none;
+        }
+
+        .linha-inputs { 
+            display: flex; 
+            gap: 10px; 
         }
 
         #btn-cancelar-edicao {
@@ -338,6 +389,11 @@
             .modal {
                 padding: 15px 10px;
             }
+
+            .auth-tabs {
+                flex-direction: column;
+                gap: 0;
+            }
         }
     </style>
 </head>
@@ -345,69 +401,102 @@
 
     <h1>Garagem Digital</h1>
 
-    <div class="formulario-container" id="container-form">
-        <h2 id="titulo-form">Registrar Novo Projeto</h2>
+    <div class="auth-container" id="auth-container">
+        <div class="auth-tabs">
+            <button type="button" id="tab-login" class="ativo" onclick="mostrarLogin()">Login</button>
+            <button type="button" id="tab-cadastro" onclick="mostrarCadastro()">Cadastro</button>
+        </div>
 
-        <form id="form-carro">
-            <input type="hidden" id="input-id" value="">
-            <input type="hidden" id="input-senha-edicao-oculta" value="">
-            
-            <input type="text" id="input-dono" placeholder="Nome do Dono" required>
-            <input type="text" id="input-modelo" placeholder="Modelo do Carro" required>
+        <div id="area-login">
+            <h2>Entrar na Garagem</h2>
 
-            <div class="linha-inputs">
-                <input type="number" id="input-ano" placeholder="Ano" required>
-                <input type="text" id="input-cor" placeholder="Cor" required>
-            </div>
+            <input type="email" id="login-email" placeholder="Email">
+            <input type="password" id="login-senha" placeholder="Senha">
 
-            <input type="text" id="input-placa" placeholder="Placa (opcional)">
+            <button type="button" onclick="loginUsuario()">Entrar</button>
+        </div>
 
-            <textarea id="input-historia" placeholder="História do projeto, modificações, proposta visual..."></textarea>
+        <div id="area-cadastro" style="display: none;">
+            <h2>Criar Conta</h2>
 
-            <div class="linha-inputs">
-                <select id="input-suspensao" required>
-                    <option value="" disabled selected hidden>SELECIONE A SUSPENSÃO</option>
-                    <option value="Fixa">Fixa</option>
-                    <option value="Ar">Ar</option>
-                    <option value="Rosca">Rosca</option>
-                </select>
+            <input type="text" id="cadastro-nome" placeholder="Nome">
+            <input type="email" id="cadastro-email" placeholder="Email">
+            <input type="password" id="cadastro-senha" placeholder="Senha">
 
-                <input type="number" id="input-aro" placeholder="Aro" required>
-            </div>
-
-            <label style="font-size: 0.7em; color: #555; text-transform: uppercase;">
-                Foto da Máquina:
-            </label>
-
-            <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
-            
-            <div id="bloco-senha-cadastro">
-                <input type="password" id="input-senha" placeholder="Crie uma Senha para o Projeto" required>
-            </div>
-            
-            <button type="submit" id="btn-submit">Estacionar na Garagem</button>
-            <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
-        </form>
+            <button type="button" onclick="cadastrarUsuario()">Cadastrar</button>
+        </div>
     </div>
 
-    <div class="filtros-container">
-        <input type="text" id="filtro-modelo" placeholder="Modelo">
-
-        <select id="filtro-suspensao">
-            <option value="">TODAS AS SUSPENSÕES</option>
-            <option value="Fixa">Fixa</option>
-            <option value="Ar">Ar</option>
-            <option value="Rosca">Rosca</option>
-        </select>
-
-        <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
-
-        <button onclick="carregarGaragem()" style="width: auto; padding: 0 15px;">
-            Buscar
-        </button>
+    <div class="usuario-barra" id="usuario-barra">
+        Logado como <strong id="usuario-nome"></strong>
+        <button type="button" onclick="sair()">Sair</button>
     </div>
-    
-    <div class="galeria" id="lista-carros"></div>
+
+    <div class="conteudo-app" id="conteudo-app">
+        <div class="formulario-container" id="container-form">
+            <h2 id="titulo-form">Registrar Novo Projeto</h2>
+
+            <form id="form-carro">
+                <input type="hidden" id="input-id" value="">
+                <input type="hidden" id="input-senha-edicao-oculta" value="">
+                
+                <input type="text" id="input-dono" placeholder="Nome do Dono" required>
+                <input type="text" id="input-modelo" placeholder="Modelo do Carro" required>
+
+                <div class="linha-inputs">
+                    <input type="number" id="input-ano" placeholder="Ano" required>
+                    <input type="text" id="input-cor" placeholder="Cor" required>
+                </div>
+
+                <input type="text" id="input-placa" placeholder="Placa (opcional)">
+
+                <textarea id="input-historia" placeholder="História do projeto, modificações, proposta visual..."></textarea>
+
+                <div class="linha-inputs">
+                    <select id="input-suspensao" required>
+                        <option value="" disabled selected hidden>SELECIONE A SUSPENSÃO</option>
+                        <option value="Fixa">Fixa</option>
+                        <option value="Ar">Ar</option>
+                        <option value="Rosca">Rosca</option>
+                    </select>
+
+                    <input type="number" id="input-aro" placeholder="Aro" required>
+                </div>
+
+                <label style="font-size: 0.7em; color: #555; text-transform: uppercase;">
+                    Foto da Máquina:
+                </label>
+
+                <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
+                
+                <div id="bloco-senha-cadastro">
+                    <input type="password" id="input-senha" placeholder="Crie uma Senha para o Projeto" required>
+                </div>
+                
+                <button type="submit" id="btn-submit">Estacionar na Garagem</button>
+                <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
+            </form>
+        </div>
+
+        <div class="filtros-container">
+            <input type="text" id="filtro-modelo" placeholder="Modelo">
+
+            <select id="filtro-suspensao">
+                <option value="">TODAS AS SUSPENSÕES</option>
+                <option value="Fixa">Fixa</option>
+                <option value="Ar">Ar</option>
+                <option value="Rosca">Rosca</option>
+            </select>
+
+            <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
+
+            <button onclick="carregarGaragem()" style="width: auto; padding: 0 15px;">
+                Buscar
+            </button>
+        </div>
+        
+        <div class="galeria" id="lista-carros"></div>
+    </div>
 
     <div id="modal-projeto" class="modal">
         <div class="modal-content" id="modal-content"></div>
@@ -416,6 +505,124 @@
     <script>
         const API_URL = 'http://127.0.0.1:5000';
         let todosCarros = []; 
+
+        function getUsuarioLogado() {
+            const usuario = localStorage.getItem('usuarioLogado');
+
+            if (!usuario) {
+                return null;
+            }
+
+            return JSON.parse(usuario);
+        }
+
+        function atualizarTelaUsuario() {
+            const usuario = getUsuarioLogado();
+
+            if (usuario) {
+                document.getElementById('auth-container').style.display = "none";
+                document.getElementById('usuario-barra').style.display = "block";
+                document.getElementById('conteudo-app').style.display = "block";
+                document.getElementById('usuario-nome').innerText = usuario.nome;
+                document.getElementById('input-dono').value = usuario.nome;
+
+                carregarGaragem();
+            } else {
+                document.getElementById('auth-container').style.display = "block";
+                document.getElementById('usuario-barra').style.display = "none";
+                document.getElementById('conteudo-app').style.display = "none";
+            }
+        }
+
+        function mostrarLogin() {
+            document.getElementById('area-login').style.display = "block";
+            document.getElementById('area-cadastro').style.display = "none";
+            document.getElementById('tab-login').classList.add('ativo');
+            document.getElementById('tab-cadastro').classList.remove('ativo');
+        }
+
+        function mostrarCadastro() {
+            document.getElementById('area-login').style.display = "none";
+            document.getElementById('area-cadastro').style.display = "block";
+            document.getElementById('tab-login').classList.remove('ativo');
+            document.getElementById('tab-cadastro').classList.add('ativo');
+        }
+
+        async function cadastrarUsuario() {
+            const nome = document.getElementById('cadastro-nome').value.trim();
+            const email = document.getElementById('cadastro-email').value.trim();
+            const senha = document.getElementById('cadastro-senha').value.trim();
+
+            if (!nome || !email || !senha) {
+                alert("Preencha nome, email e senha.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/cadastro`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nome, email, senha })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    alert("Conta criada com sucesso! Agora faça login.");
+                    mostrarLogin();
+                    document.getElementById('login-email').value = email;
+                    document.getElementById('login-senha').value = "";
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível criar a conta."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
+        async function loginUsuario() {
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-senha').value.trim();
+
+            if (!email || !senha) {
+                alert("Preencha email e senha.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
+                    alert("Login realizado com sucesso!");
+                    atualizarTelaUsuario();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível fazer login."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
+        function sair() {
+            localStorage.removeItem('usuarioLogado');
+            resetarFormulario();
+            atualizarTelaUsuario();
+        }
 
         async function carregarGaragem() {
             const mod = document.getElementById('filtro-modelo').value;
@@ -603,11 +810,19 @@
         document.getElementById('form-carro').addEventListener('submit', async function(e) {
             e.preventDefault();
 
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para cadastrar um projeto.");
+                return;
+            }
+
             const btnSubmit = document.getElementById('btn-submit');
             const id = document.getElementById('input-id').value;
             
             const formData = new FormData();
 
+            formData.append('usuario_id', usuario.id);
             formData.append('nome_dono', document.getElementById('input-dono').value.trim());
             formData.append('modelo', document.getElementById('input-modelo').value.trim());
             formData.append('ano', document.getElementById('input-ano').value);
@@ -686,11 +901,17 @@
         });
 
         function resetarFormulario() {
+            const usuario = getUsuarioLogado();
+
             document.getElementById('form-carro').reset();
 
             document.getElementById('input-id').value = "";
             document.getElementById('input-senha-edicao-oculta').value = "";
             document.getElementById('input-historia').value = "";
+
+            if (usuario) {
+                document.getElementById('input-dono').value = usuario.nome;
+            }
 
             document.getElementById('bloco-senha-cadastro').style.display = "block";
             document.getElementById('input-senha').required = true;
@@ -744,7 +965,7 @@
             }
         }
 
-        carregarGaragem();
+        atualizarTelaUsuario();
     </script>
 </body>
 </html>

@@ -55,6 +55,93 @@ def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 
+@app.route('/usuarios/cadastro', methods=['POST'])
+def cadastrar_usuario():
+    dados = request.json
+
+    nome = str(dados.get('nome', '')).strip()
+    email = str(dados.get('email', '')).strip().lower()
+    senha = str(dados.get('senha', '')).strip()
+
+    if not nome or not email or not senha:
+        return jsonify({"erro": "Preencha nome, email e senha."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM usuarios WHERE email = %s", (email,))
+        usuario_existente = cursor.fetchone()
+
+        if usuario_existente:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Este email já está cadastrado."}), 400
+
+        senha_hash = generate_password_hash(senha)
+
+        cursor.execute(
+            """
+            INSERT INTO usuarios (nome, email, senha)
+            VALUES (%s, %s, %s)
+            """,
+            (nome, email, senha_hash)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Usuário cadastrado com sucesso!"}), 201
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/usuarios/login', methods=['POST'])
+def login_usuario():
+    dados = request.json
+
+    email = str(dados.get('email', '')).strip().lower()
+    senha = str(dados.get('senha', '')).strip()
+
+    if not email or not senha:
+        return jsonify({"erro": "Preencha email e senha."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute(
+            "SELECT id, nome, email, senha FROM usuarios WHERE email = %s",
+            (email,)
+        )
+
+        usuario = cursor.fetchone()
+
+        cursor.close()
+        conexao.close()
+
+        if not usuario:
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        if not check_password_hash(usuario['senha'], senha):
+            return jsonify({"erro": "Senha incorreta."}), 403
+
+        return jsonify({
+            "mensagem": "Login realizado com sucesso!",
+            "usuario": {
+                "id": usuario['id'],
+                "nome": usuario['nome'],
+                "email": usuario['email']
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
 @app.route('/carros', methods=['GET'])
 def listar_carros():
     filtro_modelo = request.args.get('modelo', '')
@@ -66,7 +153,7 @@ def listar_carros():
         cursor = conexao.cursor(dictionary=True)
 
         sql = """
-            SELECT id, nome_dono, modelo, ano, cor, placa,
+            SELECT id, usuario_id, nome_dono, modelo, ano, cor, placa,
                    tipo_suspensao, aro_roda, foto_url, historia
             FROM carros
             WHERE 1=1
@@ -102,6 +189,7 @@ def cadastrar_carro():
     dados = request.form
     historia = dados.get('historia', '')
     senha = dados.get('senha_edicao')
+    usuario_id = dados.get('usuario_id')
 
     if not senha or senha.strip() == "":
         return jsonify({"erro": "Defina uma senha!"}), 400
@@ -116,13 +204,14 @@ def cadastrar_carro():
 
         sql = """
             INSERT INTO carros (
-                nome_dono, modelo, ano, cor, placa,
+                usuario_id, nome_dono, modelo, ano, cor, placa,
                 tipo_suspensao, aro_roda, foto_url, historia, senha_edicao
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(sql, (
+            usuario_id if usuario_id else None,
             dados['nome_dono'],
             dados['modelo'],
             dados['ano'],

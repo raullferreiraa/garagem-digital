@@ -39,7 +39,9 @@ INSERT INTO carros (
     tipo_suspensao,
     aro_roda,
     foto_url,
-    senha_edicao
+    senha_edicao,
+    usuario_id INT,
+    FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL
 ) VALUES
 (
     'Dono Exemplo',
@@ -51,4 +53,13 @@ INSERT INTO carros (
     15,
     '',
     'scrypt:32768:8:1$exemplo$hashdemonstrativo'
+);
+
+CREATE TABLE usuarios (
+    id INT NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    senha VARCHAR(255) NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id)
 );
