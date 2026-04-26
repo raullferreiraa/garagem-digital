@@ -202,6 +202,16 @@
             letter-spacing: 0.5px;
         }
 
+        .dono-badge {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 5px 9px;
+            border: 1px solid #ff4757;
+            color: #ff4757;
+            font-size: 0.7em;
+            font-weight: bold;
+        }
+
         .historia-projeto {
             margin-top: 16px;
             padding: 14px;
@@ -438,7 +448,6 @@
 
             <form id="form-carro">
                 <input type="hidden" id="input-id" value="">
-                <input type="hidden" id="input-senha-edicao-oculta" value="">
                 
                 <input type="text" id="input-dono" placeholder="Nome do Dono" required>
                 <input type="text" id="input-modelo" placeholder="Modelo do Carro" required>
@@ -468,10 +477,6 @@
                 </label>
 
                 <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
-                
-                <div id="bloco-senha-cadastro">
-                    <input type="password" id="input-senha" placeholder="Crie uma Senha para o Projeto" required>
-                </div>
                 
                 <button type="submit" id="btn-submit">Estacionar na Garagem</button>
                 <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
@@ -514,6 +519,16 @@
             }
 
             return JSON.parse(usuario);
+        }
+
+        function usuarioEDono(carro) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                return false;
+            }
+
+            return String(carro.usuario_id) === String(usuario.id);
         }
 
         function atualizarTelaUsuario() {
@@ -654,6 +669,7 @@
                 todosCarros.forEach(carro => {
                     const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
                     const card = document.createElement('div');
+                    const dono = usuarioEDono(carro);
 
                     card.className = 'carro-card';
 
@@ -664,6 +680,9 @@
                             <h2 style="margin:0">${carro.modelo} (${carro.ano})</h2>
 
                             <p class="specs">Proprietário: ${carro.nome_dono}</p>
+
+                            ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
+
                             <p class="specs">Cor: ${carro.cor}</p>
                             <p class="specs">Placa: ${carro.placa || '---'}</p>
                             
@@ -685,14 +704,20 @@
                             ` : ''}
 
                             <button class="btn-ver">Ver projeto</button>
-                            <button class="btn-editar">Editar</button>
-                            <button class="btn-excluir">Remover</button>
+
+                            ${dono ? `
+                                <button class="btn-editar">Editar</button>
+                                <button class="btn-excluir">Remover</button>
+                            ` : ''}
                         </div>
                     `;
                     
                     card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
-                    card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
-                    card.querySelector('.btn-excluir').onclick = () => solicitarExclusao(carro.id);
+
+                    if (dono) {
+                        card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
+                        card.querySelector('.btn-excluir').onclick = () => solicitarExclusao(carro.id);
+                    }
                     
                     galeria.appendChild(card);
                 });
@@ -777,14 +802,11 @@
         });
 
         function prepararEdicao(carro) {
-            const senha = prompt("ACESSO RESTRITO: Digite a senha do projeto para editar:");
-
-            if (senha === null || senha.trim() === "") {
-                alert("Edição cancelada. A senha é obrigatória.");
+            if (!usuarioEDono(carro)) {
+                alert("Você não tem permissão para editar este projeto.");
                 return;
             }
 
-            document.getElementById('input-senha-edicao-oculta').value = senha;
             document.getElementById('input-id').value = carro.id;
             document.getElementById('input-dono').value = carro.nome_dono;
             document.getElementById('input-modelo').value = carro.modelo;
@@ -794,9 +816,6 @@
             document.getElementById('input-historia').value = carro.historia || '';
             document.getElementById('input-suspensao').value = carro.tipo_suspensao;
             document.getElementById('input-aro').value = carro.aro_roda;
-
-            document.getElementById('bloco-senha-cadastro').style.display = "none";
-            document.getElementById('input-senha').required = false;
 
             document.getElementById('btn-submit').innerText = "Confirmar Alterações";
             document.getElementById('btn-cancelar-edicao').style.display = "block";
@@ -831,17 +850,6 @@
             formData.append('historia', document.getElementById('input-historia').value.trim());
             formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
             formData.append('aro_roda', document.getElementById('input-aro').value);
-            
-            const senhaFinal = id
-                ? document.getElementById('input-senha-edicao-oculta').value
-                : document.getElementById('input-senha').value;
-
-            if (!senhaFinal || senhaFinal.trim() === "") {
-                alert("A senha é obrigatória.");
-                return;
-            }
-
-            formData.append('senha_edicao', senhaFinal);
             
             const foto = document.getElementById('input-foto').files[0];
 
@@ -906,15 +914,11 @@
             document.getElementById('form-carro').reset();
 
             document.getElementById('input-id').value = "";
-            document.getElementById('input-senha-edicao-oculta').value = "";
             document.getElementById('input-historia').value = "";
 
             if (usuario) {
                 document.getElementById('input-dono').value = usuario.nome;
             }
-
-            document.getElementById('bloco-senha-cadastro').style.display = "block";
-            document.getElementById('input-senha').required = true;
 
             document.getElementById('btn-submit').disabled = false;
             document.getElementById('btn-submit').innerText = "Estacionar na Garagem";
@@ -927,9 +931,16 @@
         }
 
         async function solicitarExclusao(id) {
-            const senha = prompt("Digite a senha do dono para remover:");
+            const usuario = getUsuarioLogado();
 
-            if (!senha || senha.trim() === "") {
+            if (!usuario) {
+                alert("Faça login novamente.");
+                return;
+            }
+
+            const confirmar = confirm("Tem certeza que deseja remover este projeto?");
+
+            if (!confirmar) {
                 return;
             }
 
@@ -940,7 +951,7 @@
                         'Content-Type': 'application/json' 
                     },
                     body: JSON.stringify({ 
-                        senha 
+                        usuario_id: usuario.id 
                     })
                 });
 
@@ -956,7 +967,7 @@
                     alert("Projeto removido com sucesso!");
                     carregarGaragem(); 
                 } else { 
-                    alert("Erro: " + (resposta.erro || "Senha incorreta")); 
+                    alert("Erro: " + (resposta.erro || "Não foi possível remover o projeto.")); 
                 }
 
             } catch (error) {

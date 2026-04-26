@@ -50,6 +50,11 @@ def salvar_imagem(foto):
     return nome_unico
 
 
+def usuario_existe(cursor, usuario_id):
+    cursor.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
+    return cursor.fetchone() is not None
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -147,6 +152,7 @@ def listar_carros():
     filtro_modelo = request.args.get('modelo', '')
     filtro_suspensao = request.args.get('suspensao', '')
     filtro_aro = request.args.get('aro', '')
+    filtro_usuario = request.args.get('usuario_id', '')
 
     try:
         conexao = mysql.connector.connect(**db_config)
@@ -172,6 +178,12 @@ def listar_carros():
             sql += " AND aro_roda = %s"
             valores.append(filtro_aro)
 
+        if filtro_usuario:
+            sql += " AND usuario_id = %s"
+            valores.append(filtro_usuario)
+
+        sql += " ORDER BY id DESC"
+
         cursor.execute(sql, tuple(valores))
         meus_carros = cursor.fetchall()
 
@@ -188,30 +200,33 @@ def listar_carros():
 def cadastrar_carro():
     dados = request.form
     historia = dados.get('historia', '')
-    senha = dados.get('senha_edicao')
     usuario_id = dados.get('usuario_id')
 
-    if not senha or senha.strip() == "":
-        return jsonify({"erro": "Defina uma senha!"}), 400
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado. Faça login novamente."}), 400
 
     try:
         foto = request.files.get('foto')
         nome_foto = salvar_imagem(foto)
-        senha_hash = generate_password_hash(senha.strip())
 
         conexao = mysql.connector.connect(**db_config)
-        cursor = conexao.cursor()
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
 
         sql = """
             INSERT INTO carros (
                 usuario_id, nome_dono, modelo, ano, cor, placa,
                 tipo_suspensao, aro_roda, foto_url, historia, senha_edicao
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NULL)
         """
 
         cursor.execute(sql, (
-            usuario_id if usuario_id else None,
+            usuario_id,
             dados['nome_dono'],
             dados['modelo'],
             dados['ano'],
@@ -220,8 +235,7 @@ def cadastrar_carro():
             dados['tipo_suspensao'],
             dados['aro_roda'],
             nome_foto,
-            historia,
-            senha_hash
+            historia
         ))
 
         conexao.commit()
@@ -242,13 +256,16 @@ def cadastrar_carro():
 def editar_carro(id):
     dados = request.form
     historia = dados.get('historia', '')
-    senha_cliente = str(dados.get('senha_edicao', '')).strip()
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado. Faça login novamente."}), 400
 
     try:
         conexao = mysql.connector.connect(**db_config)
         cursor = conexao.cursor(dictionary=True)
 
-        cursor.execute("SELECT senha_edicao, foto_url FROM carros WHERE id = %s", (id,))
+        cursor.execute("SELECT usuario_id, foto_url FROM carros WHERE id = %s", (id,))
         carro = cursor.fetchone()
 
         if not carro:
@@ -256,12 +273,10 @@ def editar_carro(id):
             conexao.close()
             return jsonify({"erro": "Não achei o carro"}), 404
 
-        senha_no_banco = str(carro['senha_edicao']).strip()
-
-        if not check_password_hash(senha_no_banco, senha_cliente):
+        if str(carro['usuario_id']) != usuario_id:
             cursor.close()
             conexao.close()
-            return jsonify({"erro": "Senha incorreta!"}), 403
+            return jsonify({"erro": "Você não tem permissão para editar este projeto."}), 403
 
         foto = request.files.get('foto')
         nome_foto = carro['foto_url']
@@ -313,13 +328,16 @@ def editar_carro(id):
 @app.route('/carros/<int:id>', methods=['DELETE'])
 def excluir_carro(id):
     dados = request.json
-    senha_cliente = str(dados.get('senha', '')).strip()
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado. Faça login novamente."}), 400
 
     try:
         conexao = mysql.connector.connect(**db_config)
         cursor = conexao.cursor(dictionary=True)
 
-        cursor.execute("SELECT senha_edicao FROM carros WHERE id = %s", (id,))
+        cursor.execute("SELECT usuario_id FROM carros WHERE id = %s", (id,))
         carro = cursor.fetchone()
 
         if not carro:
@@ -327,12 +345,10 @@ def excluir_carro(id):
             conexao.close()
             return jsonify({"erro": "Não achei o carro"}), 404
 
-        senha_no_banco = str(carro['senha_edicao']).strip()
-
-        if not check_password_hash(senha_no_banco, senha_cliente):
+        if str(carro['usuario_id']) != usuario_id:
             cursor.close()
             conexao.close()
-            return jsonify({"erro": "Senha incorreta"}), 403
+            return jsonify({"erro": "Você não tem permissão para remover este projeto."}), 403
 
         cursor.execute("DELETE FROM carros WHERE id = %s", (id,))
         conexao.commit()
