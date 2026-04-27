@@ -543,6 +543,76 @@ def cadastrar_comentario(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/usuarios/<int:id>', methods=['GET'])
+def buscar_usuario(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT 
+                id,
+                nome,
+                criado_em
+            FROM usuarios
+            WHERE id = %s
+        """, (id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute("""
+            SELECT COUNT(*) AS total_projetos
+            FROM carros
+            WHERE usuario_id = %s
+        """, (id,))
+
+        total = cursor.fetchone()
+
+        usuario['total_projetos'] = total['total_projetos']
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(usuario), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+    
+@app.route('/usuarios/<int:id>/carros', methods=['GET'])
+def listar_carros_usuario(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("""
+            SELECT 
+                id,
+                modelo,
+                ano,
+                cor,
+                aro_roda,
+                tipo_suspensao,
+                foto_url
+            FROM carros
+            WHERE usuario_id = %s
+            ORDER BY id DESC
+        """, (id,))
+
+        carros = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(carros), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500    
+
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
