@@ -715,6 +715,28 @@
             animation: countUp 0.3s ease;
         }
 
+        .like-particle {
+            position: fixed; /* ← ESSENCIAL */
+            width: 6px;
+            height: 6px;
+            background: #ff4757;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99999; /* ← ESSENCIAL */
+            animation: explode 0.6s ease forwards;
+        }
+
+        @keyframes explode {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--x), var(--y)) scale(0.5);
+                opacity: 0;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1108,6 +1130,12 @@
                             alternarCurtida(carro.id);
 
                             likeBtn.classList.add('animando');
+
+                            criarParticulas(likeBtn);
+
+                            if (navigator.vibrate) {
+                                navigator.vibrate(10);
+                            }
 
                             setTimeout(() => {
                                 likeBtn.classList.remove('animando');
@@ -1633,6 +1661,29 @@
                     comentarios.scrollIntoView({ behavior: 'smooth' });
                 }
             }, 200);
+        }
+
+        function criarParticulas(element) {
+            const rect = element.getBoundingClientRect();
+
+            for (let i = 0; i < 6; i++) {
+                const p = document.createElement('div');
+                p.className = 'like-particle';
+
+                const x = (Math.random() - 0.5) * 60 + 'px';
+                const y = (Math.random() - 0.5) * 60 + 'px';
+
+                p.style.left = (rect.left + rect.width / 2) + 'px';
+                p.style.top = (rect.top + rect.height / 2) + 'px';
+
+                p.style.setProperty('--x', x);
+                p.style.setProperty('--y', y);
+
+                document.body.appendChild(p);
+
+                setTimeout(() => p.remove(), 600);
+                console.log("particulas");
+            }
         }
 
     </script>
