@@ -274,7 +274,8 @@
         
         .btn-excluir, 
         .btn-editar,
-        .btn-ver { 
+        .btn-ver,
+        .btn-curtir { 
             width: auto; 
             padding: 5px 15px; 
             font-size: 0.75em; 
@@ -292,6 +293,18 @@
         }
 
         .btn-ver:hover {
+            color: #fff;
+            background-color: #ff4757;
+            border-color: #ff4757;
+        }
+
+        .btn-curtir {
+            color: #ff4757;
+            border-color: #ff4757;
+        }
+
+        .btn-curtir:hover,
+        .btn-curtir.curtido {
             color: #fff;
             background-color: #ff4757;
             border-color: #ff4757;
@@ -409,6 +422,14 @@
         .modal-item strong {
             color: #eee;
             font-size: 1em;
+        }
+
+        .modal-curtidas {
+            margin-top: 15px;
+            color: #ff4757;
+            font-weight: bold;
+            font-size: 0.9em;
+            letter-spacing: 0.8px;
         }
 
         @media (max-width: 600px) {
@@ -725,8 +746,12 @@
 
             const usuario = getUsuarioLogado();
 
-            if (modoGaragem === "meus" && usuario) {
+            if (usuario) {
                 params.append('usuario_id', usuario.id);
+            }
+
+            if (modoGaragem === "meus") {
+                params.append('apenas_meus', '1');
             }
 
             try {
@@ -745,10 +770,27 @@
                     return;
                 }
 
-                todosCarros.forEach(carro => {
+                let carrosParaExibir = todosCarros;
+
+                if (modoGaragem === "meus" && usuario) {
+                    carrosParaExibir = todosCarros.filter(carro => String(carro.usuario_id) === String(usuario.id));
+                }
+
+                if (carrosParaExibir.length === 0) {
+                    galeria.innerHTML = `
+                        <div style="text-align:center; color:#666; padding: 30px;">
+                            Você ainda não cadastrou nenhum projeto.
+                        </div>
+                    `;
+                    return;
+                }
+
+                carrosParaExibir.forEach(carro => {
                     const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
                     const card = document.createElement('div');
                     const dono = usuarioEDono(carro);
+                    const totalCurtidas = carro.total_curtidas || 0;
+                    const curtido = carro.curtido_pelo_usuario === true || carro.curtido_pelo_usuario === 1;
 
                     card.className = 'carro-card';
 
@@ -782,6 +824,10 @@
                                 </div>
                             ` : ''}
 
+                            <button class="btn-curtir ${curtido ? 'curtido' : ''}">
+                                ${curtido ? '🔥 Curtido' : '🔥 Curtir'} — ${totalCurtidas}
+                            </button>
+
                             <button class="btn-ver">Ver projeto</button>
 
                             ${dono ? `
@@ -791,6 +837,7 @@
                         </div>
                     `;
                     
+                    card.querySelector('.btn-curtir').onclick = () => alternarCurtida(carro.id);
                     card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
 
                     if (dono) {
@@ -807,11 +854,49 @@
             }
         }
 
+        async function alternarCurtida(carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para curtir um projeto.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/curtir`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usuario_id: usuario.id })
+                });
+
+                let resposta = {};
+
+                try {
+                    resposta = await res.json();
+                } catch {
+                    resposta = {};
+                }
+
+                if (res.ok) {
+                    carregarGaragem();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível atualizar a curtida."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
         function abrirModalProjeto(carro) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
 
             const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
+            const totalCurtidas = carro.total_curtidas || 0;
 
             modalContent.innerHTML = `
                 <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
@@ -823,6 +908,10 @@
 
                 <div class="modal-info">
                     <h2>${carro.modelo} (${carro.ano})</h2>
+
+                    <div class="modal-curtidas">
+                        🔥 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
+                    </div>
 
                     <div class="modal-grid">
                         <div class="modal-item">
