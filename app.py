@@ -454,6 +454,94 @@ def curtir_carro(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/carros/<int:id>/comentarios', methods=['GET'])
+def listar_comentarios(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM carros WHERE id = %s", (id,))
+        carro = cursor.fetchone()
+
+        if not carro:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Projeto não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT 
+                comentarios.id,
+                comentarios.texto,
+                comentarios.criado_em,
+                usuarios.id AS usuario_id,
+                usuarios.nome AS nome_usuario
+            FROM comentarios
+            INNER JOIN usuarios ON comentarios.usuario_id = usuarios.id
+            WHERE comentarios.carro_id = %s
+            ORDER BY comentarios.criado_em DESC
+            """,
+            (id,)
+        )
+
+        comentarios = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(comentarios), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/carros/<int:id>/comentarios', methods=['POST'])
+def cadastrar_comentario(id):
+    dados = request.json
+
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+    texto = str(dados.get('texto', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if not texto:
+        return jsonify({"erro": "Digite um comentário."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute("SELECT id FROM carros WHERE id = %s", (id,))
+        carro = cursor.fetchone()
+
+        if not carro:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Projeto não encontrado."}), 404
+
+        cursor.execute(
+            """
+            INSERT INTO comentarios (usuario_id, carro_id, texto)
+            VALUES (%s, %s, %s)
+            """,
+            (usuario_id, id, texto)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Comentário publicado com sucesso!"}), 201
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
