@@ -7,6 +7,7 @@ COLLATE utf8mb4_general_ci;
 
 USE garagem_digital;
 
+DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS curtidas;
 DROP TABLE IF EXISTS carros;
 DROP TABLE IF EXISTS usuarios;
@@ -55,7 +56,29 @@ CREATE TABLE curtidas (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+<<<<<<< HEAD
+CREATE TABLE comentarios (
+    id INT NOT NULL AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    carro_id INT NOT NULL,
+    texto TEXT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_comentarios_usuarios
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_comentarios_carros
+        FOREIGN KEY (carro_id) REFERENCES carros(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- Observação:
+-- Este script cria apenas a estrutura limpa do banco.
+-- Usuários, projetos, curtidas e comentários devem ser criados pela própria aplicação
+-- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
+=======
 -- Observação:
 -- Este script cria apenas a estrutura limpa do banco.
 -- Usuários, projetos e curtidas devem ser criados pela própria aplicação
 -- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
+>>>>>>> main
