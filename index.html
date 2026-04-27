@@ -419,7 +419,7 @@
 
         .modal-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 12px;
             margin-top: 20px;
         }
@@ -1594,7 +1594,12 @@
                             Projetos cadastrados: <strong>${usuario.total_projetos}</strong>
                         </p>
 
-                        <div style="margin-top:20px;">
+                        <div style="
+                            margin-top:20px;
+                            display:grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap:12px;
+                        ">
                             ${carros.length === 0 
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
@@ -1608,8 +1613,8 @@
 
                                         ${c.foto_url 
                                             ? `<img src="${API_URL}/uploads/${c.foto_url}" 
-                                                style="width:100%; height:180px; object-fit:cover;">`
-                                            : `<div style="height:180px; display:flex; align-items:center; justify-content:center; color:#333;">
+                                                style="width:100%; height:140px; object-fit:cover;">`
+                                            : `<div style="height:140px; display:flex; align-items:center; justify-content:center; color:#333;">
                                                 SEM FOTO
                                             </div>`
                                         }
