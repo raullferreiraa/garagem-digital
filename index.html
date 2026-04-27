@@ -470,6 +470,16 @@
                 margin: 8px 0 0 10px;
             }
         }
+
+        .comentarios-container {
+            margin-top: 20px;
+        }
+
+        #input-comentario {
+            margin-top: 10px;
+            text-transform: none;
+        }    
+
     </style>
 </head>
 <body>
@@ -951,11 +961,22 @@
                             ${carro.historia}
                         </div>
                     ` : ''}
+
+                    <div class="comentarios-container">
+                        <h3 style="margin-top:20px;">Comentários</h3>
+
+                        <div id="lista-comentarios" style="margin-top:10px;"></div>
+
+                        <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
+                        <button onclick="enviarComentario(${carro.id})">Comentar</button>
+                    </div>    
+
                 </div>
             `;
 
             modal.style.display = "block";
             document.body.style.overflow = "hidden";
+            setTimeout(() => carregarComentarios(carro.id), 100);
         }
 
         function fecharModalProjeto() {
@@ -1145,6 +1166,84 @@
         }
 
         atualizarTelaUsuario();
+
+        async function carregarComentarios(carroId) {
+        try {
+            const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`);
+            const comentarios = await res.json();
+
+            const lista = document.getElementById('lista-comentarios');
+            lista.innerHTML = '';
+
+            if (!comentarios.length) {
+                lista.innerHTML = `<div style="color:#666;">Nenhum comentário ainda.</div>`;
+                return;
+            }
+
+            comentarios.forEach(c => {
+                const div = document.createElement('div');
+
+                div.style.borderBottom = "1px solid #222";
+                div.style.padding = "10px 0";
+
+                div.innerHTML = `
+                    <strong style="color:#ff4757;">${c.nome_usuario}</strong><br>
+                    <span style="font-size:0.8em; color:#666;">
+                        ${new Date(c.criado_em).toLocaleString()}
+                    </span>
+                    <p style="margin-top:5px;">${c.texto}</p>
+                `;
+
+                lista.appendChild(div);
+            });
+
+        } catch (error) {
+            console.error(error);
+        }
+    }    
+
+        async function enviarComentario(carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para comentar.");
+                return;
+            }
+
+            const input = document.getElementById('input-comentario');
+            const texto = input.value.trim();
+
+            if (!texto) {
+                alert("Digite um comentário.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        texto: texto
+                    })
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    carregarComentarios(carroId);
+                } else {
+                    const erro = await res.json();
+                    alert(erro.erro || "Erro ao comentar.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+}
+
     </script>
 </body>
 </html>
