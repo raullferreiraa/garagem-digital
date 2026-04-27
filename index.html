@@ -813,11 +813,14 @@
                                 ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
                             </div>
 
-                            <p class="specs">
+                           <p class="specs">
                                 Proprietário: 
-                                <span style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
-                                    ${carro.nome_dono}
-                                </span>
+                                ${carro.usuario_id 
+                                    ? `<span style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
+                                        ${carro.nome_dono}
+                                    </span>`
+                                    : `${carro.nome_dono}`
+                                }
                             </p>
                             <p class="specs">Cor: ${carro.cor}</p>
                             <p class="specs">Placa: ${carro.placa || '---'}</p>
@@ -931,7 +934,12 @@
                     <div class="modal-grid">
                         <div class="modal-item">
                             <span>Proprietário</span>
-                            <strong>${carro.nome_dono}</strong>
+                            ${carro.usuario_id
+                                ? `<strong style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
+                                    ${carro.nome_dono}
+                                </strong>`
+                                : `<strong>${carro.nome_dono}</strong>`
+                            }
                         </div>
 
                         <div class="modal-item">
@@ -1255,6 +1263,11 @@
 
             try {
                 const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}`);
+                if (!resUser.ok) {
+                    alert("Perfil não disponível.");
+                    return;
+                }
+
                 const usuario = await resUser.json();
 
                 const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
