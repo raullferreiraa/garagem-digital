@@ -1200,7 +1200,12 @@
                 div.style.padding = "10px 0";
 
                 div.innerHTML = `
-                    <strong style="color:#ff4757;">${c.nome_usuario}</strong><br>
+                    ${c.usuario_id 
+                        ? `<strong style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${c.usuario_id})">
+                            ${c.nome_usuario}
+                        </strong>`
+                        : `<strong>${c.nome_usuario}</strong>`
+                    }
                     <span style="font-size:0.8em; color:#666;">
                         ${new Date(c.criado_em).toLocaleString()}
                     </span>
@@ -1288,7 +1293,15 @@
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
                                     <div style="border:1px solid #222; padding:10px; margin-bottom:10px;">
-                                        <strong>${c.modelo} (${c.ano})</strong><br>
+                                        ${c.foto_url 
+                                            ? `<img src="${API_URL}/uploads/${c.foto_url}" style="width:100%; height:150px; object-fit:cover; margin-bottom:8px;">`
+                                            : `<div style="height:150px; display:flex; align-items:center; justify-content:center; color:#333;">SEM FOTO</div>`
+                                        }
+
+                                        <strong style="cursor:pointer; color:#ff4757;" onclick="abrirProjetoPorId(${c.id})">
+                                            ${c.modelo} (${c.ano})
+                                        </strong><br>
+
                                         <span style="color:#666;">
                                             ARO ${c.aro_roda} | ${c.tipo_suspensao}
                                         </span>
@@ -1305,6 +1318,30 @@
             } catch (error) {
                 console.error(error);
                 alert("Erro ao carregar perfil.");
+            }
+}
+
+        async function abrirProjetoPorId(id) {
+            const carro = todosCarros.find(c => c.id === id);
+
+            if (carro) {
+                abrirModalProjeto(carro);
+            } else {
+                try {
+                    const res = await fetch(`${API_URL}/carros`);
+                    const lista = await res.json();
+
+                    const encontrado = lista.find(c => c.id === id);
+
+                    if (encontrado) {
+                        abrirModalProjeto(encontrado);
+                    } else {
+                        alert("Projeto não encontrado.");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Erro ao abrir projeto.");
+                }
             }
 }
 
