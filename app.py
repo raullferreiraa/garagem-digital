@@ -50,6 +50,11 @@ def salvar_imagem(foto):
     return nome_unico
 
 
+def usuario_existe(cursor, usuario_id):
+    cursor.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
+    return cursor.fetchone() is not None
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
@@ -233,7 +238,12 @@ def cadastrar_carro():
         nome_foto = salvar_imagem(foto)
 
         conexao = mysql.connector.connect(**db_config)
-        cursor = conexao.cursor()
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
 
         sql = """
             INSERT INTO carros (
@@ -391,6 +401,11 @@ def curtir_carro(id):
     try:
         conexao = mysql.connector.connect(**db_config)
         cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
 
         cursor.execute("SELECT id FROM carros WHERE id = %s", (id,))
         carro = cursor.fetchone()
