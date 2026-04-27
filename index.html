@@ -555,6 +555,56 @@
             background: rgba(255, 71, 87, 0.1);
         }
 
+        .acoes-card {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .barra-social {
+            display: flex;
+            gap: 10px;
+        }
+
+        .like-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #181818;
+            border: 1px solid #333;
+            color: #aaa;
+            font-size: 0.85em;
+            transition: 0.2s;
+        }
+
+        .like-btn:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .like-btn.curtido {
+            background: rgba(255, 71, 87, 0.15);
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .comment-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #181818;
+            border: 1px solid #333;
+            color: #aaa;
+            font-size: 0.85em;
+            transition: 0.2s;
+        }
+
+        .comment-btn:hover {
+            border-color: #00bcd4;
+            color: #00bcd4;
+        }
+
     </style>
 </head>
 <body>
@@ -917,11 +967,21 @@
                                 </div>
                             ` : ''}
 
-                            <button class="btn-curtir ${curtido ? 'curtido' : ''}">
-                                👍 ${totalCurtidas}
-                            </button>
+                        <div class="acoes-card">
+    
+                            <div class="barra-social">
+                                <span class="like-btn ${curtido ? 'curtido' : ''}" data-id="${carro.id}">
+                                    👍 ${totalCurtidas}
+                                </span>
+
+                                <span class="comment-btn">
+                                    💬
+                                </span>
+                            </div>
 
                             <button class="btn-ver">Ver projeto</button>
+
+                    </div>
 
                             ${dono ? `
                                 <button class="btn-editar">Editar</button>
@@ -930,8 +990,10 @@
                         </div>
                     `;
                     
-                    card.querySelector('.btn-curtir').onclick = () => alternarCurtida(carro.id);
+    
                     card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
+                    card.querySelector('.like-btn').onclick = () => alternarCurtida(carro.id);
+                    card.querySelector('.comment-btn').onclick = () => abrirComentariosProjeto(carro);
 
                     if (dono) {
                         card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
@@ -1002,9 +1064,7 @@
                 <div class="modal-info">
                     <h2>${carro.modelo} (${carro.ano})</h2>
 
-                    <div class="modal-curtidas">
-                        🔥 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
-                    </div>
+                    
 
                     <div class="modal-grid">
                         <div class="modal-item">
@@ -1050,7 +1110,11 @@
                         </div>
                     ` : ''}
 
-                    <div class="comentarios-container">
+                    <div class="modal-curtidas">
+                        🔥 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
+                    </div>
+
+                    <div class="comentarios-container" id="comentarios-container">
                         <h3 style="margin-top:20px;">Comentários</h3>
 
                         <div id="lista-comentarios" style="margin-top:10px;"></div>
@@ -1419,6 +1483,18 @@
                 }
             }
 }
+
+        function abrirComentariosProjeto(carro) {
+            abrirModalProjeto(carro);
+
+            setTimeout(() => {
+                const comentarios = document.getElementById('comentarios-container');
+
+                if (comentarios) {
+                    comentarios.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 300);
+        }
 
     </script>
 </body>
