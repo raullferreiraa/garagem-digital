@@ -4,7 +4,7 @@ Uma aplicação web Full Stack criada para catalogar, documentar e exibir projet
 
 O projeto nasceu com a proposta de criar uma **garagem digital** fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica, sua história e a cultura automotiva local.
 
-Atualmente, a aplicação evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva com cadastro de usuários, login, garagem pessoal, feed geral de projetos e controle de propriedade por usuário.
+Atualmente, a aplicação evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva com cadastro de usuários, login, garagem pessoal, feed geral de projetos, curtidas e controle de propriedade por usuário.
 
 A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
 
@@ -12,9 +12,9 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 
 🚧 Projeto em evolução.
 
-A Garagem Digital já conta com autenticação de usuários, cadastro de veículos, feed geral, área de projetos pessoais, upload de imagens, filtros de busca e controle de propriedade para edição e exclusão.
+A Garagem Digital já conta com autenticação de usuários, cadastro de veículos, feed geral, área de projetos pessoais, upload de imagens, filtros de busca, sistema de curtidas e controle de propriedade para edição e exclusão.
 
-As próximas melhorias planejadas incluem curtidas, comentários, perfis de usuários, equipes automotivas e grupos para interação entre participantes.
+As próximas melhorias planejadas incluem comentários, perfis de usuários, equipes automotivas e grupos para interação entre participantes.
 
 ---
 
@@ -52,6 +52,9 @@ As próximas melhorias planejadas incluem curtidas, comentários, perfis de usu�
 - [x] **Nome Único para Imagens:** evita sobrescrita de arquivos com UUID.
 - [x] **Limite de Upload:** arquivos limitados a 5 MB.
 - [x] **Filtros de Busca:** busca por modelo, tipo de suspensão e aro.
+- [x] **Sistema de Curtidas:** usuários logados podem curtir e remover curtidas dos projetos.
+- [x] **Contador de Curtidas:** cada projeto exibe o total de curtidas recebidas.
+- [x] **Estado de Curtida por Usuário:** a interface indica se o usuário já curtiu o projeto.
 - [x] **Mensagem de Lista Vazia:** feedback visual quando não há projetos encontrados.
 - [x] **Modo de Edição:** interface muda visualmente ao editar um projeto.
 - [x] **Interface Responsiva:** ajustes para melhor uso em dispositivos móveis.
@@ -120,7 +123,9 @@ O projeto foi evoluído para aplicar boas práticas básicas de segurança e org
 - geração de nomes únicos para imagens;
 - remoção de dados pessoais do script SQL;
 - vínculo de projetos ao usuário proprietário;
-- edição e exclusão permitidas apenas ao dono do projeto.
+- edição e exclusão permitidas apenas ao dono do projeto;
+- curtidas vinculadas ao usuário logado;
+- prevenção de curtidas duplicadas por meio de restrição única no banco.
 
 > Observação: a autenticação atual é simples e adequada para fins de estudo/portfólio. Futuramente, o projeto pode evoluir para uso de sessões, tokens JWT ou outro modelo mais robusto de autenticação.
 
@@ -135,12 +140,14 @@ O arquivo `garagem_digital.sql` cria a estrutura necessária para a aplicação,
 - banco `garagem_digital`;
 - tabela `usuarios`;
 - tabela `carros`;
+- tabela `curtidas`;
 - relacionamento entre carros e usuários;
+- relacionamento entre curtidas, usuários e carros;
 - campos principais da ficha técnica;
 - campo de história/descrição do projeto;
 - campos de data `criado_em` e `atualizado_em`.
 
-> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas e vínculos sejam salvos corretamente.
+> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas, vínculos e curtidas sejam salvos corretamente.
 
 ---
 
@@ -229,7 +236,7 @@ garagem-digital/
 
 Próximas evoluções planejadas:
 
-- [ ] Adicionar sistema de curtidas em projetos.
+- [x] Adicionar sistema de curtidas em projetos.
 - [ ] Adicionar comentários em projetos.
 - [ ] Criar perfis públicos de usuários.
 - [ ] Criar sistema de equipes/clubes automotivos.
@@ -257,6 +264,7 @@ Durante o desenvolvimento, foram praticados conceitos como:
 - manipulação de formulários com `FormData`;
 - upload e armazenamento de arquivos;
 - consultas SQL com filtros dinâmicos;
+- sistema de curtidas com controle por usuário;
 - uso de hash para armazenamento seguro;
 - configuração de ambiente com `.env`;
 - organização de projeto para GitHub e portfólio;

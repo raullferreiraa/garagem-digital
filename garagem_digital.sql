@@ -56,6 +56,7 @@ CREATE TABLE curtidas (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+<<<<<<< HEAD
 CREATE TABLE comentarios (
     id INT NOT NULL AUTO_INCREMENT,
     usuario_id INT NOT NULL,
@@ -75,3 +76,9 @@ CREATE TABLE comentarios (
 -- Este script cria apenas a estrutura limpa do banco.
 -- Usuários, projetos, curtidas e comentários devem ser criados pela própria aplicação
 -- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
+=======
+-- Observação:
+-- Este script cria apenas a estrutura limpa do banco.
+-- Usuários, projetos e curtidas devem ser criados pela própria aplicação
+-- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
+>>>>>>> main
