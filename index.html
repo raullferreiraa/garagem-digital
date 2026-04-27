@@ -419,7 +419,7 @@
 
         .modal-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 12px;
             margin-top: 20px;
         }
@@ -1594,24 +1594,49 @@
                             Projetos cadastrados: <strong>${usuario.total_projetos}</strong>
                         </p>
 
-                        <div style="margin-top:20px;">
+                        <div style="
+                            margin-top:20px;
+                            display:grid;
+                            grid-template-columns: repeat(2, 1fr);
+                            gap:12px;
+                        ">
                             ${carros.length === 0 
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
-                                    <div style="border:1px solid #222; padding:10px; margin-bottom:10px;">
+                                    <div style="
+                                        border:1px solid #222;
+                                        border-radius:10px;
+                                        overflow:hidden;
+                                        margin-bottom:12px;
+                                        background:#111;
+                                    ">
+
                                         ${c.foto_url 
-                                            ? `<img src="${API_URL}/uploads/${c.foto_url}" style="width:100%; height:150px; object-fit:cover; margin-bottom:8px;">`
-                                            : `<div style="height:150px; display:flex; align-items:center; justify-content:center; color:#333;">SEM FOTO</div>`
+                                            ? `<img src="${API_URL}/uploads/${c.foto_url}" 
+                                                style="width:100%; height:140px; object-fit:cover;">`
+                                            : `<div style="height:140px; display:flex; align-items:center; justify-content:center; color:#333;">
+                                                SEM FOTO
+                                            </div>`
                                         }
 
-                                        <strong style="cursor:pointer; color:#ff4757;" onclick="abrirProjetoPorId(${c.id})">
-                                            ${c.modelo} (${c.ano})
-                                        </strong><br>
+                                        <div style="padding:10px;">
 
-                                        <span style="color:#666;">
-                                            ARO ${c.aro_roda} | ${c.tipo_suspensao}
-                                        </span>
-                                    </div>
+                                            <strong style="
+                                                display:block;
+                                                color:#ff4757;
+                                                font-size:1em;
+                                                text-transform:uppercase;
+                                                cursor:pointer;
+                                            " onclick="abrirProjetoPorId(${c.id})">
+                                                ${c.modelo} (${c.ano})
+                                            </strong>
+
+                                            <span style="color:#777; font-size:0.8em;">
+                                                ARO ${c.aro_roda} • ${c.tipo_suspensao}
+                                            </span>
+
+                                        </div>
+
                                 `).join('')
                             }
                         </div>
