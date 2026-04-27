@@ -813,7 +813,12 @@
                                 ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
                             </div>
 
-                            <p class="specs">Proprietário: ${carro.nome_dono}</p>
+                            <p class="specs">
+                                Proprietário: 
+                                <span style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
+                                    ${carro.nome_dono}
+                                </span>
+                            </p>
                             <p class="specs">Cor: ${carro.cor}</p>
                             <p class="specs">Placa: ${carro.placa || '---'}</p>
                             
@@ -1241,6 +1246,52 @@
             } catch (error) {
                 console.error(error);
                 alert("Erro de conexão.");
+            }
+}
+
+        async function abrirPerfil(usuarioId) {
+            const modal = document.getElementById('modal-projeto');
+            const modalContent = document.getElementById('modal-content');
+
+            try {
+                const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}`);
+                const usuario = await resUser.json();
+
+                const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
+                const carros = await resCarros.json();
+
+                modalContent.innerHTML = `
+                    <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+
+                    <div class="modal-info">
+                        <h2>${usuario.nome}</h2>
+
+                        <p style="color:#aaa;">
+                            Projetos cadastrados: <strong>${usuario.total_projetos}</strong>
+                        </p>
+
+                        <div style="margin-top:20px;">
+                            ${carros.length === 0 
+                                ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
+                                : carros.map(c => `
+                                    <div style="border:1px solid #222; padding:10px; margin-bottom:10px;">
+                                        <strong>${c.modelo} (${c.ano})</strong><br>
+                                        <span style="color:#666;">
+                                            ARO ${c.aro_roda} | ${c.tipo_suspensao}
+                                        </span>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                    </div>
+                `;
+
+                modal.style.display = "block";
+                document.body.style.overflow = "hidden";
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao carregar perfil.");
             }
 }
 
