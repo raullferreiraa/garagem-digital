@@ -192,14 +192,25 @@
         }
 
         .carro-card h2 {
-            font-size: 1.4em;
+            font-size: 1.3em;
             font-weight: 900;
             letter-spacing: 1px;
-            background-color: #222; 
-            padding: 10px;
-            margin-bottom: 15px;
-            border-left: 4px solid #ff4757; 
+            color: #fff;
         }
+
+        .carro-card {
+            background: linear-gradient(145deg, #1a1a1a, #111);
+            border: 1px solid #2a2a2a;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: 0.25s;
+        }
+
+        .carro-card:hover {
+            transform: translateY(-4px);
+            border-color: #ff4757;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }    
 
         .foto-carro { 
             width: 100%; 
@@ -207,6 +218,15 @@
             object-fit: cover; 
             border-bottom: 1px solid #333; 
             background-color: #000; 
+        }
+
+        .foto-carro {
+            filter: brightness(0.9) contrast(1.1);
+            transition: 0.3s;
+        }
+
+        .carro-card:hover .foto-carro {
+            filter: brightness(1.05) contrast(1.15);
         }
 
         .card-info { 
@@ -479,6 +499,61 @@
             margin-top: 10px;
             text-transform: none;
         }    
+
+        .carro-card {
+            border-radius: 10px;
+            transition: 0.25s;
+        }
+
+        .carro-card:hover {
+            transform: translateY(-4px);
+            border-color: #ff4757;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        .foto-carro {
+            filter: brightness(0.9) contrast(1.1);
+            transition: 0.3s;
+        }
+
+        .carro-card:hover .foto-carro {
+            filter: brightness(1.05) contrast(1.15);
+        }
+
+        .btn-ver {
+            border-radius: 6px;
+            background: #ff4757;
+            color: #fff;
+        }
+
+        .btn-ver:hover {
+            background: #ff2a3d;
+        }    
+
+        .btn-curtir {
+            background: #181818;
+            border: 1px solid #333;
+            color: #ccc;
+            border-radius: 6px;
+            padding: 6px 10px;
+            font-size: 0.8em;
+            transition: 0.2s;
+        }
+
+        .btn-curtir:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .btn-curtir.curtido {
+            background: transparent;
+            color: #ff4757;
+            border: 1px solid #ff4757;
+        }
+
+        .btn-curtir.curtido:hover {
+            background: rgba(255, 71, 87, 0.1);
+        }
 
     </style>
 </head>
@@ -843,7 +918,7 @@
                             ` : ''}
 
                             <button class="btn-curtir ${curtido ? 'curtido' : ''}">
-                                ${curtido ? '🔥 Curtido' : '🔥 Curtir'} — ${totalCurtidas}
+                                👍 ${totalCurtidas}
                             </button>
 
                             <button class="btn-ver">Ver projeto</button>
