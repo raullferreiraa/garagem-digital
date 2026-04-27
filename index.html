@@ -605,6 +605,116 @@
             color: #00bcd4;
         }
 
+        .modal-social {
+            margin-top: 12px;
+        }
+
+        .modal-like, .modal-comment {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .modal-like {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255, 71, 87, 0.12);
+            border: 1px solid #ff4757;
+            color: #ff4757;
+            font-size: 0.85em;
+        }
+
+        .modal-comment {
+            color: #00bcd4;
+            cursor: pointer;
+        }
+
+        .modal-comment:hover {
+            text-decoration: underline;
+        }
+
+        .comentario-item {
+            padding: 12px;
+            border: 1px solid #222;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            background: #151515;
+            transition: 0.2s;
+        }
+
+        .comentario-item:hover {
+            border-color: #333;
+        }
+
+        .comentario-topo {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .comentario-autor {
+            color: #ff4757;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .comentario-autor:hover {
+            text-decoration: underline;
+        }
+
+        .comentario-data {
+            color: #666;
+            font-size: 0.75em;
+        }
+
+        .comentario-texto {
+            color: #ccc;
+            line-height: 1.4;
+        }
+
+        .comentarios-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .comentarios-header h3 {
+            margin: 0;
+            font-size: 1.2em;
+            color: #fff;
+        }
+
+        .comentarios-like {
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: rgba(255, 71, 87, 0.12);
+            border: 1px solid #ff4757;
+            color: #ff4757;
+            font-size: 0.8em;
+        }
+
+        @keyframes likePop {
+            0%   { transform: scale(1); }
+            50%  { transform: scale(1.3); }
+            100% { transform: scale(1); }
+        }
+
+        .like-btn.animando {
+            animation: likePop 0.3s ease;
+        }
+
+        @keyframes countUp {
+            0%   { transform: translateY(5px); opacity: 0.5; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+
+        .like-btn.animando span {
+            animation: countUp 0.3s ease;
+        }
+
     </style>
 </head>
 <body>
@@ -971,7 +1081,7 @@
     
                             <div class="barra-social">
                                 <span class="like-btn ${curtido ? 'curtido' : ''}" data-id="${carro.id}">
-                                    👍 ${totalCurtidas}
+                                    👍 <span class="like-count">${totalCurtidas}</span>
                                 </span>
 
                                 <span class="comment-btn">
@@ -992,7 +1102,17 @@
                     
     
                     card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
-                    card.querySelector('.like-btn').onclick = () => alternarCurtida(carro.id);
+                    const likeBtn = card.querySelector('.like-btn');
+
+                        likeBtn.onclick = () => {
+                            alternarCurtida(carro.id);
+
+                            likeBtn.classList.add('animando');
+
+                            setTimeout(() => {
+                                likeBtn.classList.remove('animando');
+                            }, 300);
+                        };
                     card.querySelector('.comment-btn').onclick = () => abrirComentariosProjeto(carro);
 
                     if (dono) {
@@ -1110,12 +1230,16 @@
                         </div>
                     ` : ''}
 
-                    <div class="modal-curtidas">
-                        🔥 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
-                    </div>
+                    
 
                     <div class="comentarios-container" id="comentarios-container">
-                        <h3 style="margin-top:20px;">Comentários</h3>
+                        <div class="comentarios-header">
+                            <h3>Comentários</h3>
+
+                            <span class="comentarios-like">
+                                👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
+                            </span>
+                        </div>
 
                         <div id="lista-comentarios" style="margin-top:10px;"></div>
 
@@ -1128,6 +1252,10 @@
 
             modal.style.display = "block";
             document.body.style.overflow = "hidden";
+            setTimeout(() => {
+                modal.scrollTop = 0;
+                modalContent.scrollTop = 0;
+            }, 0);
             setTimeout(() => carregarComentarios(carro.id), 100);
         }
 
@@ -1339,18 +1467,29 @@
                 div.style.padding = "10px 0";
 
                 div.innerHTML = `
-                    ${c.usuario_id 
-                        ? `<strong style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${c.usuario_id})">
-                            ${c.nome_usuario}
-                        </strong>`
-                        : `<strong>${c.nome_usuario}</strong>`
-                    }
-                    <span style="font-size:0.8em; color:#666;">
-                        ${new Date(c.criado_em).toLocaleString()}
-                    </span>
-                    <p style="margin-top:5px;">${c.texto}</p>
-                `;
+                    <div class="comentario-item">
 
+                        <div class="comentario-topo">
+                            ${c.usuario_id 
+                                ? `<span class="comentario-autor" onclick="abrirPerfil(${c.usuario_id})">
+                                    ${c.nome_usuario}
+                                </span>`
+                                : `<span class="comentario-autor">
+                                    ${c.nome_usuario}
+                                </span>`
+                            }
+
+                            <span class="comentario-data">
+                                ${new Date(c.criado_em).toLocaleString()}
+                            </span>
+                        </div>
+
+                        <div class="comentario-texto">
+                            ${c.texto}
+                        </div>
+
+                    </div>
+                `;
                 lista.appendChild(div);
             });
 
@@ -1493,7 +1632,7 @@
                 if (comentarios) {
                     comentarios.scrollIntoView({ behavior: 'smooth' });
                 }
-            }, 300);
+            }, 200);
         }
 
     </script>
