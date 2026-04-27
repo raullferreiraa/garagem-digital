@@ -8,6 +8,14 @@ Atualmente, a aplicação evoluiu de um CRUD de veículos para a base inicial de
 
 A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
 
+## 📌 Status do Projeto
+
+🚧 Projeto em evolução.
+
+A Garagem Digital já conta com autenticação de usuários, cadastro de veículos, feed geral, área de projetos pessoais, upload de imagens, filtros de busca e controle de propriedade para edição e exclusão.
+
+As próximas melhorias planejadas incluem curtidas, comentários, perfis de usuários, equipes automotivas e grupos para interação entre participantes.
+
 ---
 
 ## 🛠️ Tecnologias Utilizadas
