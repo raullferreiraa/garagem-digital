@@ -64,6 +64,19 @@
             cursor: not-allowed;
         }
 
+        .btn-principal {
+            background-color: #ff4757;
+            border: 1px solid #ff4757;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .btn-principal:hover {
+            background-color: #ff2a3d;
+            border-color: #ff2a3d;
+            opacity: 1;
+        }
+
         .auth-container,
         .formulario-container {
             background-color: #1e1e1e;
@@ -773,7 +786,7 @@
             <input type="email" id="login-email" placeholder="Email">
             <input type="password" id="login-senha" placeholder="Senha">
 
-            <button type="button" onclick="loginUsuario()">Entrar</button>
+            <button type="button" class="btn-principal" onclick="loginUsuario()">Entrar</button>
         </div>
 
         <div id="area-cadastro" style="display: none;">
@@ -783,7 +796,7 @@
             <input type="email" id="cadastro-email" placeholder="Email">
             <input type="password" id="cadastro-senha" placeholder="Senha">
 
-            <button type="button" onclick="cadastrarUsuario()">Cadastrar</button>
+            <button type="button" class="btn-principal" onclick="cadastrarUsuario()">Cadastrar</button>
         </div>
     </div>
 
@@ -828,7 +841,7 @@
 
                 <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
 
-                <button type="submit" id="btn-submit">Estacionar na Garagem</button>
+                <button type="submit" id="btn-submit" class="btn-principal">Estacionar na Garagem</button>
                 <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
             </form>
         </div>
