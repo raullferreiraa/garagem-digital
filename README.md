@@ -75,8 +75,6 @@ As próximas melhorias planejadas incluem evolução do perfil, sistema de segui
 
 ## 📸 Interface e Demonstração
 
-> As imagens abaixo devem ser atualizadas com prints reais da versão mais recente da aplicação.
-
 ### Cadastro e Login de Usuários
 
 ![Cadastro e Login](screenshots/01-login-cadastro.png)
