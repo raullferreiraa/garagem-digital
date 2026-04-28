@@ -5,43 +5,43 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garagem Digital</title>
     <style>
-        body { 
+        body {
             background-color: #0f0f0f;
-            color: #efefef; 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            margin: 0; 
-            padding: 40px 20px; 
-            font-size: 18px; 
+            color: #efefef;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            font-size: 18px;
         }
 
-        h1 { 
+        h1 {
             font-size: 2.2em;
             font-weight: 800;
-            text-align: center; 
-            text-transform: uppercase; 
-            letter-spacing: -1px; 
-            border-bottom: 2px solid #ff4757; 
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            border-bottom: 2px solid #ff4757;
             padding-bottom: 20px;
             margin-bottom: 40px;
         }
 
-        h2 { 
-            font-size: 1.1em; 
-            color: #aaa; 
-            text-transform: uppercase; 
-            text-align: center; 
+        h2 {
+            font-size: 1.1em;
+            color: #aaa;
+            text-transform: uppercase;
+            text-align: center;
         }
 
-        input, button, select, textarea { 
-            width: 100%; 
-            padding: 12px; 
-            margin-bottom: 15px; 
-            background-color: #121212; 
-            border: 1px solid #333; 
-            color: #fff; 
-            font-family: inherit; 
-            box-sizing: border-box; 
-            text-transform: uppercase; 
+        input, button, select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: #121212;
+            border: 1px solid #333;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            text-transform: uppercase;
         }
 
         textarea {
@@ -50,20 +50,29 @@
             line-height: 1.5;
         }
 
+        button {
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
         button:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
 
         .auth-container,
-        .formulario-container { 
-            background-color: #1e1e1e; 
-            border: 1px dashed #555; 
-            padding: 20px; 
-            border-radius: 4px; 
-            max-width: 600px; 
-            margin: 0 auto 40px auto; 
-            transition: 0.3s; 
+        .formulario-container {
+            background-color: #1e1e1e;
+            border: 1px dashed #555;
+            padding: 20px;
+            border-radius: 4px;
+            max-width: 600px;
+            margin: 0 auto 40px auto;
+            transition: 0.3s;
         }
 
         .auth-tabs {
@@ -135,9 +144,9 @@
             display: none;
         }
 
-        .linha-inputs { 
-            display: flex; 
-            gap: 10px; 
+        .linha-inputs {
+            display: flex;
+            gap: 10px;
         }
 
         #btn-cancelar-edicao {
@@ -152,38 +161,31 @@
             color: #fff;
             background-color: transparent;
         }
-        
-        .filtros-container { 
-            background-color: #1e1e1e; 
-            border: 1px solid #333; 
-            padding: 15px; 
-            display: flex; 
-            gap: 10px; 
-            max-width: 600px; 
-            margin: 0 auto 20px auto; 
-            flex-wrap: wrap; 
+
+        .filtros-container {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            padding: 15px;
+            display: flex;
+            gap: 10px;
+            max-width: 600px;
+            margin: 0 auto 20px auto;
+            flex-wrap: wrap;
         }
 
-        .filtros-container input, 
-        .filtros-container select { 
-            margin-bottom: 0; 
-            width: auto; 
-            flex-grow: 1; 
-        }
-        
-        .galeria { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 20px; 
-            max-width: 600px; 
-            margin: 0 auto; 
+        .filtros-container input,
+        .filtros-container select {
+            margin-bottom: 0;
+            width: auto;
+            flex-grow: 1;
         }
 
-        .carro-card h2 {
-            font-size: 1.3em;
-            font-weight: 900;
-            letter-spacing: 1px;
-            color: #fff;
+        .galeria {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .carro-card {
@@ -198,17 +200,21 @@
             transform: translateY(-4px);
             border-color: #ff4757;
             box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }    
+        }
 
-        .foto-carro { 
-            width: 100%; 
-            height: 300px; 
-            object-fit: cover; 
-            border-bottom: 1px solid #333; 
-            background-color: #000; 
+        .carro-card h2 {
+            font-size: 1.3em;
+            font-weight: 900;
+            letter-spacing: 1px;
+            color: #fff;
         }
 
         .foto-carro {
+            width: 100%;
+            height: 160px;
+            object-fit: cover;
+            border-bottom: 1px solid #333;
+            background-color: #000;
             filter: brightness(0.9) contrast(1.1);
             transition: 0.3s;
         }
@@ -217,29 +223,15 @@
             filter: brightness(1.05) contrast(1.15);
         }
 
-        .card {
-            background: #111;
-            border: 1px solid #1f1f1f;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: 0.25s ease;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        .card-info {
+            padding: 14px;
+            text-transform: uppercase;
         }
 
-        .card:hover {
-            transform: translateY(-4px);
-            border-color: #ff4757;
-        }
-
-        .card-info { 
-            padding: 14px; 
-            text-transform: uppercase; 
-        }
-
-        .specs { 
-            margin: 4px 0; 
-            color: #ddd; 
-            font-size: 0.95em; 
+        .specs {
+            margin: 4px 0;
+            color: #ddd;
+            font-size: 0.95em;
             letter-spacing: 0.5px;
         }
 
@@ -253,6 +245,15 @@
             padding: 4px 8px;
             border-radius: 6px;
             font-size: 0.7em;
+        }
+
+        .dono-link {
+            color: #ff4757;
+            cursor: pointer;
+        }
+
+        .dono-link:hover {
+            text-decoration: underline;
         }
 
         .historia-projeto {
@@ -276,35 +277,98 @@
             letter-spacing: 1px;
         }
 
-        .destaque { 
-            color: #ff4757; 
-            font-weight: 900; 
-            font-size: 1.1em; 
+        .destaque {
+            color: #ff4757;
+            font-weight: 900;
+            font-size: 1.1em;
         }
-        
-        .btn-ver,
-        .btn-curtir { 
-            width: auto; 
-            padding: 5px 15px; 
-            font-size: 0.75em; 
-            margin-top: 10px; 
-            margin-right: 5px;
-            background-color: transparent; 
-            border: 1px solid #333; 
-            color: #888; 
+
+        .acoes-principais {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 18px;
+        }
+
+        .barra-social {
+            display: flex;
+            gap: 10px;
+        }
+
+        .like-btn,
+        .comment-btn {
+            cursor: pointer;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #181818;
+            border: 1px solid #333;
+            color: #aaa;
+            font-size: 0.85em;
+            transition: 0.2s;
+        }
+
+        .like-btn:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+            transform: scale(1.1);
+        }
+
+        .like-btn.curtido {
+            background: rgba(255, 71, 87, 0.15);
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
+        .comment-btn:hover {
+            transform: scale(1.1);
+            background: #1a1a1a;
+        }
+
+        .btn-ver {
+            width: auto;
+            display: inline-block;
+            border-radius: 6px;
+            background: #ff4757;
+            border: 1px solid #ff4757;
+            color: #fff;
             cursor: pointer;
         }
 
-        .btn-curtir {
-            color: #ff4757;
-            border-color: #ff4757;
+        .btn-ver:hover {
+            background: #ff2a3d;
+            border-color: #ff2a3d;
+            transform: scale(1.05);
         }
 
-        .btn-curtir:hover,
-        .btn-curtir.curtido {
+        .acoes-dono {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-editar,
+        .btn-excluir {
+            width: auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 14px;
+            margin: 0;
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            font-size: 0.75em;
+            cursor: pointer;
+        }
+
+        .btn-editar:hover {
+            border-color: #fff;
             color: #fff;
-            background-color: #ff4757;
+        }
+
+        .btn-excluir:hover {
             border-color: #ff4757;
+            color: #ff4757;
         }
 
         .modal {
@@ -409,56 +473,6 @@
             font-size: 1em;
         }
 
-        .modal-curtidas {
-            margin-top: 15px;
-            color: #ff4757;
-            font-weight: bold;
-            font-size: 0.9em;
-            letter-spacing: 0.8px;
-        }
-
-        @media (max-width: 600px) {
-            .linha-inputs {
-                flex-direction: column;
-                gap: 0;
-            }
-
-            body {
-                padding: 25px 12px;
-            }
-
-            .modal-img {
-                height: 260px;
-            }
-
-            .modal-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .modal {
-                padding: 15px 10px;
-            }
-
-            .auth-tabs,
-            .abas-garagem {
-                flex-direction: column;
-                gap: 0;
-            }
-
-            .titulo-card h2 {
-                padding-right: 0;
-                font-size: 1.1em;
-                margin: 0;
-                font-weight: 600;
-            }
-
-            .dono-badge {
-                position: static;
-                transform: none;
-                margin: 8px 0 0 10px;
-            }
-        }
-
         .comentarios-container {
             margin-top: 20px;
         }
@@ -466,145 +480,6 @@
         #input-comentario {
             margin-top: 10px;
             text-transform: none;
-        }    
-
-        .carro-card {
-            border-radius: 10px;
-            transition: 0.25s;
-        }
-
-        .carro-card:hover {
-            transform: translateY(-4px);
-            border-color: #ff4757;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-        }
-
-        .foto-carro {
-            filter: brightness(0.9) contrast(1.1);
-            transition: 0.3s;
-            width: 100%;
-            height: 160px;
-            object-fit: cover;
-        }
-
-        .carro-card:hover .foto-carro {
-            filter: brightness(1.05) contrast(1.15);
-        }
-
-        .btn-ver {
-            border-radius: 6px;
-            background: #ff4757;
-            color: #fff;
-        }
-
-        .btn-ver:hover {
-            background: #ff2a3d;
-            transform: scale(1.05);
-        }    
-
-        .btn-curtir {
-            background: #181818;
-            border: 1px solid #333;
-            color: #ccc;
-            border-radius: 6px;
-            padding: 6px 10px;
-            font-size: 0.8em;
-            transition: 0.2s;
-        }
-
-        .btn-curtir:hover {
-            border-color: #ff4757;
-            color: #ff4757;
-        }
-
-        .btn-curtir.curtido {
-            background: transparent;
-            color: #ff4757;
-            border: 1px solid #ff4757;
-        }
-
-        .btn-curtir.curtido:hover {
-            background: rgba(255, 71, 87, 0.1);
-        }
-
-        .acoes-card {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 10px;
-        }
-
-        .barra-social {
-            display: flex;
-            gap: 10px;
-        }
-
-        .like-btn {
-            cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 20px;
-            background: #181818;
-            border: 1px solid #333;
-            color: #aaa;
-            font-size: 0.85em;
-            transition: 0.2s;
-        }
-
-        .like-btn:hover {
-            border-color: #ff4757;
-            color: #ff4757;
-            transform: scale(1.1);
-        }
-
-        .like-btn.curtido {
-            background: rgba(255, 71, 87, 0.15);
-            border-color: #ff4757;
-            color: #ff4757;
-        }
-
-        .comment-btn {
-            cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 20px;
-            background: #181818;
-            border: 1px solid #333;
-            color: #aaa;
-            font-size: 0.85em;
-            transition: 0.2s;
-        }
-
-        .comment-btn:hover {
-            transform: scale(1.1);
-            background: #1a1a1a;
-        }
-
-        .modal-social {
-            margin-top: 12px;
-        }
-
-        .modal-like, .modal-comment {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .modal-like {
-            display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            background: rgba(255, 71, 87, 0.12);
-            border: 1px solid #ff4757;
-            color: #ff4757;
-            font-size: 0.85em;
-        }
-
-        .modal-comment {
-            color: #00bcd4;
-            cursor: pointer;
-        }
-
-        .modal-comment:hover {
-            text-decoration: underline;
         }
 
         .comentario-item {
@@ -660,14 +535,7 @@
             color: #fff;
         }
 
-        .comentarios-like {
-            padding: 6px 12px;
-            border-radius: 20px;
-            background: rgba(255, 71, 87, 0.12);
-            border: 1px solid #ff4757;
-            color: #ff4757;
-            font-size: 0.8em;
-        }
+
 
         @keyframes likePop {
             0%   { transform: scale(1); }
@@ -689,13 +557,13 @@
         }
 
         .like-particle {
-            position: fixed; /* ← ESSENCIAL */
+            position: fixed;
             width: 6px;
             height: 6px;
             background: #ff4757;
             border-radius: 50%;
             pointer-events: none;
-            z-index: 99999; /* ← ESSENCIAL */
+            z-index: 99999;
             animation: explode 0.6s ease forwards;
         }
 
@@ -710,73 +578,94 @@
             }
         }
 
-        .btn-editar,
-        .btn-excluir {
-            width: auto;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
+        @media (max-width: 600px) {
+            .linha-inputs {
+                flex-direction: column;
+                gap: 0;
+            }
 
-            padding: 8px 14px;
-            margin-top: 10px;
-            margin-right: 6px;
+            body {
+                padding: 25px 12px;
+            }
 
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
+            .modal {
+                padding: 15px 10px;
+            }
 
-            font-size: 0.75em;
+            .modal-img {
+                height: 260px;
+            }
+
+            .modal-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-tabs,
+            .abas-garagem {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .titulo-card h2 {
+                padding-right: 0;
+                font-size: 1.1em;
+                margin: 0;
+                font-weight: 600;
+            }
+
+            .dono-badge {
+                position: static;
+                transform: none;
+                margin: 8px 0 0 10px;
+            }
         }
 
-        .btn-editar:hover {
-            border-color: #fff;
-            color: #fff;
-        }
+            .btn-comentar {
+                background: #ff4757;
+                border: 1px solid #ff4757;
+                color: #fff;
+                border-radius: 8px;
+                font-weight: bold;
+                margin-top: 8px;
+            }
 
-        .btn-excluir:hover {
-            border-color: #ff4757;
-            color: #ff4757;
-        }
+            .btn-comentar:hover {
+                background: #ff2a3d;
+                border-color: #ff2a3d;
+                transform: scale(1.03);
+            }
 
-        button {
-            padding: 10px;
-        }
+            .comentarios-like {
+                padding: 6px 12px;
+                border-radius: 20px;
+                background: #181818;
+                border: 1px solid #333;
+                color: #aaa;
+                font-size: 0.8em;
+                cursor: pointer;
+                transition: 0.2s;
+            }
 
-        .acoes-principais {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 18px;
-        }
+            .comentarios-like:hover {
+                border-color: #ff4757;
+                color: #ff4757;
+                background: #1a1a1a;
+                transform: scale(1.05);
+            }
 
-        .acoes-dono {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
+            .comentarios-like.curtido {
+                background: rgba(255, 71, 87, 0.12);
+                border-color: #ff4757;
+                color: #ff4757;
+            }
 
-        .acoes-dono .btn-editar,
-        .acoes-dono .btn-excluir {
-            width: auto;
-            padding: 8px 14px;
-            margin: 0;
+            .modal .dono-link {
+                color: #ff4757;
+            }
 
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
-
-            font-size: 0.75em;
-        }
-
-        .acoes-dono .btn-editar:hover {
-            border-color: #fff;
-            color: #fff;
-        }
-
-        .acoes-dono .btn-excluir:hover {
-            border-color: #ff4757;
-            color: #ff4757;
-        }
+            .modal .dono-link:hover {
+                text-decoration: underline;
+            }
 
     </style>
 </head>
@@ -821,7 +710,7 @@
 
             <form id="form-carro">
                 <input type="hidden" id="input-id" value="">
-                
+
                 <input type="text" id="input-dono" placeholder="Nome do Dono" required>
                 <input type="text" id="input-modelo" placeholder="Modelo do Carro" required>
 
@@ -850,7 +739,7 @@
                 </label>
 
                 <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
-                
+
                 <button type="submit" id="btn-submit">Estacionar na Garagem</button>
                 <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
             </form>
@@ -878,11 +767,11 @@
 
             <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
 
-            <button onclick="carregarGaragem()" style="width: auto; padding: 0 15px;">
+            <button type="button" onclick="carregarGaragem()" style="width: auto; padding: 0 15px;">
                 Buscar
             </button>
         </div>
-        
+
         <div class="galeria" id="lista-carros"></div>
     </div>
 
@@ -892,7 +781,7 @@
 
     <script>
         const API_URL = 'http://127.0.0.1:5000';
-        let todosCarros = []; 
+        let todosCarros = [];
         let modoGaragem = "todos";
 
         function getUsuarioLogado() {
@@ -1065,9 +954,9 @@
             try {
                 const res = await fetch(`${API_URL}/carros?${params.toString()}`);
                 todosCarros = await res.json();
-                
+
                 const galeria = document.getElementById('lista-carros');
-                galeria.innerHTML = ''; 
+                galeria.innerHTML = '';
 
                 if (!Array.isArray(todosCarros) || todosCarros.length === 0) {
                     galeria.innerHTML = `
@@ -1098,7 +987,7 @@
                     const card = document.createElement('div');
                     const dono = usuarioEDono(carro);
                     const totalCurtidas = carro.total_curtidas || 0;
-                    const curtido = carro.curtido_pelo_usuario === true || carro.curtido_pelo_usuario === 1;
+                    const curtido = estaCurtido(carro.curtido_pelo_usuario);
 
                     card.className = 'carro-card';
 
@@ -1111,18 +1000,18 @@
                                 ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
                             </div>
 
-                           <p class="specs">
-                                Proprietário: 
-                                ${carro.usuario_id 
-                                    ? `<span style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
+                            <p class="specs">
+                                Proprietário:
+                                ${carro.usuario_id
+                                    ? `<span class="dono-link" data-id="${carro.usuario_id}">
                                         ${carro.nome_dono}
                                     </span>`
-                                    : `${carro.nome_dono}`
-                                }
+                                    : '---'}
                             </p>
+
                             <p class="specs">Cor: ${carro.cor}</p>
                             <p class="specs">Placa: ${carro.placa || '---'}</p>
-                            
+
                             <p class="specs">
                                 <span style="display:block; margin-top:12px; color:#666; font-size:0.75em; font-weight:bold;">
                                     FICHA TÉCNICA:
@@ -1143,7 +1032,7 @@
                             <div class="acoes-principais">
                                 <div class="barra-social">
                                     <span class="like-btn ${curtido ? 'curtido' : ''}">
-                                        👍 ${totalCurtidas}
+                                        👍 <span>${totalCurtidas}</span>
                                     </span>
 
                                     <span class="comment-btn">
@@ -1151,44 +1040,50 @@
                                     </span>
                                 </div>
 
-                                <button class="btn-ver">Ver projeto</button>
+                                <button type="button" class="btn-ver">Ver projeto</button>
                             </div>
 
                             ${dono ? `
                                 <div class="acoes-dono">
-                                    <button class="btn-editar">Editar</button>
-                                    <button class="btn-excluir">Remover</button>
+                                    <button type="button" class="btn-editar">Editar</button>
+                                    <button type="button" class="btn-excluir">Remover</button>
                                 </div>
                             ` : ''}
+                        </div>
+                    `;
 
-                            </div>
-                            `;
-    
+                    const donoLink = card.querySelector('.dono-link');
+
+                    if (donoLink) {
+                        donoLink.onclick = () => abrirPerfil(donoLink.dataset.id);
+                    }
+
                     card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
+
                     const likeBtn = card.querySelector('.like-btn');
 
-                        likeBtn.onclick = () => {
-                            alternarCurtida(carro.id);
+                    likeBtn.onclick = () => {
+                        alternarCurtida(carro.id);
 
-                            likeBtn.classList.add('animando');
+                        likeBtn.classList.add('animando');
+                        criarParticulas(likeBtn);
 
-                            criarParticulas(likeBtn);
+                        if (navigator.vibrate) {
+                            navigator.vibrate(10);
+                        }
 
-                            if (navigator.vibrate) {
-                                navigator.vibrate(10);
-                            }
+                        setTimeout(() => {
+                            likeBtn.classList.remove('animando');
+                        }, 300);
+                    };
 
-                            setTimeout(() => {
-                                likeBtn.classList.remove('animando');
-                            }, 300);
-                        };
                     card.querySelector('.comment-btn').onclick = () => abrirComentariosProjeto(carro);
 
                     if (dono) {
                         card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
                         card.querySelector('.btn-excluir').onclick = () => solicitarExclusao(carro.id);
                     }
-                    
+
                     galeria.appendChild(card);
                 });
 
@@ -1235,34 +1130,36 @@
             }
         }
 
-        function abrirModalProjeto(carro) {
+        function abrirModalProjeto(carro, scrollManter = null) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
 
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+
             const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
             const totalCurtidas = carro.total_curtidas || 0;
+            const curtido = estaCurtido(carro.curtido_pelo_usuario);
 
             modalContent.innerHTML = `
-                <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+                <button type="button" class="modal-fechar" onclick="fecharModalProjeto()">X</button>
 
-                ${img 
-                    ? `<img src="${img}" class="modal-img">` 
+                ${img
+                    ? `<img src="${img}" class="modal-img">`
                     : '<div class="modal-sem-foto">Sem foto</div>'
                 }
 
                 <div class="modal-info">
                     <h2>${carro.modelo} (${carro.ano})</h2>
 
-                    
-
                     <div class="modal-grid">
                         <div class="modal-item">
                             <span>Proprietário</span>
                             ${carro.usuario_id
-                                ? `<strong style="color:#ff4757; cursor:pointer;" onclick="abrirPerfil(${carro.usuario_id})">
+                                ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
                                     ${carro.nome_dono}
                                 </strong>`
-                                : `<strong>${carro.nome_dono}</strong>`
+                                : `<strong>${carro.nome_dono || '---'}</strong>`
                             }
                         </div>
 
@@ -1299,13 +1196,11 @@
                         </div>
                     ` : ''}
 
-                    
-
                     <div class="comentarios-container" id="comentarios-container">
                         <div class="comentarios-header">
                             <h3>Comentários</h3>
 
-                            <span class="comentarios-like">
+                            <span class="comentarios-like ${curtido ? 'curtido' : ''}" onclick="curtirPeloModal(${carro.id})">
                                 👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
                             </span>
                         </div>
@@ -1313,24 +1208,31 @@
                         <div id="lista-comentarios" style="margin-top:10px;"></div>
 
                         <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
-                        <button onclick="enviarComentario(${carro.id})">Comentar</button>
-                    </div>    
-
+                        <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
+                            Comentar
+                        </button>
+                    </div>
                 </div>
             `;
 
-            modal.style.display = "block";
-            document.body.style.overflow = "hidden";
             setTimeout(() => {
-                modal.scrollTop = 0;
+                if (scrollManter !== null) {
+                    modal.scrollTop = scrollManter;
+                } else {
+                    modal.scrollTop = 0;
+                }
+
                 modalContent.scrollTop = 0;
             }, 0);
+
             setTimeout(() => carregarComentarios(carro.id), 100);
         }
 
         function fecharModalProjeto() {
-            document.getElementById('modal-projeto').style.display = "none";
-            document.body.style.overflow = "auto";
+            const modal = document.getElementById('modal-projeto');
+
+            modal.style.display = "none";
+            document.body.style.overflow = "";
         }
 
         document.getElementById('modal-projeto').addEventListener('click', function(e) {
@@ -1360,7 +1262,7 @@
 
             document.getElementById('titulo-form').innerText = "Editando Projeto";
             document.getElementById('container-form').style.borderColor = "#ff4757";
-            
+
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
@@ -1376,7 +1278,7 @@
 
             const btnSubmit = document.getElementById('btn-submit');
             const id = document.getElementById('input-id').value;
-            
+
             const formData = new FormData();
 
             formData.append('usuario_id', usuario.id);
@@ -1388,7 +1290,7 @@
             formData.append('historia', document.getElementById('input-historia').value.trim());
             formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
             formData.append('aro_roda', document.getElementById('input-aro').value);
-            
+
             const foto = document.getElementById('input-foto').files[0];
 
             if (foto) {
@@ -1414,9 +1316,9 @@
                 btnSubmit.disabled = true;
                 btnSubmit.innerText = id ? "Salvando alterações..." : "Estacionando...";
 
-                const res = await fetch(url, { 
-                    method: metodo, 
-                    body: formData 
+                const res = await fetch(url, {
+                    method: metodo,
+                    body: formData
                 });
 
                 let resposta = {};
@@ -1426,7 +1328,7 @@
                 } catch {
                     resposta = {};
                 }
-                
+
                 if (res.ok) {
                     alert("Operação realizada com sucesso!");
                     resetarFormulario();
@@ -1485,11 +1387,11 @@
             try {
                 const res = await fetch(`${API_URL}/carros/${id}`, {
                     method: 'DELETE',
-                    headers: { 
-                        'Content-Type': 'application/json' 
+                    headers: {
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ 
-                        usuario_id: usuario.id 
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
                     })
                 });
 
@@ -1501,11 +1403,11 @@
                     resposta = {};
                 }
 
-                if (res.ok) { 
+                if (res.ok) {
                     alert("Projeto removido com sucesso!");
-                    carregarGaragem(); 
-                } else { 
-                    alert("Erro: " + (resposta.erro || "Não foi possível remover o projeto.")); 
+                    carregarGaragem();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível remover o projeto."));
                 }
 
             } catch (error) {
@@ -1514,58 +1416,52 @@
             }
         }
 
-        atualizarTelaUsuario();
-
         async function carregarComentarios(carroId) {
-        try {
-            const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`);
-            const comentarios = await res.json();
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`);
+                const comentarios = await res.json();
 
-            const lista = document.getElementById('lista-comentarios');
-            lista.innerHTML = '';
+                const lista = document.getElementById('lista-comentarios');
+                lista.innerHTML = '';
 
-            if (!comentarios.length) {
-                lista.innerHTML = `<div style="color:#666;">Nenhum comentário ainda.</div>`;
-                return;
+                if (!comentarios.length) {
+                    lista.innerHTML = `<div style="color:#666;">Nenhum comentário ainda.</div>`;
+                    return;
+                }
+
+                comentarios.forEach(c => {
+                    const div = document.createElement('div');
+
+                    div.innerHTML = `
+                        <div class="comentario-item">
+                            <div class="comentario-topo">
+                                ${c.usuario_id
+                                    ? `<span class="comentario-autor" onclick="abrirPerfil(${c.usuario_id})">
+                                        ${c.nome_usuario}
+                                    </span>`
+                                    : `<span class="comentario-autor">
+                                        ${c.nome_usuario}
+                                    </span>`
+                                }
+
+                                <span class="comentario-data">
+                                    ${new Date(c.criado_em).toLocaleString()}
+                                </span>
+                            </div>
+
+                            <div class="comentario-texto">
+                                ${c.texto}
+                            </div>
+                        </div>
+                    `;
+
+                    lista.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error(error);
             }
-
-            comentarios.forEach(c => {
-                const div = document.createElement('div');
-
-                div.style.borderBottom = "1px solid #222";
-                div.style.padding = "10px 0";
-
-                div.innerHTML = `
-                    <div class="comentario-item">
-
-                        <div class="comentario-topo">
-                            ${c.usuario_id 
-                                ? `<span class="comentario-autor" onclick="abrirPerfil(${c.usuario_id})">
-                                    ${c.nome_usuario}
-                                </span>`
-                                : `<span class="comentario-autor">
-                                    ${c.nome_usuario}
-                                </span>`
-                            }
-
-                            <span class="comentario-data">
-                                ${new Date(c.criado_em).toLocaleString()}
-                            </span>
-                        </div>
-
-                        <div class="comentario-texto">
-                            ${c.texto}
-                        </div>
-
-                    </div>
-                `;
-                lista.appendChild(div);
-            });
-
-        } catch (error) {
-            console.error(error);
         }
-    }    
 
         async function enviarComentario(carroId) {
             const usuario = getUsuarioLogado();
@@ -1607,14 +1503,18 @@
                 console.error(error);
                 alert("Erro de conexão.");
             }
-}
+        }
 
         async function abrirPerfil(usuarioId) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
 
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+
             try {
                 const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}`);
+
                 if (!resUser.ok) {
                     alert("Perfil não disponível.");
                     return;
@@ -1626,7 +1526,7 @@
                 const carros = await resCarros.json();
 
                 modalContent.innerHTML = `
-                    <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+                    <button type="button" class="modal-fechar" onclick="fecharModalProjeto()">X</button>
 
                     <div class="modal-info">
                         <h2>${usuario.nome}</h2>
@@ -1641,7 +1541,7 @@
                             grid-template-columns: repeat(2, 1fr);
                             gap:12px;
                         ">
-                            ${carros.length === 0 
+                            ${carros.length === 0
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
                                     <div style="
@@ -1651,9 +1551,8 @@
                                         margin-bottom:12px;
                                         background:#111;
                                     ">
-
-                                        ${c.foto_url 
-                                            ? `<img src="${API_URL}/uploads/${c.foto_url}" 
+                                        ${c.foto_url
+                                            ? `<img src="${API_URL}/uploads/${c.foto_url}"
                                                 style="width:100%; height:140px; object-fit:cover;">`
                                             : `<div style="height:140px; display:flex; align-items:center; justify-content:center; color:#333;">
                                                 SEM FOTO
@@ -1661,7 +1560,6 @@
                                         }
 
                                         <div style="padding:10px;">
-
                                             <strong style="
                                                 display:block;
                                                 color:#ff4757;
@@ -1675,47 +1573,49 @@
                                             <span style="color:#777; font-size:0.8em;">
                                                 ARO ${c.aro_roda} • ${c.tipo_suspensao}
                                             </span>
-
                                         </div>
-
+                                    </div>
                                 `).join('')
                             }
                         </div>
                     </div>
                 `;
 
-                modal.style.display = "block";
-                document.body.style.overflow = "hidden";
+                setTimeout(() => {
+                    modal.scrollTop = 0;
+                    modalContent.scrollTop = 0;
+                }, 0);
 
             } catch (error) {
                 console.error(error);
                 alert("Erro ao carregar perfil.");
             }
-}
+        }
 
         async function abrirProjetoPorId(id) {
-            const carro = todosCarros.find(c => c.id === id);
+            const carro = todosCarros.find(c => String(c.id) === String(id));
 
             if (carro) {
                 abrirModalProjeto(carro);
-            } else {
-                try {
-                    const res = await fetch(`${API_URL}/carros`);
-                    const lista = await res.json();
-
-                    const encontrado = lista.find(c => c.id === id);
-
-                    if (encontrado) {
-                        abrirModalProjeto(encontrado);
-                    } else {
-                        alert("Projeto não encontrado.");
-                    }
-                } catch (error) {
-                    console.error(error);
-                    alert("Erro ao abrir projeto.");
-                }
+                return;
             }
-}
+
+            try {
+                const res = await fetch(`${API_URL}/carros`);
+                const lista = await res.json();
+
+                const encontrado = lista.find(c => String(c.id) === String(id));
+
+                if (encontrado) {
+                    abrirModalProjeto(encontrado);
+                } else {
+                    alert("Projeto não encontrado.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao abrir projeto.");
+            }
+        }
 
         function abrirComentariosProjeto(carro) {
             abrirModalProjeto(carro);
@@ -1748,10 +1648,39 @@
                 document.body.appendChild(p);
 
                 setTimeout(() => p.remove(), 600);
-                console.log("particulas");
             }
         }
 
+       async function curtirPeloModal(carroId) {
+            await alternarCurtida(carroId);
+
+            await carregarGaragem();
+
+            const atualizado = todosCarros.find(c => String(c.id) === String(carroId));
+
+            if (!atualizado) return;
+
+            const blocoCurtidas = document.querySelector('.comentarios-like');
+
+            if (blocoCurtidas) {
+                const total = atualizado.total_curtidas || 0;
+
+                blocoCurtidas.innerHTML = `
+                    👍 ${total} ${total === 1 ? 'curtida' : 'curtidas'}
+                `;
+
+                // 🔥 FALTA ISSO AQUI
+                const curtido = estaCurtido(atualizado.curtido_pelo_usuario);
+
+                blocoCurtidas.classList.toggle('curtido', curtido);
+            }
+        }
+
+        function estaCurtido(valor) {
+            return valor === true || valor === 1 || valor === "1";
+        }
+
+        atualizarTelaUsuario();
     </script>
 </body>
 </html>
