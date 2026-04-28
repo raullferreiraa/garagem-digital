@@ -667,6 +667,94 @@
                 text-decoration: underline;
             }
 
+            .perfil-container {
+                padding: 20px;
+            }
+
+            .perfil-header {
+                text-align: center;
+                margin-bottom: 20px;
+            }
+
+            .perfil-header h2 {
+                margin: 0;
+                font-size: 1.8em;
+            }
+
+            .perfil-stats {
+                display: flex;
+                justify-content: center;
+                margin-top: 10px;
+            }
+
+            .perfil-stat {
+                text-align: center;
+            }
+
+            .perfil-stat strong {
+                display: block;
+                font-size: 1.4em;
+                color: #ff4757;
+            }
+
+            .perfil-stat span {
+                font-size: 0.8em;
+                color: #aaa;
+            }
+
+            .perfil-grid {
+                display: grid;
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .perfil-card {
+                background: #151515;
+                border: 1px solid #222;
+                border-radius: 8px;
+                overflow: hidden;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+
+            .perfil-card:hover {
+                border-color: #ff4757;
+                transform: scale(1.02);
+            }
+
+            .perfil-card img {
+                width: 100%;
+                height: 120px;
+                object-fit: cover;
+            }
+
+            .perfil-sem-foto {
+                height: 120px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #333;
+            }
+
+            .perfil-card-info {
+                padding: 8px;
+            }
+
+            .perfil-card-info strong {
+                display: block;
+                font-size: 1em;
+                font-weight: 700;
+                color: #fff;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+            .perfil-card-info span {
+                font-size: 0.75em;
+                color: #888;
+                text-transform: uppercase;
+            }
+
     </style>
 </head>
 <body>
@@ -1526,58 +1614,42 @@
                 const carros = await resCarros.json();
 
                 modalContent.innerHTML = `
-                    <button type="button" class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+                    <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
 
-                    <div class="modal-info">
-                        <h2>${usuario.nome}</h2>
+                    <div class="perfil-container">
 
-                        <p style="color:#aaa;">
-                            Projetos cadastrados: <strong>${usuario.total_projetos}</strong>
-                        </p>
+                        <div class="perfil-header">
+                            <h2>${usuario.nome}</h2>
 
-                        <div style="
-                            margin-top:20px;
-                            display:grid;
-                            grid-template-columns: repeat(2, 1fr);
-                            gap:12px;
-                        ">
+                            <div class="perfil-stats">
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_projetos}</strong>
+                                    <span>Projetos</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="perfil-grid">
                             ${carros.length === 0
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
-                                    <div style="
-                                        border:1px solid #222;
-                                        border-radius:10px;
-                                        overflow:hidden;
-                                        margin-bottom:12px;
-                                        background:#111;
-                                    ">
+                                    <div class="perfil-card" onclick="abrirProjetoPorId(${c.id})">
+
                                         ${c.foto_url
-                                            ? `<img src="${API_URL}/uploads/${c.foto_url}"
-                                                style="width:100%; height:140px; object-fit:cover;">`
-                                            : `<div style="height:140px; display:flex; align-items:center; justify-content:center; color:#333;">
-                                                SEM FOTO
-                                            </div>`
+                                            ? `<img src="${API_URL}/uploads/${c.foto_url}">`
+                                            : `<div class="perfil-sem-foto">SEM FOTO</div>`
                                         }
 
-                                        <div style="padding:10px;">
-                                            <strong style="
-                                                display:block;
-                                                color:#ff4757;
-                                                font-size:1em;
-                                                text-transform:uppercase;
-                                                cursor:pointer;
-                                            " onclick="abrirProjetoPorId(${c.id})">
-                                                ${c.modelo} (${c.ano})
-                                            </strong>
-
-                                            <span style="color:#777; font-size:0.8em;">
-                                                ARO ${c.aro_roda} • ${c.tipo_suspensao}
-                                            </span>
+                                        <div class="perfil-card-info">
+                                            <strong>${c.modelo}</strong>
+                                            <span>${c.ano}</span>
                                         </div>
+
                                     </div>
                                 `).join('')
                             }
                         </div>
+
                     </div>
                 `;
 
