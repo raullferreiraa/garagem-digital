@@ -1,20 +1,22 @@
 # Garagem Digital - Cultura da Lata 027 🚘
 
-Uma aplicação web Full Stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados, daily cars e projetos em andamento.
+Uma aplicação web full stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados, daily cars e projetos em andamento.
 
 O projeto nasceu com a proposta de criar uma **garagem digital** fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica, sua história e a cultura automotiva local.
 
-Atualmente, a aplicação evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva com cadastro de usuários, login, garagem pessoal, feed geral de projetos, curtidas e controle de propriedade por usuário.
+A Garagem Digital evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva social, com cadastro de usuários, login, garagem pessoal, feed geral de projetos, curtidas, comentários, perfis simples e controle de propriedade por usuário.
 
-A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas, dando destaque absoluto às máquinas e suas configurações reais.
+A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas e aplicativos sociais, dando destaque absoluto às máquinas, suas configurações reais e suas histórias.
+
+---
 
 ## 📌 Status do Projeto
 
 🚧 Projeto em evolução.
 
-A Garagem Digital já conta com autenticação de usuários, cadastro de veículos, feed geral, área de projetos pessoais, upload de imagens, filtros de busca, sistema de curtidas e controle de propriedade para edição e exclusão.
+A Garagem Digital já conta com autenticação de usuários, cadastro de veículos, feed geral, área de projetos pessoais, upload de imagens, filtros de busca, sistema de curtidas, comentários, modal de visualização detalhada, perfil simples de usuário e controle de propriedade para edição e exclusão.
 
-As próximas melhorias planejadas incluem comentários, perfis de usuários, equipes automotivas e grupos para interação entre participantes.
+As próximas melhorias planejadas incluem evolução do perfil, sistema de seguidores, feed social, ranking de projetos, responsividade mobile mais refinada e deploy online.
 
 ---
 
@@ -46,17 +48,25 @@ As próximas melhorias planejadas incluem comentários, perfis de usuários, equ
 - [x] **Edição de Projetos:** alteração de dados do veículo pelo proprietário.
 - [x] **Exclusão de Projetos:** remoção permitida somente ao dono do projeto.
 - [x] **História do Projeto:** campo para descrição, modificações e proposta visual.
-- [x] **Visualização Detalhada:** modal com informações completas do carro.
+- [x] **Visualização Detalhada:** modal com imagem, ficha técnica completa, história, curtidas e comentários.
 - [x] **Upload de Imagens:** envio de fotos via formulário.
 - [x] **Validação de Upload:** aceita apenas PNG, JPG, JPEG e WEBP.
 - [x] **Nome Único para Imagens:** evita sobrescrita de arquivos com UUID.
 - [x] **Limite de Upload:** arquivos limitados a 5 MB.
 - [x] **Filtros de Busca:** busca por modelo, tipo de suspensão e aro.
 - [x] **Sistema de Curtidas:** usuários logados podem curtir e remover curtidas dos projetos.
+- [x] **Curtidas no Modal:** o usuário pode curtir ou remover curtida diretamente na visualização detalhada.
 - [x] **Contador de Curtidas:** cada projeto exibe o total de curtidas recebidas.
 - [x] **Estado de Curtida por Usuário:** a interface indica se o usuário já curtiu o projeto.
+- [x] **Animação de Curtida:** feedback visual com animação e partículas.
+- [x] **Sistema de Comentários:** usuários logados podem comentar em projetos.
+- [x] **Comentários no Modal:** comentários são exibidos dentro da visualização detalhada do projeto.
+- [x] **Perfil Simples de Usuário:** exibe nome, contador de projetos e cards dos carros cadastrados.
+- [x] **Cards Clicáveis no Perfil:** carros exibidos no perfil podem abrir a visualização detalhada.
+- [x] **Nomes Clicáveis:** nome do proprietário e autor de comentário podem abrir o perfil.
 - [x] **Mensagem de Lista Vazia:** feedback visual quando não há projetos encontrados.
 - [x] **Modo de Edição:** interface muda visualmente ao editar um projeto.
+- [x] **Interface Dark Premium:** cards, botões e modal com visual mais moderno.
 - [x] **Interface Responsiva:** ajustes para melhor uso em dispositivos móveis.
 - [x] **Página Completa Documentada:** screenshot geral mostrando a aplicação em funcionamento.
 - [x] **SQL Limpo:** script de banco sem dados pessoais ou sensíveis.
@@ -64,6 +74,8 @@ As próximas melhorias planejadas incluem comentários, perfis de usuários, equ
 ---
 
 ## 📸 Interface e Demonstração
+
+> As imagens abaixo devem ser atualizadas com prints reais da versão mais recente da aplicação.
 
 ### Cadastro e Login de Usuários
 
@@ -89,23 +101,35 @@ As próximas melhorias planejadas incluem comentários, perfis de usuários, equ
 
 *Aba “Meus projetos”, exibindo apenas os veículos cadastrados pelo usuário logado.*
 
-### Visualização Detalhada
+### Visualização Detalhada do Projeto
 
 ![Visualização Detalhada](screenshots/05-visualizacao-detalhada.png)
 
-*Modal com imagem, ficha técnica completa e história do projeto.*
+*Modal com imagem, ficha técnica completa, história do projeto, curtidas e comentários.*
+
+### Comentários no Projeto
+
+![Comentários](screenshots/06-comentarios.png)
+
+*Área de comentários dentro do modal do projeto.*
+
+### Perfil de Usuário
+
+![Perfil de Usuário](screenshots/07-perfil-usuario.png)
+
+*Perfil simples com nome do usuário, quantidade de projetos e cards dos carros cadastrados.*
 
 ### Edição pelo Proprietário
 
-![Edição de Projeto](screenshots/06-editando-projeto.png)
+![Edição de Projeto](screenshots/08-editando-projeto.png)
 
 *Modo de edição disponível apenas para o usuário proprietário do projeto.*
 
 ### Página Completa
 
-![Página Completa](screenshots/07-pagina-completa.png)
+![Página Completa](screenshots/09-pagina-completa.png)
 
-*Visão geral da aplicação com autenticação, cadastro de projetos, filtros e listagem da garagem.*
+*Visão geral da aplicação com autenticação, cadastro de projetos, filtros, feed e listagem da garagem.*
 
 ---
 
@@ -125,7 +149,9 @@ O projeto foi evoluído para aplicar boas práticas básicas de segurança e org
 - vínculo de projetos ao usuário proprietário;
 - edição e exclusão permitidas apenas ao dono do projeto;
 - curtidas vinculadas ao usuário logado;
-- prevenção de curtidas duplicadas por meio de restrição única no banco.
+- prevenção de curtidas duplicadas por meio de restrição única no banco;
+- comentários vinculados ao usuário logado;
+- controle visual para exibir ações de edição e exclusão apenas ao proprietário.
 
 > Observação: a autenticação atual é simples e adequada para fins de estudo/portfólio. Futuramente, o projeto pode evoluir para uso de sessões, tokens JWT ou outro modelo mais robusto de autenticação.
 
@@ -141,13 +167,15 @@ O arquivo `garagem_digital.sql` cria a estrutura necessária para a aplicação,
 - tabela `usuarios`;
 - tabela `carros`;
 - tabela `curtidas`;
+- tabela `comentarios`;
 - relacionamento entre carros e usuários;
 - relacionamento entre curtidas, usuários e carros;
+- relacionamento entre comentários, usuários e carros;
 - campos principais da ficha técnica;
 - campo de história/descrição do projeto;
 - campos de data `criado_em` e `atualizado_em`.
 
-> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas, vínculos e curtidas sejam salvos corretamente.
+> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas, vínculos, curtidas e comentários sejam salvos corretamente.
 
 ---
 
@@ -155,21 +183,15 @@ O arquivo `garagem_digital.sql` cria a estrutura necessária para a aplicação,
 
 ### 1. Clone este repositório
 
-```bash
-git clone https://github.com/raullferreiraa/garagem-digital.git
-```
+    git clone https://github.com/raullferreiraa/garagem-digital.git
 
 ### 2. Acesse a pasta do projeto
 
-```bash
-cd garagem-digital
-```
+    cd garagem-digital
 
 ### 3. Instale as dependências
 
-```bash
-pip install -r requirements.txt
-```
+    pip install -r requirements.txt
 
 ### 4. Configure as variáveis de ambiente
 
@@ -177,36 +199,27 @@ Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
 
 Exemplo:
 
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=garagem_digital
-
-DEBUG=True
-```
+    DB_HOST=localhost
+    DB_USER=root
+    DB_PASSWORD=
+    DB_NAME=garagem_digital
+    DEBUG=True
 
 ### 5. Configure o banco de dados
 
 Importe o arquivo:
 
-```txt
-garagem_digital.sql
-```
+    garagem_digital.sql
 
 Você pode importar pelo phpMyAdmin ou pelo terminal do MySQL.
 
 ### 6. Inicie o servidor Flask
 
-```bash
-python app.py
-```
+    python app.py
 
 O servidor será iniciado em:
 
-```txt
-http://127.0.0.1:5000
-```
+    http://127.0.0.1:5000
 
 ### 7. Acesse a aplicação
 
@@ -216,17 +229,15 @@ Abra o arquivo `index.html` diretamente no navegador.
 
 ## 📁 Estrutura do Projeto
 
-```txt
-garagem-digital/
-├── app.py
-├── index.html
-├── garagem_digital.sql
-├── requirements.txt
-├── .env.example
-├── .gitignore
-├── screenshots/
-└── uploads/
-```
+    garagem-digital/
+    ├── app.py
+    ├── index.html
+    ├── garagem_digital.sql
+    ├── requirements.txt
+    ├── .env.example
+    ├── .gitignore
+    ├── screenshots/
+    └── uploads/
 
 > A pasta `uploads/` é criada automaticamente durante a execução do projeto e não é versionada no GitHub.
 
@@ -237,13 +248,22 @@ garagem-digital/
 Próximas evoluções planejadas:
 
 - [x] Adicionar sistema de curtidas em projetos.
-- [ ] Adicionar comentários em projetos.
-- [ ] Criar perfis públicos de usuários.
+- [x] Adicionar comentários em projetos.
+- [x] Criar perfis públicos simples de usuários.
+- [x] Melhorar visual dos cards e modal.
+- [ ] Adicionar avatar/foto de perfil.
+- [ ] Adicionar bio no perfil.
+- [ ] Criar sistema de seguidores e seguindo.
+- [ ] Criar feed social personalizado.
+- [ ] Criar ranking de projetos.
+- [ ] Permitir editar e excluir comentários próprios.
+- [ ] Exibir tempo relativo nos comentários, como “há 5 minutos”.
 - [ ] Criar sistema de equipes/clubes automotivos.
 - [ ] Permitir que usuários adicionem carros a uma equipe.
 - [ ] Criar grupos para postagens, fotos e discussões.
 - [ ] Adicionar categorias como Antigo, Rebaixado, Turbo, Daily e Projeto em andamento.
 - [ ] Adicionar ordenação por mais recentes, ano, aro e modelo.
+- [ ] Melhorar responsividade mobile.
 - [ ] Separar CSS e JavaScript em arquivos próprios.
 - [ ] Melhorar autenticação com sessões ou tokens.
 - [ ] Criar deploy online.
@@ -265,9 +285,15 @@ Durante o desenvolvimento, foram praticados conceitos como:
 - upload e armazenamento de arquivos;
 - consultas SQL com filtros dinâmicos;
 - sistema de curtidas com controle por usuário;
+- sistema de comentários associado a usuários e projetos;
+- criação de perfil simples com dados vindos da API;
+- atualização dinâmica da interface com JavaScript puro;
+- controle de estado visual de curtidas;
 - uso de hash para armazenamento seguro;
 - configuração de ambiente com `.env`;
 - organização de projeto para GitHub e portfólio;
+- uso de issues, branches e pull requests;
+- resolução de conflitos de branch;
 - evolução incremental de um CRUD para uma aplicação com características sociais.
 
 ---
