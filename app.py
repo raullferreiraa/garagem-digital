@@ -171,7 +171,8 @@ def listar_carros():
                 c.aro_roda,
                 c.foto_url,
                 c.historia,
-                COUNT(cur.id) AS total_curtidas,
+                COUNT(DISTINCT cur.id) AS total_curtidas,
+                COUNT(DISTINCT com.id) AS total_comentarios,
                 CASE 
                     WHEN SUM(CASE WHEN cur.usuario_id = %s THEN 1 ELSE 0 END) > 0 
                     THEN 1 
@@ -179,6 +180,7 @@ def listar_carros():
                 END AS curtido_pelo_usuario
             FROM carros c
             LEFT JOIN curtidas cur ON c.id = cur.carro_id
+            LEFT JOIN comentarios com ON c.id = com.carro_id
             WHERE 1=1
         """
 
