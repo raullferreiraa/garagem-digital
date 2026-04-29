@@ -544,6 +544,59 @@ def cadastrar_comentario(id):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+    
+@app.route('/comentarios/<int:id>', methods=['DELETE'])
+def excluir_comentario(id):
+    dados = request.json
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            SELECT id, usuario_id
+            FROM comentarios
+            WHERE id = %s
+            """,
+            (id,)
+        )
+
+        comentario = cursor.fetchone()
+
+        if not comentario:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Comentário não encontrado."}), 404
+
+        if str(comentario['usuario_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para remover este comentário."}), 403
+
+        cursor.execute(
+            "DELETE FROM comentarios WHERE id = %s",
+            (id,)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Comentário removido com sucesso!"}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def buscar_usuario(id):
