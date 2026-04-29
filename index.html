@@ -529,6 +529,23 @@
             font-size: 0.75em;
         }
 
+        .btn-remover-comentario {
+            width: auto;
+            padding: 4px 8px;
+            margin: 0;
+            background: transparent;
+            border: 1px solid #333;
+            color: #888;
+            border-radius: 6px;
+            font-size: 0.7em;
+            cursor: pointer;
+        }
+
+        .btn-remover-comentario:hover {
+            border-color: #ff4757;
+            color: #ff4757;
+        }
+
         .comentario-texto {
             color: #ccc;
             line-height: 1.4;
@@ -1521,6 +1538,7 @@
             try {
                 const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`);
                 const comentarios = await res.json();
+                const usuario = getUsuarioLogado();
 
                 const lista = document.getElementById('lista-comentarios');
                 lista.innerHTML = '';
@@ -1545,9 +1563,21 @@
                                     </span>`
                                 }
 
-                                <span class="comentario-data">
-                                    ${new Date(c.criado_em).toLocaleString()}
-                                </span>
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span class="comentario-data">
+                                        ${new Date(c.criado_em).toLocaleString()}
+                                    </span>
+
+                                    ${usuario && String(usuario.id) === String(c.usuario_id) ? `
+                                        <button 
+                                            type="button" 
+                                            class="btn-remover-comentario" 
+                                            onclick="excluirComentario(${c.id}, ${carroId})"
+                                        >
+                                            Remover
+                                        </button>
+                                    ` : ''}
+                                </div>
                             </div>
 
                             <div class="comentario-texto">
@@ -1599,6 +1629,46 @@
                 } else {
                     const erro = await res.json();
                     alert(erro.erro || "Erro ao comentar.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+        }
+
+        async function excluirComentario(comentarioId, carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Você precisa estar logado para remover um comentário.");
+                return;
+            }
+
+            const confirmar = confirm("Remover este comentário?");
+
+            if (!confirmar) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/comentarios/${comentarioId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    carregarComentarios(carroId);
+                    carregarGaragem();
+                } else {
+                    alert(resposta.erro || "Erro ao remover comentário.");
                 }
 
             } catch (error) {
