@@ -747,11 +747,11 @@
 
             .perfil-label {
                 display: block;
-                color: #888;
+                color: #cfcfcf;
                 font-size: 0.72em;
                 text-transform: uppercase;
-                letter-spacing: 0.08em;
-                margin: 8px 0 6px 0;
+                letter-spacing: 0.12em;
+                margin: 10px 0 8px 0;
             }
 
             .perfil-edicao input,
@@ -917,6 +917,48 @@
                 text-transform: uppercase;
             }
 
+            .upload-container {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                width: 100%;
+                box-sizing: border-box;
+                min-height: 54px;
+                padding: 10px 14px;
+                margin: 8px 0 16px 0;
+                border: 1px dashed #444;
+                border-radius: 12px;
+                background: #0b0b0b;
+                cursor: pointer;
+                transition: border-color 0.2s ease, background 0.2s ease;
+            }
+
+            .upload-container:hover {
+                border-color: #ff4757;
+                background: #111;
+            }
+
+            .upload-btn {
+                flex-shrink: 0;
+                background: #ff4757;
+                color: white;
+                padding: 9px 15px;
+                border-radius: 999px;
+                cursor: pointer;
+                font-weight: 800;
+                font-size: 0.75em;
+                text-transform: uppercase;
+                letter-spacing: 0.03em;
+            }
+
+            .upload-nome {
+                color: #c7c7c7;
+                font-size: 0.85em;
+                overflow: hidden;
+                white-space: nowrap;
+                text-overflow: ellipsis;
+            }
+
     </style>
 </head>
 <body>
@@ -984,11 +1026,19 @@
                     <input type="number" id="input-aro" placeholder="Aro" required>
                 </div>
 
-                <label style="font-size: 0.7em; color: #555; text-transform: uppercase;">
-                    Foto da Máquina:
-                </label>
+                <label class="perfil-label">Foto da máquina</label>
 
-                <input type="file" id="input-foto" accept=".png,.jpg,.jpeg,.webp">
+                <label class="upload-container">
+                    <span class="upload-btn">Escolher imagem</span>
+                    <span class="upload-nome" id="carro-foto-nome">Nenhum arquivo</span>
+
+                    <input
+                        type="file"
+                        id="input-foto"
+                        accept=".png,.jpg,.jpeg,.webp"
+                        style="display: none;"
+                    >
+                </label>
 
                 <button type="submit" id="btn-submit" class="btn-principal">Estacionar na Garagem</button>
                 <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
@@ -1908,11 +1958,17 @@
                             Foto de perfil
                         </label>
 
-                        <input
-                            type="file"
-                            id="perfil-avatar-arquivo"
-                            accept="image/png, image/jpeg, image/webp"
-                        >
+                        <label class="upload-container">
+                            <span class="upload-btn">Escolher foto</span>
+                            <span class="upload-nome" id="avatar-nome">Nenhum arquivo</span>
+
+                            <input
+                                type="file"
+                                id="perfil-avatar-arquivo"
+                                accept="image/png, image/jpeg, image/webp"
+                                style="display: none;"
+                            >
+                        </label>
 
                         <textarea
                             id="perfil-bio"
@@ -2114,6 +2170,32 @@
             const estaAberto = form.style.display === 'block';
             form.style.display = estaAberto ? 'none' : 'block';
         }
+
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'perfil-avatar-arquivo') {
+                const nome = document.getElementById('avatar-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+
+            if (e.target.id === 'input-foto') {
+                const nome = document.getElementById('carro-foto-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+        });
 
         async function alternarSeguir(usuarioId, jaSegue) {
             const usuarioLogado = getUsuarioLogado();
