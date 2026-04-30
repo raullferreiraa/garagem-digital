@@ -762,6 +762,50 @@
                 resize: vertical;
             }
 
+            .btn-editar-perfil,
+            .btn-seguir-perfil {
+                width: auto;
+                min-width: 150px;
+                max-width: 220px;
+                margin: 16px auto 0 auto;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 9px 18px;
+                border-radius: 999px;
+                cursor: pointer;
+                font-weight: 800;
+                letter-spacing: 0.04em;
+                text-transform: uppercase;
+                font-size: 0.8em;
+            }
+
+            .btn-editar-perfil {
+                background: transparent;
+                color: #ff4757;
+                border: 1px solid #ff4757;
+            }
+
+            .btn-editar-perfil:hover {
+                background: rgba(255, 71, 87, 0.12);
+            }
+
+            .btn-seguir-perfil {
+                background: #ff4757;
+                color: white;
+                border: 1px solid #ff4757;
+            }
+
+            .btn-seguir-perfil.seguindo {
+                background: transparent;
+                color: #ff4757;
+                border: 1px solid #ff4757;
+            }
+
+            .btn-seguir-perfil:hover {
+                transform: translateY(-1px);
+            }
+
             .btn-salvar-perfil {
                 background: #ff4757;
                 color: white;
@@ -785,22 +829,30 @@
             .perfil-stats {
                 display: flex;
                 justify-content: center;
-                margin-top: 10px;
+                gap: 34px;
+                margin: 18px 0 10px 0;
+                flex-wrap: wrap;
             }
 
             .perfil-stat {
+                min-width: 86px;
                 text-align: center;
             }
 
             .perfil-stat strong {
                 display: block;
-                font-size: 1.4em;
                 color: #ff4757;
+                font-size: 1.55em;
+                line-height: 1;
+                margin-bottom: 8px;
             }
 
             .perfil-stat span {
-                font-size: 0.8em;
+                display: block;
                 color: #aaa;
+                font-size: 0.78em;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
             }
 
             .perfil-grid {
@@ -1806,7 +1858,9 @@
             document.body.style.overflow = "hidden";
 
             try {
-                const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}`);
+                const usuarioLogadoAtual = getUsuarioLogado();
+                const queryUsuarioLogado = usuarioLogadoAtual ? `?usuario_logado_id=${usuarioLogadoAtual.id}` : '';
+                const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}${queryUsuarioLogado}`);
 
                 if (!resUser.ok) {
                     alert("Perfil não disponível.");
@@ -1814,7 +1868,7 @@
                 }
 
                 const usuario = await resUser.json();
-                const usuarioLogado = getUsuarioLogado();
+                const usuarioLogado = usuarioLogadoAtual;
                 const perfilProprio = usuarioLogado && String(usuarioLogado.id) === String(usuario.id);
                 const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
                 const carros = await resCarros.json();
@@ -1828,7 +1882,7 @@
                     : "Esse usuário ainda não adicionou uma bio.";
 
                 const formularioEdicaoPerfil = perfilProprio ? `
-                    <div class="perfil-edicao">
+                    <div class="perfil-edicao" id="perfil-edicao" style="display: none;">
                         <input 
                             type="text" 
                             id="perfil-avatar-url" 
@@ -1852,6 +1906,26 @@
                     </div>
                 ` : '';
 
+                const botaoEditarPerfil = perfilProprio ? `
+                    <button
+                        type="button"
+                        class="btn-editar-perfil"
+                        onclick="mostrarEdicaoPerfil()"
+                    >
+                        Editar perfil
+                    </button>
+                ` : '';
+
+                const botaoSeguirPerfil = !perfilProprio && usuarioLogado ? `
+                    <button
+                        type="button"
+                        class="btn-seguir-perfil ${usuario.seguido_pelo_usuario ? 'seguindo' : ''}"
+                        onclick="alternarSeguir(${usuario.id}, ${usuario.seguido_pelo_usuario ? 'true' : 'false'})"
+                    >
+                        ${usuario.seguido_pelo_usuario ? 'Seguindo' : 'Seguir'}
+                    </button>
+                ` : '';
+
                 modalContent.innerHTML = `
                     <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
 
@@ -1867,9 +1941,23 @@
                                     <strong>${usuario.total_projetos}</strong>
                                     <span>Projetos</span>
                                 </div>
+
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_seguidores || 0}</strong>
+                                    <span>Seguidores</span>
+                                </div>
+
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_seguindo || 0}</strong>
+                                    <span>Seguindo</span>
+                                </div>
                             </div>
 
                             <p class="perfil-bio">${bioPerfil}</p>
+
+                            ${botaoSeguirPerfil}
+                            ${botaoEditarPerfil}
+
                             ${formularioEdicaoPerfil}
                         </div>
 
@@ -1944,6 +2032,50 @@
                     abrirPerfil(usuarioId);
                 } else {
                     alert(resposta.erro || "Erro ao salvar perfil.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+        }
+
+        function mostrarEdicaoPerfil() {
+            const form = document.getElementById('perfil-edicao');
+
+            if (!form) {
+                return;
+            }
+
+            const estaAberto = form.style.display === 'block';
+            form.style.display = estaAberto ? 'none' : 'block';
+        }
+
+        async function alternarSeguir(usuarioId, jaSegue) {
+            const usuarioLogado = getUsuarioLogado();
+
+            if (!usuarioLogado) {
+                alert("Você precisa estar logado para seguir usuários.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/${usuarioId}/seguir`, {
+                    method: jaSegue ? 'DELETE' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioLogado.id
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    abrirPerfil(usuarioId);
+                } else {
+                    alert(resposta.erro || "Erro ao atualizar follow.");
                 }
 
             } catch (error) {
