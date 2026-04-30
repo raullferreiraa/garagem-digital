@@ -600,20 +600,36 @@ def excluir_comentario(id):
 
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def buscar_usuario(id):
+    usuario_logado_id = request.args.get('usuario_logado_id')
+
     try:
         conexao = mysql.connector.connect(**db_config)
         cursor = conexao.cursor(dictionary=True)
 
         cursor.execute("""
             SELECT 
-                id,
-                nome,
-                criado_em,
-                avatar_url,
-                bio
-            FROM usuarios
-            WHERE id = %s
-        """, (id,))
+                u.id,
+                u.nome,
+                u.criado_em,
+                u.avatar_url,
+                u.bio,
+                COUNT(DISTINCT s1.id) AS total_seguidores,
+                COUNT(DISTINCT s2.id) AS total_seguindo,
+                CASE
+                    WHEN COUNT(DISTINCT s3.id) > 0
+                    THEN 1
+                    ELSE 0
+                END AS seguido_pelo_usuario
+            FROM usuarios u
+            LEFT JOIN seguidores s1 ON u.id = s1.seguido_id
+            LEFT JOIN seguidores s2 ON u.id = s2.seguidor_id
+            LEFT JOIN seguidores s3 ON u.id = s3.seguido_id AND s3.seguidor_id = %s
+            WHERE u.id = %s
+            GROUP BY u.id
+        """, (
+            usuario_logado_id if usuario_logado_id else 0,
+            id
+        ))
 
         usuario = cursor.fetchone()
 
@@ -636,6 +652,96 @@ def buscar_usuario(id):
         conexao.close()
 
         return jsonify(usuario), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/usuarios/<int:id>/seguir', methods=['POST'])
+def seguir_usuario(id):
+    dados = request.json
+    seguidor_id = str(dados.get('usuario_id', '')).strip()
+
+    if not seguidor_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if str(id) == seguidor_id:
+        return jsonify({"erro": "Você não pode seguir a si mesmo."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, seguidor_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        if not usuario_existe(cursor, id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Perfil não encontrado."}), 404
+
+        cursor.execute(
+            """
+            INSERT INTO seguidores (seguidor_id, seguido_id)
+            VALUES (%s, %s)
+            """,
+            (seguidor_id, id)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Usuário seguido com sucesso!"}), 201
+
+    except mysql.connector.IntegrityError:
+        try:
+            cursor.close()
+            conexao.close()
+        except:
+            pass
+
+        return jsonify({"erro": "Você já segue este usuário."}), 409
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/usuarios/<int:id>/seguir', methods=['DELETE'])
+def deixar_de_seguir_usuario(id):
+    dados = request.json
+    seguidor_id = str(dados.get('usuario_id', '')).strip()
+
+    if not seguidor_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if str(id) == seguidor_id:
+        return jsonify({"erro": "Você não pode deixar de seguir a si mesmo."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, seguidor_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            DELETE FROM seguidores
+            WHERE seguidor_id = %s AND seguido_id = %s
+            """,
+            (seguidor_id, id)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Usuário deixou de ser seguido."}), 200
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
