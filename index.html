@@ -745,6 +745,15 @@
                 background: #101010;
             }
 
+            .perfil-label {
+                display: block;
+                color: #888;
+                font-size: 0.72em;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+                margin: 8px 0 6px 0;
+            }
+
             .perfil-edicao input,
             .perfil-edicao textarea {
                 width: 100%;
@@ -1873,8 +1882,14 @@
                 const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
                 const carros = await resCarros.json();
                 const inicialPerfil = usuario.nome ? usuario.nome.charAt(0).toUpperCase() : "?";
-                const avatarPerfil = usuario.avatar_url
-                    ? `<img src="${usuario.avatar_url}" alt="Avatar de ${usuario.nome}" class="perfil-avatar">`
+                const avatarSrc = usuario.avatar_url
+                    ? (usuario.avatar_url.startsWith('http')
+                        ? usuario.avatar_url
+                        : `${API_URL}/uploads/${usuario.avatar_url}`)
+                    : '';
+
+                const avatarPerfil = avatarSrc
+                    ? `<img src="${avatarSrc}" alt="" class="perfil-avatar">`
                     : `<div class="perfil-avatar-fallback">${inicialPerfil}</div>`;
 
                 const bioPerfil = usuario.bio && usuario.bio.trim()
@@ -1883,21 +1898,30 @@
 
                 const formularioEdicaoPerfil = perfilProprio ? `
                     <div class="perfil-edicao" id="perfil-edicao" style="display: none;">
-                        <input 
-                            type="text" 
-                            id="perfil-avatar-url" 
-                            placeholder="URL do avatar"
+                        <input
+                            type="hidden"
+                            id="perfil-avatar-atual"
                             value="${usuario.avatar_url || ''}"
                         >
 
-                        <textarea 
+                        <label class="perfil-label">
+                            Foto de perfil
+                        </label>
+
+                        <input
+                            type="file"
+                            id="perfil-avatar-arquivo"
+                            accept="image/png, image/jpeg, image/webp"
+                        >
+
+                        <textarea
                             id="perfil-bio"
                             maxlength="280"
                             placeholder="Escreva uma bio curta sobre você e sua garagem..."
                         >${usuario.bio || ''}</textarea>
 
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             class="btn-salvar-perfil"
                             onclick="salvarPerfil(${usuario.id})"
                         >
@@ -2004,10 +2028,50 @@
                 return;
             }
 
-            const avatarInput = document.getElementById('perfil-avatar-url');
+            const avatarArquivoInput = document.getElementById('perfil-avatar-arquivo');
+            const avatarAtualInput = document.getElementById('perfil-avatar-atual');
             const bioInput = document.getElementById('perfil-bio');
 
+            let avatarUrlFinal = avatarAtualInput ? avatarAtualInput.value : '';
+
             try {
+                if (avatarArquivoInput && avatarArquivoInput.files.length > 0) {
+                    const arquivoAvatar = avatarArquivoInput.files[0];
+
+                    const tamanhoMaximoMB = 3;
+                    const tamanhoMaximoBytes = tamanhoMaximoMB * 1024 * 1024;
+
+                    if (arquivoAvatar.size > tamanhoMaximoBytes) {
+                        alert(`A imagem deve ter no máximo ${tamanhoMaximoMB}MB.`);
+                        return;
+                    }
+
+                    const tiposPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
+
+                    if (!tiposPermitidos.includes(arquivoAvatar.type)) {
+                        alert("Formato não permitido. Use PNG, JPG, JPEG ou WEBP.");
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('usuario_id', usuarioLogado.id);
+                    formData.append('arquivo', arquivoAvatar);
+
+                    const resAvatar = await fetch(`${API_URL}/usuarios/${usuarioId}/avatar`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const respostaAvatar = await resAvatar.json();
+
+                    if (!resAvatar.ok) {
+                        alert(respostaAvatar.erro || "Erro ao enviar avatar.");
+                        return;
+                    }
+
+                    avatarUrlFinal = respostaAvatar.avatar_url;
+                }
+
                 const res = await fetch(`${API_URL}/usuarios/${usuarioId}`, {
                     method: 'PUT',
                     headers: {
@@ -2015,7 +2079,7 @@
                     },
                     body: JSON.stringify({
                         usuario_id: usuarioLogado.id,
-                        avatar_url: avatarInput.value.trim(),
+                        avatar_url: avatarUrlFinal,
                         bio: bioInput.value.trim()
                     })
                 });
@@ -2035,8 +2099,8 @@
                 }
 
             } catch (error) {
-                console.error(error);
-                alert("Erro de conexão.");
+                console.error("Erro ao salvar perfil:", error);
+                alert("Erro de conexão. Veja o console do navegador e o terminal do Flask.");
             }
         }
 
