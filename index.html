@@ -902,6 +902,56 @@
         let todosCarros = [];
         let modoGaragem = "todos";
 
+        function formatarTempoRelativo(dataTexto) {
+            if (!dataTexto) {
+                return "";
+            }
+
+            let data = new Date(dataTexto);
+
+            if (isNaN(data.getTime())) {
+                return dataTexto;
+            }
+
+            const agora = new Date();
+
+            data = new Date(data.getTime() + (3 * 60 * 60 * 1000));
+
+            let diferencaEmSegundos = Math.floor((agora - data) / 1000);
+
+            if (diferencaEmSegundos < 0) {
+                diferencaEmSegundos = 0;
+            }
+
+            if (diferencaEmSegundos < 10) {
+                return "agora";
+            }
+
+            if (diferencaEmSegundos < 60) {
+                return `há ${diferencaEmSegundos} segundos`;
+            }
+
+            const diferencaEmMinutos = Math.floor(diferencaEmSegundos / 60);
+
+            if (diferencaEmMinutos < 60) {
+                return diferencaEmMinutos === 1 ? "há 1 minuto" : `há ${diferencaEmMinutos} minutos`;
+            }
+
+            const diferencaEmHoras = Math.floor(diferencaEmMinutos / 60);
+
+            if (diferencaEmHoras < 24) {
+                return diferencaEmHoras === 1 ? "há 1 hora" : `há ${diferencaEmHoras} horas`;
+            }
+
+            const diferencaEmDias = Math.floor(diferencaEmHoras / 24);
+
+            if (diferencaEmDias < 30) {
+                return diferencaEmDias === 1 ? "há 1 dia" : `há ${diferencaEmDias} dias`;
+            }
+
+            return data.toLocaleDateString();
+        }
+
         function getUsuarioLogado() {
             const usuario = localStorage.getItem('usuarioLogado');
 
@@ -1564,8 +1614,8 @@
                                 }
 
                                 <div style="display: flex; gap: 8px; align-items: center;">
-                                    <span class="comentario-data">
-                                        ${new Date(c.criado_em).toLocaleString()}
+                                    <span class="comentario-data" title="${new Date(c.criado_em).toLocaleString()}">
+                                        ${formatarTempoRelativo(c.criado_em)}
                                     </span>
 
                                     ${usuario && String(usuario.id) === String(c.usuario_id) ? `
