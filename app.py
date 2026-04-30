@@ -608,7 +608,9 @@ def buscar_usuario(id):
             SELECT 
                 id,
                 nome,
-                criado_em
+                criado_em,
+                avatar_url,
+                bio
             FROM usuarios
             WHERE id = %s
         """, (id,))
@@ -638,6 +640,69 @@ def buscar_usuario(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
     
+@app.route('/usuarios/<int:id>', methods=['PUT'])
+def atualizar_usuario(id):
+    dados = request.json
+    usuario_logado_id = str(dados.get('usuario_id', '')).strip()
+    avatar_url = str(dados.get('avatar_url', '')).strip()
+    bio = str(dados.get('bio', '')).strip()
+
+    if not usuario_logado_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if str(id) != usuario_logado_id:
+        return jsonify({"erro": "Você não tem permissão para editar este perfil."}), 403
+
+    if len(avatar_url) > 1000:
+        return jsonify({"erro": "URL do avatar muito longa."}), 400
+
+    if len(bio) > 280:
+        return jsonify({"erro": "A bio deve ter no máximo 280 caracteres."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_logado_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            UPDATE usuarios
+            SET avatar_url = %s,
+                bio = %s
+            WHERE id = %s
+            """,
+            (
+                avatar_url if avatar_url else None,
+                bio if bio else None,
+                id
+            )
+        )
+
+        conexao.commit()
+
+        cursor.execute(
+            """
+            SELECT id, nome, criado_em, avatar_url, bio
+            FROM usuarios
+            WHERE id = %s
+            """,
+            (id,)
+        )
+
+        usuario = cursor.fetchone()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(usuario), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/usuarios/<int:id>/carros', methods=['GET'])
 def listar_carros_usuario(id):
     try:

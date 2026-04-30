@@ -701,6 +701,77 @@
                 padding: 20px;
             }
 
+            .perfil-avatar {
+                width: 96px;
+                height: 96px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #ff4757;
+                background: #181818;
+                display: block;
+                margin: 0 auto 14px auto;
+            }
+
+            .perfil-avatar-fallback {
+                width: 96px;
+                height: 96px;
+                border-radius: 50%;
+                border: 2px solid #ff4757;
+                background: linear-gradient(145deg, #1f1f1f, #111);
+                color: #ff4757;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 auto 14px auto;
+                font-size: 2em;
+                font-weight: 900;
+            }
+
+            .perfil-bio {
+                max-width: 520px;
+                margin: 12px auto 0 auto;
+                color: #bbb;
+                line-height: 1.5;
+                text-transform: none;
+                font-size: 0.95em;
+            }
+
+            .perfil-edicao {
+                max-width: 520px;
+                margin: 18px auto 0 auto;
+                padding: 14px;
+                border: 1px solid #222;
+                border-radius: 14px;
+                background: #101010;
+            }
+
+            .perfil-edicao input,
+            .perfil-edicao textarea {
+                width: 100%;
+                margin-bottom: 10px;
+                background: #080808;
+                border: 1px solid #333;
+                color: #eee;
+                border-radius: 8px;
+                padding: 10px;
+                font-family: inherit;
+            }
+
+            .perfil-edicao textarea {
+                min-height: 80px;
+                resize: vertical;
+            }
+
+            .btn-salvar-perfil {
+                background: #ff4757;
+                color: white;
+                border: none;
+                padding: 10px 14px;
+                border-radius: 8px;
+                cursor: pointer;
+                font-weight: 700;
+            }
+
             .perfil-header {
                 text-align: center;
                 margin-bottom: 20px;
@@ -1743,9 +1814,43 @@
                 }
 
                 const usuario = await resUser.json();
-
+                const usuarioLogado = getUsuarioLogado();
+                const perfilProprio = usuarioLogado && String(usuarioLogado.id) === String(usuario.id);
                 const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
                 const carros = await resCarros.json();
+                const inicialPerfil = usuario.nome ? usuario.nome.charAt(0).toUpperCase() : "?";
+                const avatarPerfil = usuario.avatar_url
+                    ? `<img src="${usuario.avatar_url}" alt="Avatar de ${usuario.nome}" class="perfil-avatar">`
+                    : `<div class="perfil-avatar-fallback">${inicialPerfil}</div>`;
+
+                const bioPerfil = usuario.bio && usuario.bio.trim()
+                    ? usuario.bio
+                    : "Esse usuário ainda não adicionou uma bio.";
+
+                const formularioEdicaoPerfil = perfilProprio ? `
+                    <div class="perfil-edicao">
+                        <input 
+                            type="text" 
+                            id="perfil-avatar-url" 
+                            placeholder="URL do avatar"
+                            value="${usuario.avatar_url || ''}"
+                        >
+
+                        <textarea 
+                            id="perfil-bio"
+                            maxlength="280"
+                            placeholder="Escreva uma bio curta sobre você e sua garagem..."
+                        >${usuario.bio || ''}</textarea>
+
+                        <button 
+                            type="button" 
+                            class="btn-salvar-perfil"
+                            onclick="salvarPerfil(${usuario.id})"
+                        >
+                            Salvar perfil
+                        </button>
+                    </div>
+                ` : '';
 
                 modalContent.innerHTML = `
                     <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
@@ -1753,6 +1858,8 @@
                     <div class="perfil-container">
 
                         <div class="perfil-header">
+                            ${avatarPerfil}
+
                             <h2>${usuario.nome}</h2>
 
                             <div class="perfil-stats">
@@ -1761,6 +1868,9 @@
                                     <span>Projetos</span>
                                 </div>
                             </div>
+
+                            <p class="perfil-bio">${bioPerfil}</p>
+                            ${formularioEdicaoPerfil}
                         </div>
 
                         <div class="perfil-grid">
@@ -1795,6 +1905,50 @@
             } catch (error) {
                 console.error(error);
                 alert("Erro ao carregar perfil.");
+            }
+        }
+
+        async function salvarPerfil(usuarioId) {
+            const usuarioLogado = getUsuarioLogado();
+
+            if (!usuarioLogado || String(usuarioLogado.id) !== String(usuarioId)) {
+                alert("Você não tem permissão para editar este perfil.");
+                return;
+            }
+
+            const avatarInput = document.getElementById('perfil-avatar-url');
+            const bioInput = document.getElementById('perfil-bio');
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/${usuarioId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioLogado.id,
+                        avatar_url: avatarInput.value.trim(),
+                        bio: bioInput.value.trim()
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('usuarioLogado', JSON.stringify({
+                        ...usuarioLogado,
+                        avatar_url: resposta.avatar_url,
+                        bio: resposta.bio
+                    }));
+
+                    abrirPerfil(usuarioId);
+                } else {
+                    alert(resposta.erro || "Erro ao salvar perfil.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
             }
         }
 
