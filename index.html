@@ -77,6 +77,31 @@
             opacity: 1;
         }
 
+        .acoes-garagem {
+            display: flex;
+            justify-content: center;
+            margin: 24px 0;
+        }
+
+        .btn-toggle-form {
+            width: auto;
+            min-width: 230px;
+            background: #ff4757;
+            color: white;
+            border: 1px solid #ff4757;
+            padding: 12px 22px;
+            border-radius: 999px;
+            cursor: pointer;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .btn-toggle-form:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.18);
+        }
+
         .auth-container,
         .formulario-container {
             background-color: #1e1e1e;
@@ -997,7 +1022,14 @@
     </div>
 
     <div class="conteudo-app" id="conteudo-app">
-        <div class="formulario-container" id="container-form">
+
+        <div class="acoes-garagem">
+            <button type="button" class="btn-toggle-form" onclick="alternarFormularioProjeto()">
+                + Estacionar novo projeto
+            </button>
+        </div>
+
+        <div class="formulario-container" id="container-form" style="display: none;">
             <h2 id="titulo-form">Registrar Novo Projeto</h2>
 
             <form id="form-carro">
@@ -1278,6 +1310,37 @@
             localStorage.removeItem('usuarioLogado');
             resetarFormulario();
             atualizarTelaUsuario();
+        }
+
+        function alternarFormularioProjeto() {
+            const container = document.getElementById('container-form');
+            const botao = document.querySelector('.btn-toggle-form');
+
+            if (!container || !botao) {
+                return;
+            }
+
+            const estaAberto = container.style.display === 'block';
+
+            container.style.display = estaAberto ? 'none' : 'block';
+            botao.innerText = estaAberto ? '+ Estacionar novo projeto' : 'Fechar formulário';
+
+            if (!estaAberto) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function fecharFormularioProjeto() {
+            const container = document.getElementById('container-form');
+            const botao = document.querySelector('.btn-toggle-form');
+
+            if (container) {
+                container.style.display = 'none';
+            }
+
+            if (botao) {
+                botao.innerText = '+ Estacionar novo projeto';
+            }
         }
 
         async function carregarGaragem() {
@@ -1597,6 +1660,17 @@
                 return;
             }
 
+            const container = document.getElementById('container-form');
+            const botaoToggle = document.querySelector('.btn-toggle-form');
+
+            if (container) {
+                container.style.display = 'block';
+            }
+
+            if (botaoToggle) {
+                botaoToggle.innerText = 'Fechar formulário';
+            }
+
             document.getElementById('input-id').value = carro.id;
             document.getElementById('input-dono').value = carro.nome_dono;
             document.getElementById('input-modelo').value = carro.modelo;
@@ -1612,6 +1686,10 @@
 
             document.getElementById('titulo-form').innerText = "Editando Projeto";
             document.getElementById('container-form').style.borderColor = "#ff4757";
+            document.getElementById('container-form').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
 
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
@@ -1683,6 +1761,17 @@
                     alert("Operação realizada com sucesso!");
                     resetarFormulario();
                     carregarGaragem();
+
+                    const container = document.getElementById('container-form');
+                    const botaoToggle = document.querySelector('.btn-toggle-form');
+
+                    if (container) {
+                        container.style.display = 'none';
+                    }
+
+                    if (botaoToggle) {
+                        botaoToggle.innerText = '+ Estacionar novo projeto';
+                    }
                 } else {
                     alert("Erro: " + (resposta.erro || "Não foi possível concluir a operação."));
                     btnSubmit.disabled = false;
