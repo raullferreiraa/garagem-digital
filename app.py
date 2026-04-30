@@ -1,5 +1,6 @@
 import os
 import uuid
+import time
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import mysql.connector
@@ -55,7 +56,7 @@ def usuario_existe(cursor, usuario_id):
     return cursor.fetchone() is not None
 
 
-@app.route('/uploads/<filename>')
+@app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
@@ -805,6 +806,68 @@ def atualizar_usuario(id):
         conexao.close()
 
         return jsonify(usuario), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/usuarios/<int:id>/avatar', methods=['POST'])
+def upload_avatar(id):
+    usuario_id = request.form.get('usuario_id')
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if str(usuario_id) != str(id):
+        return jsonify({"erro": "Sem permissão."}), 403
+
+    if 'arquivo' not in request.files:
+        return jsonify({"erro": "Arquivo não enviado."}), 400
+
+    arquivo = request.files['arquivo']
+
+    if arquivo.filename == '':
+        return jsonify({"erro": "Arquivo inválido."}), 400
+
+    try:
+        extensoes_permitidas = ['png', 'jpg', 'jpeg', 'webp']
+
+        nome = secure_filename(arquivo.filename)
+        extensao = nome.rsplit('.', 1)[-1].lower()
+
+        if extensao not in extensoes_permitidas:
+            return jsonify({"erro": "Formato de imagem não permitido."}), 400
+
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor()
+
+        if not usuario_existe(cursor, id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 404
+
+        nome_arquivo = f"user_{id}_{int(time.time())}.{extensao}"
+
+        pasta_avatars = os.path.join('uploads', 'avatars')
+        os.makedirs(pasta_avatars, exist_ok=True)
+
+        caminho = os.path.join(pasta_avatars, nome_arquivo)
+
+        arquivo.save(caminho)
+
+        cursor.execute(
+            "UPDATE usuarios SET avatar_url = %s WHERE id = %s",
+            (f"avatars/{nome_arquivo}", id)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({
+            "mensagem": "Avatar atualizado com sucesso!",
+            "avatar_url": f"avatars/{nome_arquivo}"
+        }), 200
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
