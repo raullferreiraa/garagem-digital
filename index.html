@@ -44,6 +44,16 @@
             text-transform: uppercase;
         }
 
+        .auth-container input,
+        .perfil-edicao textarea,
+        #input-bio,
+        #bio,
+        #perfil-bio,
+        #input-comentario,
+        textarea[name="bio"] {
+            text-transform: none;
+        }
+
         textarea {
             min-height: 110px;
             resize: vertical;
@@ -527,6 +537,7 @@
             margin-bottom: 10px;
             background: #151515;
             transition: 0.2s;
+            text-transform: none;
         }
 
         .comentario-item:hover {
@@ -574,6 +585,7 @@
         .comentario-texto {
             color: #ccc;
             line-height: 1.4;
+            text-transform: none;
         }
 
         .comentarios-header {
@@ -1189,7 +1201,7 @@
             <h2>Criar Conta</h2>
 
             <input type="text" id="cadastro-nome" placeholder="Nome">
-            <input type="text" id="cadastro-username" placeholder="@USERNAME">
+            <input type="text" id="cadastro-username" placeholder="Nome de usuário" autocomplete="off">
             <input type="email" id="cadastro-email" placeholder="Email">
             <input type="password" id="cadastro-senha" placeholder="Senha">
 
