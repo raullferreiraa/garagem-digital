@@ -761,6 +761,15 @@
                 font-size: 0.95em;
             }
 
+            .perfil-username {
+                margin: 6px 0 0 0;
+                color: #ff4757;
+                font-size: 0.9em;
+                font-weight: 800;
+                text-transform: lowercase;
+                letter-spacing: 0.04em;
+            }
+
             .perfil-edicao {
                 max-width: 520px;
                 margin: 18px auto 0 auto;
@@ -1180,6 +1189,7 @@
             <h2>Criar Conta</h2>
 
             <input type="text" id="cadastro-nome" placeholder="Nome">
+            <input type="text" id="cadastro-username" placeholder="@USERNAME">
             <input type="email" id="cadastro-email" placeholder="Email">
             <input type="password" id="cadastro-senha" placeholder="Senha">
 
@@ -1407,7 +1417,9 @@
                 const nomeEl = document.getElementById('usuario-nome');
                 const avatarEl = document.getElementById('usuario-avatar');
 
-                nomeEl.innerText = usuario.nome;
+                nomeEl.innerText = usuario.username
+                    ? `@${usuario.username}`
+                    : usuario.nome;
 
                 if (usuario.avatar_url) {
                     const src = usuario.avatar_url.startsWith('http')
@@ -1444,6 +1456,7 @@
 
         async function cadastrarUsuario() {
             const nome = document.getElementById('cadastro-nome').value.trim();
+            const username = document.getElementById('cadastro-username').value.trim().toLowerCase();
             const email = document.getElementById('cadastro-email').value.trim();
             const senha = document.getElementById('cadastro-senha').value.trim();
 
@@ -1458,7 +1471,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ nome, email, senha })
+                    body: JSON.stringify({ nome, username, email, senha })
                 });
 
                 const resposta = await res.json();
@@ -2310,6 +2323,7 @@
                             ${avatarPerfil}
 
                             <h2>${usuario.nome}</h2>
+                            <p class="perfil-username">@${usuario.username}</p>
 
                             <div class="perfil-stats">
                                 <div class="perfil-stat">

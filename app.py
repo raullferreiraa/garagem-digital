@@ -1,6 +1,7 @@
 import os
 import uuid
 import time
+import re
 from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 import mysql.connector
@@ -55,6 +56,18 @@ def usuario_existe(cursor, usuario_id):
     cursor.execute("SELECT id FROM usuarios WHERE id = %s", (usuario_id,))
     return cursor.fetchone() is not None
 
+def validar_username(username):
+    if not username:
+        return "Preencha o username."
+
+    if len(username) < 3 or len(username) > 30:
+        return "O username deve ter entre 3 e 30 caracteres."
+
+    if not re.fullmatch(r"[a-z0-9._]+", username):
+        return "O username deve conter apenas letras minúsculas, números, ponto e underline."
+
+    return None
+
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
@@ -66,11 +79,17 @@ def cadastrar_usuario():
     dados = request.json
 
     nome = str(dados.get('nome', '')).strip()
+    username = str(dados.get('username', '')).strip().lower()
     email = str(dados.get('email', '')).strip().lower()
     senha = str(dados.get('senha', '')).strip()
 
-    if not nome or not email or not senha:
-        return jsonify({"erro": "Preencha nome, email e senha."}), 400
+    if not nome or not username or not email or not senha:
+        return jsonify({"erro": "Preencha nome, username, email e senha."}), 400
+
+    erro_username = validar_username(username)
+
+    if erro_username:
+        return jsonify({"erro": erro_username}), 400
 
     try:
         conexao = mysql.connector.connect(**db_config)
@@ -83,15 +102,23 @@ def cadastrar_usuario():
             cursor.close()
             conexao.close()
             return jsonify({"erro": "Este email já está cadastrado."}), 400
+        
+        cursor.execute("SELECT id FROM usuarios WHERE username = %s", (username,))
+        username_existente = cursor.fetchone()
+
+        if username_existente:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Este username já está em uso."}), 400
 
         senha_hash = generate_password_hash(senha)
 
         cursor.execute(
             """
-            INSERT INTO usuarios (nome, email, senha)
-            VALUES (%s, %s, %s)
+            INSERT INTO usuarios (nome, username, email, senha)
+            VALUES (%s, %s, %s, %s)
             """,
-            (nome, email, senha_hash)
+            (nome, username, email, senha_hash)
         )
 
         conexao.commit()
@@ -120,7 +147,7 @@ def login_usuario():
         cursor = conexao.cursor(dictionary=True)
 
         cursor.execute(
-            "SELECT id, nome, email, senha FROM usuarios WHERE email = %s",
+            "SELECT id, nome, username, email, senha FROM usuarios WHERE email = %s",
             (email,)
         )
 
@@ -140,6 +167,7 @@ def login_usuario():
             "usuario": {
                 "id": usuario['id'],
                 "nome": usuario['nome'],
+                "username": usuario['username'],
                 "email": usuario['email']
             }
         }), 200
@@ -478,7 +506,8 @@ def listar_comentarios(id):
                 comentarios.texto,
                 comentarios.criado_em,
                 usuarios.id AS usuario_id,
-                usuarios.nome AS nome_usuario
+                usuarios.nome AS nome_usuario,
+                usuarios.username AS username_usuario
             FROM comentarios
             INNER JOIN usuarios ON comentarios.usuario_id = usuarios.id
             WHERE comentarios.carro_id = %s
@@ -611,6 +640,7 @@ def buscar_usuario(id):
             SELECT 
                 u.id,
                 u.nome,
+                u.username,
                 u.criado_em,
                 u.avatar_url,
                 u.bio,
@@ -793,7 +823,7 @@ def atualizar_usuario(id):
 
         cursor.execute(
             """
-            SELECT id, nome, criado_em, avatar_url, bio
+            SELECT id, nome, username, criado_em, avatar_url, bio
             FROM usuarios
             WHERE id = %s
             """,
