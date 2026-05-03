@@ -248,11 +248,16 @@
         }
 
         .galeria {
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 20px;
-            max-width: 600px;
+            max-width: 980px;
             margin: 0 auto;
+        }
+
+        .galeria.um-card {
+            grid-template-columns: minmax(0, 480px);
+            justify-content: center;
         }
 
         .carro-card {
@@ -672,6 +677,15 @@
 
             body {
                 padding: 25px 12px;
+            }
+
+            .galeria {
+                grid-template-columns: 1fr;
+                max-width: 600px;
+            }
+
+            .galeria.um-card {
+                grid-template-columns: 1fr;
             }
 
             .modal {
@@ -1624,6 +1638,7 @@
 
                 const galeria = document.getElementById('lista-carros');
                 galeria.innerHTML = '';
+                galeria.classList.remove('um-card');
 
                 if (!Array.isArray(todosCarros) || todosCarros.length === 0) {
                     galeria.innerHTML = `
@@ -1648,6 +1663,8 @@
                     `;
                     return;
                 }
+
+                galeria.classList.toggle('um-card', carrosParaExibir.length === 1);
 
                 carrosParaExibir.forEach(carro => {
                     const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
