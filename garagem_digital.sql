@@ -7,6 +7,7 @@ COLLATE utf8mb4_general_ci;
 
 USE garagem_digital;
 
+DROP TABLE IF EXISTS seguidores;
 DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS curtidas;
 DROP TABLE IF EXISTS carros;
@@ -15,8 +16,11 @@ DROP TABLE IF EXISTS usuarios;
 CREATE TABLE usuarios (
     id INT NOT NULL AUTO_INCREMENT,
     nome VARCHAR(100) NOT NULL,
+    username VARCHAR(30) NOT NULL UNIQUE,
     email VARCHAR(150) NOT NULL UNIQUE,
     senha VARCHAR(255) NOT NULL,
+    avatar_url VARCHAR(1000),
+    bio VARCHAR(280),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -56,7 +60,6 @@ CREATE TABLE curtidas (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-<<<<<<< HEAD
 CREATE TABLE comentarios (
     id INT NOT NULL AUTO_INCREMENT,
     usuario_id INT NOT NULL,
@@ -72,13 +75,24 @@ CREATE TABLE comentarios (
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE seguidores (
+    id INT NOT NULL AUTO_INCREMENT,
+    seguidor_id INT NOT NULL,
+    seguido_id INT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY seguidor_unico (seguidor_id, seguido_id),
+    CONSTRAINT fk_seguidores_seguidor
+        FOREIGN KEY (seguidor_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_seguidores_seguido
+        FOREIGN KEY (seguido_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+    CONSTRAINT chk_nao_seguir_si_mesmo
+        CHECK (seguidor_id <> seguido_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- Observação:
 -- Este script cria apenas a estrutura limpa do banco.
--- Usuários, projetos, curtidas e comentários devem ser criados pela própria aplicação
+-- Usuários, projetos, curtidas, comentários e seguidores devem ser criados pela própria aplicação
 -- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
-=======
--- Observação:
--- Este script cria apenas a estrutura limpa do banco.
--- Usuários, projetos e curtidas devem ser criados pela própria aplicação
--- para garantir hashes de senha válidos e vínculos corretos entre tabelas.
->>>>>>> main
