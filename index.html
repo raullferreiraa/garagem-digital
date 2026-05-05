@@ -796,6 +796,28 @@
                 text-transform: none;
             }
 
+            #perfil-equipe {
+                max-width: 520px;
+                margin: 18px auto 0 auto;
+            }
+
+            #perfil-equipe .equipe-card {
+                text-align: left;
+                padding: 14px;
+            }
+
+            #perfil-equipe .equipe-card h3 {
+                font-size: 0.75em;
+                color: #ff4757;
+                letter-spacing: 0.12em;
+                margin-bottom: 8px;
+            }
+
+            #perfil-equipe .equipe-card h4 {
+                margin: 0 0 8px 0;
+                font-size: 1.05em;
+            }
+
             .equipe-meta {
                 color: #888;
                 font-size: 0.85em;
@@ -2479,7 +2501,7 @@
                         <div class="equipe-card">
                             <h3>${minhaEquipe.nome}</h3>
                             <p>${minhaEquipe.descricao || 'Equipe sem descrição.'}</p>
-                            <div class="equipe-meta">Dono: @${minhaEquipe.username_dono}</div>
+                            <div class="equipe-meta">Criado por @${minhaEquipe.username_dono}</div>
                             <div class="equipe-meta">Membros: ${minhaEquipe.membros.length}</div>
                         </div>
                     `;
@@ -2521,7 +2543,7 @@
                     card.innerHTML = `
                         <h4>${clube.nome}</h4>
                         <p>${clube.descricao || 'Equipe sem descrição.'}</p>
-                        <div class="equipe-meta">Dono: @${clube.username_dono}</div>
+                        <div class="equipe-meta">Criado por @${clube.username_dono}</div>
                         <div class="equipe-meta">Membros: ${clube.total_membros}</div>
                         <button type="button" class="btn-equipe-secundario" onclick="pedirEntradaEquipe()">
                             Pedir para entrar
@@ -2718,6 +2740,7 @@
                             </div>
 
                             <p class="perfil-bio">${bioPerfil}</p>
+                            <div id="perfil-equipe"></div>
 
                             ${botaoSeguirPerfil}
                             ${botaoEditarPerfil}
@@ -2748,6 +2771,8 @@
 
                     </div>
                 `;
+
+                carregarEquipeDoPerfil(usuarioId);
 
                 setTimeout(() => {
                     modal.scrollTop = 0;
@@ -3040,6 +3065,47 @@
                 menu.classList.remove('aberto');
             }
         });
+
+        async function carregarEquipeDoPerfil(usuarioId) {
+            const container = document.getElementById('perfil-equipe');
+
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            try {
+                const res = await fetch('http://localhost:5000/clubes');
+                const clubes = await res.json();
+
+                const clubesDetalhados = await Promise.all(
+                    clubes.map(c =>
+                        fetch(`http://localhost:5000/clubes/${c.id}`).then(r => r.json())
+                    )
+                );
+
+                const equipe = clubesDetalhados.find(c =>
+                    Array.isArray(c.membros) &&
+                    c.membros.some(m => String(m.id) === String(usuarioId))
+                );
+
+                if (!equipe) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="equipe-card">
+                        <h3>Equipe</h3>
+                        <h4>${equipe.nome}</h4>
+                        <p>${equipe.descricao || 'Sem descrição'}</p>
+                        <div class="equipe-meta">Membros: ${equipe.membros.length}</div>
+                    </div>
+                `;
+
+            } catch (err) {
+                console.error('Erro ao carregar equipe do perfil:', err);
+            }
+        }
 
         atualizarTelaUsuario();
     </script>
