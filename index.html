@@ -818,6 +818,114 @@
                 font-size: 1.05em;
             }
 
+            .equipe-card-clicavel {
+                cursor: pointer;
+                transition: 0.2s;
+            }
+
+            .equipe-card-clicavel:hover {
+                border-color: #ff4757;
+                transform: translateY(-2px);
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+            }
+
+            .equipe-ver-detalhes {
+                color: #ff4757;
+                font-weight: 800;
+            }
+
+            .equipe-detalhe-header {
+                background: linear-gradient(145deg, #181818, #101010);
+                border: 1px solid #252525;
+                border-radius: 14px;
+                padding: 18px;
+                margin-bottom: 18px;
+            }
+
+            .equipe-detalhe-header h3 {
+                margin: 0 0 10px 0;
+                color: #fff;
+                font-size: 1.4em;
+                text-transform: uppercase;
+            }
+
+            .equipe-detalhe-header p {
+                color: #bbb;
+                line-height: 1.5;
+                text-transform: none;
+                margin: 0 0 12px 0;
+            }
+
+            .equipe-membros-lista {
+                display: grid;
+                gap: 10px;
+                margin-top: 12px;
+            }
+
+            .equipe-membro {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                background: #151515;
+                border: 1px solid #252525;
+                border-radius: 12px;
+                padding: 10px;
+                cursor: pointer;
+                transition: 0.2s;
+            }
+
+            .equipe-membro:hover {
+                border-color: #ff4757;
+                background: #181818;
+            }
+
+            .equipe-membro-avatar,
+            .equipe-membro-avatar-fallback {
+                width: 42px;
+                height: 42px;
+                border-radius: 50%;
+                flex-shrink: 0;
+                border: 1px solid #ff4757;
+                background: #101010;
+            }
+
+            .equipe-membro-avatar {
+                object-fit: cover;
+            }
+
+            .equipe-membro-avatar-fallback {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: #ff4757;
+                font-weight: 900;
+            }
+
+            .equipe-membro-info strong {
+                display: block;
+                color: #fff;
+                font-size: 0.95em;
+                text-transform: none;
+            }
+
+            .equipe-membro-info span {
+                display: block;
+                color: #ff4757;
+                font-size: 0.8em;
+                text-transform: lowercase;
+                margin-top: 2px;
+            }
+
+            .equipe-garagem-futura {
+                margin-top: 18px;
+                padding: 14px;
+                border: 1px dashed #333;
+                border-radius: 12px;
+                color: #888;
+                text-transform: none;
+                background: #101010;
+            }
+
             .equipe-meta {
                 color: #888;
                 font-size: 0.85em;
@@ -1491,7 +1599,7 @@
             <button class="modal-fechar" onclick="fecharMinhaEquipe()">×</button>
 
             <div class="modal-info equipe-modal-info">
-                <h2>Minha equipe</h2>
+                <h2 id="titulo-modal-equipe">Minha equipe</h2>
                 <div id="conteudo-equipe"></div>
             </div>
         </div>
@@ -2448,6 +2556,103 @@
             }
         }
 
+        function textoSeguro(valor) {
+            const div = document.createElement('div');
+            div.textContent = valor || '';
+            return div.innerHTML;
+        }
+
+        async function abrirEquipe(clubeId) {
+            const modal = document.getElementById('modal-equipe');
+            const titulo = document.getElementById('titulo-modal-equipe');
+            const container = document.getElementById('conteudo-equipe');
+
+            if (!modal || !container) {
+                alert('Modal de equipe não encontrado.');
+                return;
+            }
+
+            modal.style.display = 'block';
+
+            if (titulo) {
+                titulo.textContent = 'Equipe';
+            }
+
+            container.innerHTML = '<p>Carregando equipe...</p>';
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}`);
+
+                if (!resposta.ok) {
+                    container.innerHTML = '<p>Erro ao carregar equipe.</p>';
+                    return;
+                }
+
+                const equipe = await resposta.json();
+                const membros = Array.isArray(equipe.membros) ? equipe.membros : [];
+
+                const membrosHtml = membros.length
+                    ? membros.map(membro => {
+                        const nome = textoSeguro(membro.nome || 'Usuário');
+                        const username = textoSeguro(membro.username || 'usuario');
+                        const inicial = (membro.nome || membro.username || '?').charAt(0).toUpperCase();
+
+                        const avatarUrl = membro.avatar_url
+                            ? (
+                                membro.avatar_url.startsWith('http')
+                                    ? membro.avatar_url
+                                    : `${API_URL}/uploads/${membro.avatar_url}`
+                            )
+                            : '';
+
+                        const avatarHtml = avatarUrl
+                            ? `<img class="equipe-membro-avatar" src="${avatarUrl}" alt="Avatar de ${nome}">`
+                            : `<div class="equipe-membro-avatar-fallback">${inicial}</div>`;
+
+                        return `
+                            <div class="equipe-membro" onclick="fecharMinhaEquipe(); abrirPerfil(${membro.id})">
+                                ${avatarHtml}
+                                <div class="equipe-membro-info">
+                                    <strong>${nome}</strong>
+                                    <span>@${username}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')
+                    : '<p>Nenhum membro encontrado.</p>';
+
+                container.innerHTML = `
+                    <div class="equipe-detalhe-header">
+                        <h3>${textoSeguro(equipe.nome)}</h3>
+                        <p>${textoSeguro(equipe.descricao || 'Equipe sem descrição.')}</p>
+
+                        <div class="equipe-meta">
+                            Criado por @${textoSeguro(equipe.username_dono || 'usuario')}
+                        </div>
+
+                        <div class="equipe-meta">
+                            Membros: ${membros.length}
+                        </div>
+                    </div>
+
+                    <div class="equipe-card">
+                        <h3>Membros</h3>
+                        <div class="equipe-membros-lista">
+                            ${membrosHtml}
+                        </div>
+                    </div>
+
+                    <div class="equipe-garagem-futura">
+                        Garagem da equipe será implementada em uma próxima etapa.
+                    </div>
+                `;
+
+            } catch (erro) {
+                console.error('Erro ao abrir equipe:', erro);
+                container.innerHTML = '<p>Erro ao carregar equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
         async function carregarMinhaEquipe() {
             const container = document.getElementById('conteudo-equipe');
             const usuario = obterUsuarioLogado();
@@ -2497,14 +2702,7 @@
                 );
 
                 if (minhaEquipe) {
-                    container.innerHTML = `
-                        <div class="equipe-card">
-                            <h3>${minhaEquipe.nome}</h3>
-                            <p>${minhaEquipe.descricao || 'Equipe sem descrição.'}</p>
-                            <div class="equipe-meta">Criado por @${minhaEquipe.username_dono}</div>
-                            <div class="equipe-meta">Membros: ${minhaEquipe.membros.length}</div>
-                        </div>
-                    `;
+                    abrirEquipe(minhaEquipe.id);
                     return;
                 }
 
@@ -3094,11 +3292,12 @@
                 }
 
                 container.innerHTML = `
-                    <div class="equipe-card">
+                    <div class="equipe-card equipe-card-clicavel" onclick="abrirEquipe(${equipe.id})">
                         <h3>Equipe</h3>
-                        <h4>${equipe.nome}</h4>
-                        <p>${equipe.descricao || 'Sem descrição'}</p>
+                        <h4>${textoSeguro(equipe.nome)}</h4>
+                        <p>${textoSeguro(equipe.descricao || 'Sem descrição')}</p>
                         <div class="equipe-meta">Membros: ${equipe.membros.length}</div>
+                        <div class="equipe-meta equipe-ver-detalhes">Ver equipe completa →</div>
                     </div>
                 `;
 
