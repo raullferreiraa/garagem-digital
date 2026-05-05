@@ -581,62 +581,73 @@
 
         .modal-img {
             width: 100%;
-            height: 430px;
+            height: 460px;
             object-fit: cover;
             display: block;
             background-color: #000;
+            filter: brightness(0.96) contrast(1.08) saturate(1.08);
         }
 
         .modal-sem-foto {
-            height: 330px;
+            height: 360px;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #333;
-            background-color: #000;
-            font-weight: bold;
+            color: #444;
+            background:
+                radial-gradient(circle at center, rgba(255, 71, 87, 0.08), transparent 38%),
+                #050505;
+            font-weight: 900;
             text-transform: uppercase;
+            letter-spacing: 0.08em;
         }
 
         .modal-info {
-            padding: 25px;
+            padding: 28px;
             text-transform: uppercase;
         }
 
         .modal-info h2 {
             text-align: left;
             color: #fff;
-            font-size: 1.8em;
-            margin: 0 0 15px 0;
-            border-left: 4px solid #ff4757;
-            padding-left: 12px;
+            font-size: clamp(1.7em, 4vw, 2.25em);
+            margin: 0 0 18px 0;
+            border-left: 4px solid var(--accent);
+            padding-left: 14px;
+            letter-spacing: -0.5px;
+            line-height: 1.08;
         }
 
         .modal-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 12px;
-            margin-top: 20px;
+            margin-top: 22px;
         }
 
         .modal-item {
-            background-color: #181818;
-            border: 1px solid #262626;
-            padding: 12px;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
         }
 
         .modal-item span {
             display: block;
-            color: #666;
+            color: var(--text-soft);
             font-size: 0.72em;
-            font-weight: bold;
-            margin-bottom: 5px;
+            font-weight: 850;
+            margin-bottom: 6px;
             letter-spacing: 1px;
         }
 
         .modal-item strong {
-            color: #eee;
-            font-size: 1em;
+            color: #f1f1f1;
+            font-size: 1.02em;
+            line-height: 1.3;
         }
 
         .comentarios-container {
@@ -646,20 +657,26 @@
         #input-comentario {
             margin-top: 10px;
             text-transform: none;
+            border-radius: var(--radius-md);
+            background: #0b0b0b;
+            min-height: 92px;
         }
 
         .comentario-item {
-            padding: 12px;
-            border: 1px solid #222;
-            border-radius: 8px;
+            padding: 13px;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-md);
             margin-bottom: 10px;
-            background: #151515;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent),
+                #131313;
             transition: 0.2s;
             text-transform: none;
         }
 
         .comentario-item:hover {
-            border-color: #333;
+            border-color: rgba(255, 71, 87, 0.45);
+            background: #171717;
         }
 
         .comentario-topo {
@@ -710,8 +727,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 20px;
-            margin-bottom: 10px;
+            margin-top: 26px;
+            margin-bottom: 12px;
+            padding-top: 18px;
+            border-top: 1px solid var(--border-soft);
         }
 
         .comentarios-header h3 {
@@ -819,18 +838,20 @@
             }
 
             .btn-comentar {
-                background: #ff4757;
-                border: 1px solid #ff4757;
+                background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+                border: 1px solid rgba(255, 71, 87, 0.9);
                 color: #fff;
-                border-radius: 8px;
-                font-weight: bold;
+                border-radius: var(--radius-pill);
+                font-weight: 850;
                 margin-top: 8px;
+                box-shadow: 0 10px 22px rgba(255, 71, 87, 0.16);
             }
 
             .btn-comentar:hover {
-                background: #ff2a3d;
-                border-color: #ff2a3d;
-                transform: scale(1.03);
+                background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+                border-color: var(--accent-hover);
+                transform: translateY(-1px);
+                box-shadow: 0 14px 28px rgba(255, 71, 87, 0.22);
             }
 
             .comentarios-like {
