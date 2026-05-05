@@ -7,6 +7,8 @@ COLLATE utf8mb4_general_ci;
 
 USE garagem_digital;
 
+DROP TABLE IF EXISTS membros_clube;
+DROP TABLE IF EXISTS clubes;
 DROP TABLE IF EXISTS seguidores;
 DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS curtidas;
@@ -92,7 +94,35 @@ CREATE TABLE seguidores (
         CHECK (seguidor_id <> seguido_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+CREATE TABLE clubes (
+    id INT NOT NULL AUTO_INCREMENT,
+    nome VARCHAR(100) NOT NULL,
+    slug VARCHAR(120) NOT NULL UNIQUE,
+    descricao TEXT,
+    dono_id INT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_clubes_dono
+        FOREIGN KEY (dono_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE membros_clube (
+    id INT NOT NULL AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    clube_id INT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY unico_usuario (usuario_id),
+    CONSTRAINT fk_membros_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_membros_clube
+        FOREIGN KEY (clube_id) REFERENCES clubes(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 -- Observação:
 -- Este script cria apenas a estrutura limpa do banco.
--- Usuários, projetos, curtidas, comentários e seguidores devem ser criados pela própria aplicação
+-- Usuários, projetos, curtidas, comentários, seguidores e clubes devem ser criados pela própria aplicação
 -- para garantir hashes de senha válidos e vínculos corretos entre tabelas.

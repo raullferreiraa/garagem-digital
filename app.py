@@ -68,6 +68,12 @@ def validar_username(username):
 
     return None
 
+def gerar_slug(texto):
+    slug = texto.strip().lower()
+    slug = re.sub(r'[^a-z0-9\s-]', '', slug)
+    slug = re.sub(r'\s+', '-', slug)
+    slug = re.sub(r'-+', '-', slug)
+    return slug.strip('-')
 
 @app.route('/uploads/<path:filename>')
 def uploaded_file(filename):
