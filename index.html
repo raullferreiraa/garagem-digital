@@ -1158,6 +1158,7 @@
             }
 
             .usuario-dropdown .btn-perfil,
+            .usuario-dropdown .btn-equipe,
             .usuario-dropdown .btn-sair {
                 width: 100%;
                 border: none;
@@ -1173,6 +1174,19 @@
                 background: #ff4757;
                 color: white;
                 margin-bottom: 8px;
+            }
+
+            .usuario-dropdown .btn-equipe {
+                background: transparent;
+                color: #eee;
+                border: 1px solid #292929;
+                margin-bottom: 8px;
+            }
+
+            .usuario-dropdown .btn-equipe:hover {
+                color: #ff4757;
+                border-color: #ff4757;
+                background: rgba(255, 71, 87, 0.08);
             }
 
             .usuario-dropdown .btn-sair {
@@ -1264,6 +1278,10 @@
         <div class="usuario-dropdown" id="usuario-dropdown">
             <button type="button" class="btn-perfil" onclick="abrirMeuPerfil()">
                 Ver perfil
+            </button>
+
+            <button type="button" class="btn-equipe" onclick="abrirMinhaEquipe()">
+                Minha equipe
             </button>
 
             <button type="button" class="btn-sair" onclick="sair()">
@@ -2704,6 +2722,10 @@
             }
 
             menu.classList.toggle('aberto');
+        }
+
+        function abrirMinhaEquipe() {
+            alert('Área de equipe em desenvolvimento.');
         }
 
         document.addEventListener('click', (e) => {
