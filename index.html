@@ -771,6 +771,89 @@
                 text-decoration: underline;
             }
 
+            .equipe-modal-info {
+                text-transform: none;
+            }
+
+            .equipe-card {
+                background: #151515;
+                border: 1px solid #252525;
+                border-radius: 12px;
+                padding: 16px;
+                margin-top: 14px;
+            }
+
+            .equipe-card h3,
+            .equipe-card h4 {
+                margin-top: 0;
+                color: #fff;
+                text-transform: uppercase;
+            }
+
+            .equipe-card p {
+                color: #bbb;
+                line-height: 1.5;
+                text-transform: none;
+            }
+
+            .equipe-meta {
+                color: #888;
+                font-size: 0.85em;
+                margin-top: 8px;
+            }
+
+            .equipe-acoes {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                margin: 16px 0;
+            }
+
+            .btn-equipe-principal,
+            .btn-equipe-secundario {
+                width: auto;
+                min-width: 150px;
+                border-radius: 999px;
+                font-weight: 800;
+                margin-bottom: 0;
+            }
+
+            .btn-equipe-principal {
+                background: #ff4757;
+                border: 1px solid #ff4757;
+                color: #fff;
+            }
+
+            .btn-equipe-secundario {
+                background: transparent;
+                border: 1px solid #333;
+                color: #ddd;
+            }
+
+            .btn-equipe-secundario:hover {
+                border-color: #ff4757;
+                color: #ff4757;
+            }
+
+            .form-equipe {
+                display: none;
+                margin-top: 14px;
+                padding: 14px;
+                border: 1px solid #222;
+                border-radius: 12px;
+                background: #101010;
+            }
+
+            .form-equipe.ativo {
+                display: block;
+            }
+
+            .form-equipe input,
+            .form-equipe textarea {
+                text-transform: none;
+                border-radius: 8px;
+            }
+
             .perfil-container {
                 padding: 20px;
             }
@@ -1379,6 +1462,17 @@
 
     <div id="modal-projeto" class="modal">
         <div class="modal-content" id="modal-content"></div>
+    </div>
+
+    <div id="modal-equipe" class="modal">
+        <div class="modal-content">
+            <button class="modal-fechar" onclick="fecharMinhaEquipe()">×</button>
+
+            <div class="modal-info equipe-modal-info">
+                <h2>Minha equipe</h2>
+                <div id="conteudo-equipe"></div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -2287,6 +2381,217 @@
             }
         }
 
+        function obterUsuarioLogado() {
+            const usuarioSalvo = localStorage.getItem('usuario');
+            const usuarioLogadoSalvo = localStorage.getItem('usuarioLogado');
+
+            if (usuarioSalvo) {
+                return JSON.parse(usuarioSalvo);
+            }
+
+            if (usuarioLogadoSalvo) {
+                return JSON.parse(usuarioLogadoSalvo);
+            }
+
+            if (typeof usuario !== 'undefined' && usuario) {
+                return usuario;
+            }
+
+            return null;
+        }
+
+        function abrirMinhaEquipe() {
+            const modal = document.getElementById('modal-equipe');
+            const container = document.getElementById('conteudo-equipe');
+
+            if (!modal) {
+                alert('Modal de equipe não encontrado.');
+                return;
+            }
+
+            modal.style.display = 'block';
+
+            if (container) {
+                container.innerHTML = '<p>Carregando equipe...</p>';
+            }
+
+            carregarMinhaEquipe();
+        }
+
+        function fecharMinhaEquipe() {
+            const modal = document.getElementById('modal-equipe');
+
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        async function carregarMinhaEquipe() {
+            const container = document.getElementById('conteudo-equipe');
+            const usuario = obterUsuarioLogado();
+
+            if (!container) {
+                console.error('Container conteudo-equipe não encontrado.');
+                return;
+            }
+
+            if (!usuario) {
+                container.innerHTML = '<p>Faça login para acessar sua equipe.</p>';
+                return;
+            }
+
+            container.innerHTML = '<p>Carregando equipe...</p>';
+
+            try {
+                const resposta = await fetch('http://localhost:5000/clubes');
+
+                if (!resposta.ok) {
+                    container.innerHTML = '<p>Erro ao buscar equipes no servidor.</p>';
+                    return;
+                }
+
+                const clubes = await resposta.json();
+
+                if (!Array.isArray(clubes)) {
+                    container.innerHTML = '<p>Resposta inesperada ao carregar equipes.</p>';
+                    console.error('Resposta inesperada:', clubes);
+                    return;
+                }
+
+                const clubesDetalhados = [];
+
+                for (const clube of clubes) {
+                    const respostaDetalhe = await fetch(`http://localhost:5000/clubes/${clube.id}`);
+
+                    if (respostaDetalhe.ok) {
+                        const detalhe = await respostaDetalhe.json();
+                        clubesDetalhados.push(detalhe);
+                    }
+                }
+
+                const minhaEquipe = clubesDetalhados.find(clube =>
+                    Array.isArray(clube.membros) &&
+                    clube.membros.some(membro => String(membro.id) === String(usuario.id))
+                );
+
+                if (minhaEquipe) {
+                    container.innerHTML = `
+                        <div class="equipe-card">
+                            <h3>${minhaEquipe.nome}</h3>
+                            <p>${minhaEquipe.descricao || 'Equipe sem descrição.'}</p>
+                            <div class="equipe-meta">Dono: @${minhaEquipe.username_dono}</div>
+                            <div class="equipe-meta">Membros: ${minhaEquipe.membros.length}</div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <p>Você ainda não participa de nenhuma equipe.</p>
+
+                    <div class="equipe-acoes">
+                        <button type="button" class="btn-equipe-principal" onclick="toggleFormEquipe()">
+                            Criar equipe
+                        </button>
+                    </div>
+
+                    <div id="form-equipe" class="form-equipe">
+                        <input type="text" id="equipe-nome" placeholder="Nome da equipe">
+                        <textarea id="equipe-descricao" placeholder="Descrição da equipe"></textarea>
+                        <button type="button" class="btn-equipe-principal" onclick="criarEquipe()">
+                            Criar
+                        </button>
+                    </div>
+
+                    <h3>Equipes existentes</h3>
+                    <div id="lista-equipes"></div>
+                `;
+
+                const lista = document.getElementById('lista-equipes');
+
+                if (!clubes.length) {
+                    lista.innerHTML = '<p>Nenhuma equipe criada ainda.</p>';
+                    return;
+                }
+
+                clubes.forEach(clube => {
+                    const card = document.createElement('div');
+                    card.className = 'equipe-card';
+
+                    card.innerHTML = `
+                        <h4>${clube.nome}</h4>
+                        <p>${clube.descricao || 'Equipe sem descrição.'}</p>
+                        <div class="equipe-meta">Dono: @${clube.username_dono}</div>
+                        <div class="equipe-meta">Membros: ${clube.total_membros}</div>
+                        <button type="button" class="btn-equipe-secundario" onclick="pedirEntradaEquipe()">
+                            Pedir para entrar
+                        </button>
+                    `;
+
+                    lista.appendChild(card);
+                });
+
+            } catch (erro) {
+                console.error('Erro ao carregar equipe:', erro);
+                container.innerHTML = '<p>Erro ao carregar informações da equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
+        function toggleFormEquipe() {
+            const form = document.getElementById('form-equipe');
+
+            if (form) {
+                form.classList.toggle('ativo');
+            }
+        }
+
+        async function criarEquipe() {
+            const usuario = obterUsuarioLogado();
+            const nome = document.getElementById('equipe-nome').value.trim();
+            const descricao = document.getElementById('equipe-descricao').value.trim();
+
+            if (!usuario) {
+                alert('Faça login para criar uma equipe.');
+                return;
+            }
+
+            if (!nome) {
+                alert('Informe o nome da equipe.');
+                return;
+            }
+
+            try {
+                const resposta = await fetch('http://localhost:5000/clubes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        nome,
+                        descricao
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    alert(dados.erro || 'Erro ao criar equipe.');
+                    return;
+                }
+
+                alert('Equipe criada com sucesso!');
+                carregarMinhaEquipe();
+
+            } catch (erro) {
+                alert('Erro ao criar equipe.');
+            }
+        }
+
+        function pedirEntradaEquipe() {
+            alert('Sistema de pedidos de entrada será implementado em breve.');
+        }
+
         async function abrirPerfil(usuarioId) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
@@ -2722,10 +3027,6 @@
             }
 
             menu.classList.toggle('aberto');
-        }
-
-        function abrirMinhaEquipe() {
-            alert('Área de equipe em desenvolvimento.');
         }
 
         document.addEventListener('click', (e) => {
