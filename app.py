@@ -936,7 +936,287 @@ def listar_carros_usuario(id):
         return jsonify(carros), 200
 
     except Exception as e:
-        return jsonify({"erro": str(e)}), 500    
+        return jsonify({"erro": str(e)}), 500
+    
+@app.route('/clubes', methods=['POST'])
+def criar_clube():
+    dados = request.json
+
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+    nome = str(dados.get('nome', '')).strip()
+    descricao = str(dados.get('descricao', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if not nome:
+        return jsonify({"erro": "Informe o nome do clube."}), 400
+
+    if len(nome) < 3 or len(nome) > 100:
+        return jsonify({"erro": "O nome do clube deve ter entre 3 e 100 caracteres."}), 400
+
+    if len(descricao) > 500:
+        return jsonify({"erro": "A descrição deve ter no máximo 500 caracteres."}), 400
+
+    slug_base = gerar_slug(nome)
+
+    if not slug_base:
+        return jsonify({"erro": "Nome de clube inválido."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            "SELECT id FROM membros_clube WHERE usuario_id = %s",
+            (usuario_id,)
+        )
+        membro_existente = cursor.fetchone()
+
+        if membro_existente:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você já participa de um clube."}), 400
+
+        slug = slug_base
+        contador = 1
+
+        while True:
+            cursor.execute("SELECT id FROM clubes WHERE slug = %s", (slug,))
+            clube_existente = cursor.fetchone()
+
+            if not clube_existente:
+                break
+
+            contador += 1
+            slug = f"{slug_base}-{contador}"
+
+        cursor.execute(
+            """
+            INSERT INTO clubes (nome, slug, descricao, dono_id)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                nome,
+                slug,
+                descricao if descricao else None,
+                usuario_id
+            )
+        )
+
+        clube_id = cursor.lastrowid
+
+        cursor.execute(
+            """
+            INSERT INTO membros_clube (usuario_id, clube_id)
+            VALUES (%s, %s)
+            """,
+            (usuario_id, clube_id)
+        )
+
+        conexao.commit()
+
+        cursor.execute(
+            """
+            SELECT 
+                c.id,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                c.criado_em,
+                u.nome AS nome_dono,
+                u.username AS username_dono,
+                COUNT(m.id) AS total_membros
+            FROM clubes c
+            INNER JOIN usuarios u ON c.dono_id = u.id
+            LEFT JOIN membros_clube m ON c.id = m.clube_id
+            WHERE c.id = %s
+            GROUP BY c.id
+            """,
+            (clube_id,)
+        )
+
+        clube = cursor.fetchone()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({
+            "mensagem": "Clube criado com sucesso!",
+            "clube": clube
+        }), 201
+
+    except mysql.connector.IntegrityError:
+        try:
+            cursor.close()
+            conexao.close()
+        except:
+            pass
+
+        return jsonify({"erro": "Não foi possível criar o clube. Verifique se você já participa de um clube."}), 409
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/clubes', methods=['GET'])
+def listar_clubes():
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT 
+                c.id,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                c.criado_em,
+                u.nome AS nome_dono,
+                u.username AS username_dono,
+                COUNT(m.id) AS total_membros
+            FROM clubes c
+            INNER JOIN usuarios u ON c.dono_id = u.id
+            LEFT JOIN membros_clube m ON c.id = m.clube_id
+            GROUP BY c.id
+            ORDER BY c.id DESC
+            """
+        )
+
+        clubes = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(clubes), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/clubes/<int:id>', methods=['GET'])
+def buscar_clube(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT 
+                c.id,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                c.criado_em,
+                u.nome AS nome_dono,
+                u.username AS username_dono,
+                COUNT(m.id) AS total_membros
+            FROM clubes c
+            INNER JOIN usuarios u ON c.dono_id = u.id
+            LEFT JOIN membros_clube m ON c.id = m.clube_id
+            WHERE c.id = %s
+            GROUP BY c.id
+            """,
+            (id,)
+        )
+
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Clube não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT 
+                u.id,
+                u.nome,
+                u.username,
+                u.avatar_url,
+                m.criado_em
+            FROM membros_clube m
+            INNER JOIN usuarios u ON m.usuario_id = u.id
+            WHERE m.clube_id = %s
+            ORDER BY m.criado_em ASC
+            """,
+            (id,)
+        )
+
+        membros = cursor.fetchall()
+        clube['membros'] = membros
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(clube), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/clubes/<int:clube_id>/entrar', methods=['POST'])
+def entrar_clube(clube_id):
+    dados = request.json
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            "SELECT id FROM membros_clube WHERE usuario_id = %s",
+            (usuario_id,)
+        )
+        membro = cursor.fetchone()
+
+        if membro:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você já participa de uma equipe."}), 400
+
+        cursor.execute(
+            "SELECT id FROM clubes WHERE id = %s",
+            (clube_id,)
+        )
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Equipe não encontrada."}), 404
+
+        cursor.execute(
+            """
+            INSERT INTO membros_clube (usuario_id, clube_id)
+            VALUES (%s, %s)
+            """,
+            (usuario_id, clube_id)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Você entrou na equipe!"}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 if __name__ == '__main__':
     if not os.path.exists(UPLOAD_FOLDER):
