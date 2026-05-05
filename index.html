@@ -789,7 +789,26 @@
             }
 
             body {
-                padding: 25px 12px;
+                padding: 22px 10px;
+                font-size: 16px;
+            }
+
+            h1 {
+                margin-bottom: 30px;
+                letter-spacing: -1px;
+            }
+
+            .auth-container,
+            .formulario-container,
+            .filtros-container {
+                border-radius: 16px;
+                padding: 16px;
+            }
+            
+            .filtros-container input,
+            .filtros-container select,
+            .btn-buscar {
+                width: 100%;
             }
 
             .galeria {
@@ -806,7 +825,15 @@
             }
 
             .modal-img {
-                height: 260px;
+                height: 280px;
+            }
+
+            .modal-info {
+                padding: 20px;
+            }
+
+            .modal-info h2 {
+                font-size: 1.55em;
             }
 
             .modal-grid {
@@ -816,7 +843,13 @@
             .auth-tabs,
             .abas-garagem {
                 flex-direction: column;
-                gap: 0;
+                gap: 8px;
+                border-radius: 18px;
+            }
+
+            .auth-tabs button,
+            .abas-garagem button {
+                margin-bottom: 0;
             }
 
             .titulo-card h2 {
@@ -830,6 +863,143 @@
                 position: static;
                 transform: none;
                 margin: 8px 0 0 10px;
+            }
+
+            .perfil-container {
+                padding: 20px 14px;
+            }
+
+            .perfil-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .perfil-card img,
+            .perfil-sem-foto {
+                height: 170px;
+            }
+
+            .perfil-stats {
+                gap: 8px;
+            }
+
+            .perfil-stat {
+                min-width: 92px;
+                flex: 1;
+            }
+
+            .perfil-equipe-badge {
+                align-items: flex-start;
+            }
+
+            .perfil-equipe-acao {
+                display: none;
+            }
+
+            .perfil-equipe-nome {
+                white-space: normal;
+            }
+
+            .equipe-membro {
+                align-items: flex-start;
+            }
+
+            .equipe-detalhe-header {
+                padding: 16px;
+            }
+
+            .usuario-menu {
+                position: relative !important;
+                left: auto !important;
+                right: auto !important;
+                top: auto !important;
+                transform: none !important;
+                z-index: 50;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                width: 100%;
+                max-width: 380px;
+                margin: 0 auto 26px auto;
+                overflow: visible;
+            }
+
+            .usuario-menu-toggle {
+                width: 100%;
+                min-height: 68px;
+                margin: 0;
+                padding: 10px 16px;
+                display: flex;
+                align-items: center;
+                justify-content: flex-start;
+                gap: 12px;
+                border-radius: var(--radius-pill);
+                box-sizing: border-box;
+                overflow: hidden;
+                border-color: rgba(255, 71, 87, 0.45);
+                background:
+                    linear-gradient(145deg, rgba(255, 71, 87, 0.07), transparent),
+                    #080808;
+            }
+
+            .usuario-avatar {
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
+                flex: 0 0 44px;
+                margin: 0;
+                font-size: 0.9em;
+            }
+
+            .usuario-menu-info {
+                flex: 1;
+                min-width: 0;
+                text-align: left;
+            }
+
+            .usuario-menu-info span,
+            .usuario-menu-info strong {
+                display: block;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .usuario-dropdown {
+                position: static !important;
+                top: auto !important;
+                right: auto !important;
+                left: auto !important;
+                bottom: auto !important;
+                transform: none !important;
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                margin: 8px 0 0 0 !important;
+                padding: 0 !important;
+                display: none !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                box-sizing: border-box;
+                background: transparent !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+
+            #usuario-dropdown.aberto,
+            .usuario-dropdown.aberto,
+            .usuario-menu.aberto .usuario-dropdown {
+                display: flex !important;
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .usuario-dropdown button {
+                width: 100%;
+                min-height: 46px;
+                margin: 0;
+                border-radius: 16px;
+                box-sizing: border-box;
             }
         }
 
@@ -1569,6 +1739,10 @@
 
             .usuario-menu.aberto .usuario-dropdown {
                 display: block;
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+                transform: translateY(0);
             }
 
             @keyframes aparecerDropdown {
@@ -1624,6 +1798,16 @@
             .usuario-dropdown .btn-sair:hover {
                 color: #ff4757;
                 border-color: #ff4757;
+            }
+
+            #usuario-dropdown.aberto,
+            .usuario-dropdown.aberto,
+            .usuario-menu.aberto #usuario-dropdown {
+                display: block !important;
+                opacity: 1 !important;
+                visibility: visible !important;
+                pointer-events: auto !important;
+                transform: translateY(0) !important;
             }
 
             @media (max-width: 720px) {
@@ -1688,7 +1872,7 @@
 
     <div class="usuario-menu" id="usuario-barra">
 
-        <button type="button" class="usuario-menu-toggle" onclick="alternarMenuUsuario()">
+        <button type="button" class="usuario-menu-toggle" onclick="alternarMenuUsuario(event)">
             <div class="usuario-avatar" id="usuario-avatar">
                 ?
             </div>
@@ -3457,25 +3641,47 @@
             abrirPerfil(usuario.id);
         }
 
-        function alternarMenuUsuario() {
-            const menu = document.getElementById('usuario-barra');
-
-            if (!menu) {
-                return;
+        function alternarMenuUsuario(event) {
+            if (event) {
+                event.stopPropagation();
             }
 
-            menu.classList.toggle('aberto');
+            const menu = document.getElementById('usuario-barra');
+            const dropdown = document.getElementById('usuario-dropdown');
+
+            if (!menu || !dropdown) return;
+
+            const estaAberto = dropdown.classList.contains('aberto');
+
+            if (estaAberto) {
+                menu.classList.remove('aberto');
+                dropdown.classList.remove('aberto');
+                dropdown.style.display = 'none';
+            } else {
+                menu.classList.add('aberto');
+                dropdown.classList.add('aberto');
+                dropdown.style.display = 'block';
+            }
         }
 
-        document.addEventListener('click', (e) => {
+        function fecharMenuUsuario() {
+            const menu = document.getElementById('usuario-barra');
+            const dropdown = document.getElementById('usuario-dropdown');
+
+            if (!menu || !dropdown) return;
+
+            menu.classList.remove('aberto');
+            dropdown.classList.remove('aberto');
+            dropdown.style.display = 'none';
+        }
+
+        document.addEventListener('click', function(event) {
             const menu = document.getElementById('usuario-barra');
 
-            if (!menu) {
-                return;
-            }
+            if (!menu) return;
 
-            if (!menu.contains(e.target)) {
-                menu.classList.remove('aberto');
+            if (!menu.contains(event.target)) {
+                fecharMenuUsuario();
             }
         });
 
