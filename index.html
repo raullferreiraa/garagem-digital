@@ -5,24 +5,71 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Garagem Digital</title>
     <style>
+        :root {
+            --bg-main: #080808;
+            --bg-soft: #101010;
+            --bg-card: #151515;
+            --bg-card-hover: #1b1b1b;
+            --border-soft: #242424;
+            --border-strong: #333;
+            --text-main: #f2f2f2;
+            --text-muted: #a7a7a7;
+            --text-soft: #777;
+            --accent: #ff4757;
+            --accent-hover: #ff2a3d;
+            --accent-soft: rgba(255, 71, 87, 0.12);
+            --shadow-card: 0 14px 34px rgba(0, 0, 0, 0.42);
+            --shadow-soft: 0 10px 26px rgba(0, 0, 0, 0.28);
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 18px;
+            --radius-pill: 999px;
+        }
+
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: #333 #0b0b0b;
+        }
+
+        ::selection {
+            background: rgba(255, 71, 87, 0.35);
+            color: #fff;
+        }
+
         body {
-            background-color: #0f0f0f;
-            color: #efefef;
+            background:
+                radial-gradient(circle at top left, rgba(255, 71, 87, 0.08), transparent 34%),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.035), transparent 28%),
+                var(--bg-main);
+            color: var(--text-main);
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             margin: 0;
             padding: 40px 20px;
             font-size: 18px;
+            min-height: 100vh;
         }
 
         h1 {
-            font-size: 2.2em;
-            font-weight: 800;
+            font-size: clamp(2em, 5vw, 3.4em);
+            font-weight: 950;
             text-align: center;
             text-transform: uppercase;
-            letter-spacing: -1px;
-            border-bottom: 2px solid #ff4757;
-            padding-bottom: 20px;
-            margin-bottom: 40px;
+            letter-spacing: -1.5px;
+            padding-bottom: 22px;
+            margin: 0 auto 42px auto;
+            max-width: 980px;
+            position: relative;
+        }
+
+        h1::after {
+            content: "";
+            display: block;
+            width: 120px;
+            height: 3px;
+            margin: 18px auto 0 auto;
+            border-radius: var(--radius-pill);
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            box-shadow: 0 0 22px rgba(255, 71, 87, 0.35);
         }
 
         h2 {
@@ -34,14 +81,24 @@
 
         input, button, select, textarea {
             width: 100%;
-            padding: 12px;
+            padding: 13px 14px;
             margin-bottom: 15px;
-            background-color: #121212;
-            border: 1px solid #333;
+            background-color: var(--bg-soft);
+            border: 1px solid var(--border-strong);
             color: #fff;
             font-family: inherit;
             box-sizing: border-box;
             text-transform: uppercase;
+            border-radius: var(--radius-sm);
+            outline: none;
+        }
+
+        input:focus,
+        select:focus,
+        textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.12);
+            background-color: #0c0c0c;
         }
 
         .auth-container input,
@@ -62,11 +119,12 @@
 
         button {
             cursor: pointer;
-            transition: 0.2s;
+            transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
 
         button:hover {
-            opacity: 0.9;
+            opacity: 0.95;
+            transform: translateY(-1px);
         }
 
         button:disabled {
@@ -75,16 +133,19 @@
         }
 
         .btn-principal {
-            background-color: #ff4757;
-            border: 1px solid #ff4757;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border: 1px solid rgba(255, 71, 87, 0.9);
             color: #fff;
-            font-weight: 700;
+            font-weight: 850;
+            border-radius: var(--radius-pill);
+            box-shadow: 0 10px 24px rgba(255, 71, 87, 0.18);
         }
 
         .btn-principal:hover {
-            background-color: #ff2a3d;
-            border-color: #ff2a3d;
+            background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+            border-color: var(--accent-hover);
             opacity: 1;
+            box-shadow: 0 14px 30px rgba(255, 71, 87, 0.24);
         }
 
         .acoes-garagem {
@@ -114,13 +175,16 @@
 
         .auth-container,
         .formulario-container {
-            background-color: #1e1e1e;
-            border: 1px dashed #555;
-            padding: 20px;
-            border-radius: 4px;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                var(--bg-card);
+            border: 1px solid var(--border-soft);
+            padding: 22px;
+            border-radius: var(--radius-lg);
             max-width: 600px;
             margin: 0 auto 40px auto;
             transition: 0.3s;
+            box-shadow: var(--shadow-soft);
         }
 
         .auth-tabs {
@@ -172,20 +236,29 @@
         .abas-garagem {
             display: flex;
             gap: 10px;
-            max-width: 600px;
-            margin: 0 auto 20px auto;
+            max-width: 620px;
+            margin: 0 auto 22px auto;
+            padding: 6px;
+            background: rgba(18, 18, 18, 0.72);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-pill);
+            box-shadow: var(--shadow-soft);
         }
 
         .abas-garagem button {
             background-color: transparent;
-            border: 1px solid #333;
-            color: #888;
+            border: 1px solid transparent;
+            color: var(--text-muted);
+            border-radius: var(--radius-pill);
+            margin-bottom: 0;
+            font-weight: 850;
         }
 
         .abas-garagem button.ativo {
-            background-color: #ff4757;
-            border-color: #ff4757;
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border-color: rgba(255, 71, 87, 0.85);
             color: #fff;
+            box-shadow: 0 10px 24px rgba(255, 71, 87, 0.2);
         }
 
         .conteudo-app {
@@ -211,14 +284,18 @@
         }
 
         .filtros-container {
-            background-color: #1e1e1e;
-            border: 1px solid #333;
-            padding: 15px;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                var(--bg-card);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
+            padding: 16px;
             display: flex;
             gap: 10px;
-            max-width: 600px;
-            margin: 0 auto 20px auto;
+            max-width: 760px;
+            margin: 0 auto 24px auto;
             flex-wrap: wrap;
+            box-shadow: var(--shadow-soft);
         }
 
         .filtros-container input,
@@ -250,8 +327,8 @@
         .galeria {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 20px;
-            max-width: 980px;
+            gap: 24px;
+            max-width: 1040px;
             margin: 0 auto;
         }
 
@@ -261,17 +338,20 @@
         }
 
         .carro-card {
-            background: linear-gradient(145deg, #1a1a1a, #111);
-            border: 1px solid #2a2a2a;
-            border-radius: 10px;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                linear-gradient(145deg, #181818, #101010);
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
             overflow: hidden;
-            transition: 0.25s;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
         }
 
         .carro-card:hover {
-            transform: translateY(-4px);
-            border-color: #ff4757;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            transform: translateY(-5px);
+            border-color: rgba(255, 71, 87, 0.72);
+            box-shadow: var(--shadow-card);
         }
 
         .carro-card h2 {
@@ -283,28 +363,30 @@
 
         .foto-carro {
             width: 100%;
-            height: 160px;
+            height: 190px;
             object-fit: cover;
-            border-bottom: 1px solid #333;
+            border-bottom: 1px solid var(--border-soft);
             background-color: #000;
-            filter: brightness(0.9) contrast(1.1);
+            filter: brightness(0.92) contrast(1.08) saturate(1.05);
             transition: 0.3s;
         }
 
         .carro-card:hover .foto-carro {
-            filter: brightness(1.05) contrast(1.15);
+            filter: brightness(1.06) contrast(1.12) saturate(1.12);
+            transform: scale(1.015);
         }
 
         .card-info {
-            padding: 14px;
+            padding: 16px;
             text-transform: uppercase;
         }
 
         .specs {
-            margin: 4px 0;
-            color: #ddd;
-            font-size: 0.95em;
-            letter-spacing: 0.5px;
+            margin: 6px 0;
+            color: #d8d8d8;
+            font-size: 0.92em;
+            letter-spacing: 0.4px;
+            line-height: 1.35;
         }
 
         .titulo-card {
@@ -329,10 +411,11 @@
         }
 
         .historia-projeto {
-            margin-top: 12px;
+            margin-top: 14px;
             padding: 14px;
-            border-left: 3px solid #ff4757;
-            background-color: #181818;
+            border-left: 3px solid var(--accent);
+            background: rgba(255, 255, 255, 0.025);
+            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
             color: #bbb;
             font-size: 0.9em;
             line-height: 1.5;
@@ -370,11 +453,11 @@
         .like-btn,
         .comment-btn {
             cursor: pointer;
-            padding: 5px 10px;
-            border-radius: 20px;
-            background: #181818;
-            border: 1px solid #333;
-            color: #aaa;
+            padding: 7px 11px;
+            border-radius: var(--radius-pill);
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--border-soft);
+            color: var(--text-muted);
             font-size: 0.85em;
             transition: 0.2s;
         }
@@ -399,17 +482,22 @@
         .btn-ver {
             width: auto;
             display: inline-block;
-            border-radius: 6px;
-            background: #ff4757;
-            border: 1px solid #ff4757;
+            border-radius: var(--radius-pill);
+            background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+            border: 1px solid rgba(255, 71, 87, 0.9);
             color: #fff;
             cursor: pointer;
+            font-weight: 850;
+            padding: 8px 14px;
+            margin-bottom: 0;
+            box-shadow: 0 10px 22px rgba(255, 71, 87, 0.16);
         }
 
         .btn-ver:hover {
-            background: #ff2a3d;
-            border-color: #ff2a3d;
-            transform: scale(1.05);
+            background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+            border-color: var(--accent-hover);
+            transform: translateY(-1px) scale(1.02);
+            box-shadow: 0 14px 28px rgba(255, 71, 87, 0.22);
         }
 
         .acoes-dono {
@@ -459,11 +547,15 @@
 
         .modal-content {
             position: relative;
-            background-color: #111;
-            border: 1px solid #333;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                #101010;
+            border: 1px solid var(--border-soft);
+            border-radius: var(--radius-lg);
             max-width: 760px;
             margin: 0 auto;
-            box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 24px 70px rgba(0, 0, 0, 0.78);
+            overflow: hidden;
         }
 
         .modal-fechar {
@@ -471,13 +563,15 @@
             top: 12px;
             right: 14px;
             width: auto;
-            background-color: rgba(0, 0, 0, 0.65);
+            background-color: rgba(0, 0, 0, 0.72);
             border: 1px solid #444;
             color: #fff;
             font-size: 1.2em;
-            padding: 6px 12px;
+            padding: 7px 12px;
             margin: 0;
             z-index: 2;
+            border-radius: var(--radius-pill);
+            backdrop-filter: blur(8px);
         }
 
         .modal-fechar:hover {
@@ -776,11 +870,14 @@
             }
 
             .equipe-card {
-                background: #151515;
-                border: 1px solid #252525;
-                border-radius: 12px;
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                    var(--bg-card);
+                border: 1px solid var(--border-soft);
+                border-radius: var(--radius-md);
                 padding: 16px;
                 margin-top: 14px;
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
             }
 
             .equipe-card h3,
