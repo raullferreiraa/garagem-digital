@@ -148,6 +148,18 @@
             box-shadow: 0 14px 30px rgba(255, 71, 87, 0.24);
         }
 
+        .btn-pedir-equipe.pedido-enviado {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: rgba(255, 255, 255, 0.14);
+            color: var(--text-muted);
+            box-shadow: none;
+        }
+
+        .btn-pedir-equipe.pedido-enviado:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
         .acoes-garagem {
             display: flex;
             justify-content: center;
@@ -1014,6 +1026,18 @@
                 font-size: 1.15em;
             }
 
+            .btn-pedir-equipe.pedido-enviado {
+                background: rgba(255, 255, 255, 0.06);
+                border-color: rgba(255, 255, 255, 0.14);
+                color: var(--text-muted);
+                box-shadow: none;
+            }
+
+            .btn-pedir-equipe.pedido-enviado:hover {
+                transform: none;
+                box-shadow: none;
+            }
+
             .equipe-membro {
                 align-items: center;
                 border-radius: 16px;
@@ -1196,6 +1220,85 @@
                 min-height: 46px;
             }
         }
+
+            #lista-equipes.equipes-lista {
+                display: grid;
+                gap: 16px;
+                margin-top: 18px;
+            }
+
+            #lista-equipes.equipes-lista .equipe-lista-card {
+                width: 100%;
+                padding: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                border-radius: 22px;
+                background:
+                    radial-gradient(circle at top right, rgba(255, 71, 87, 0.14), transparent 34%),
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                    #151515;
+                box-shadow: 0 14px 32px rgba(0, 0, 0, 0.36);
+                box-sizing: border-box;
+                text-transform: none;
+            }
+
+            #lista-equipes.equipes-lista .equipe-lista-card h4 {
+                margin: 0 0 12px 0;
+                color: #fff;
+                font-size: 1.12em;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: -0.2px;
+            }
+
+            #lista-equipes.equipes-lista .equipe-lista-card p {
+                margin: 0 0 16px 0;
+                color: #cfcfcf;
+                line-height: 1.5;
+                font-size: 0.96em;
+                text-transform: none;
+            }
+
+            #lista-equipes.equipes-lista .equipe-lista-meta {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 16px;
+                text-transform: none;
+            }
+
+            #lista-equipes.equipes-lista .equipe-lista-meta span {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                min-height: 30px;
+                padding: 7px 10px;
+                border-radius: var(--radius-pill);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                background: rgba(255, 255, 255, 0.045);
+                color: var(--text-soft);
+                font-size: 0.82em;
+                font-weight: 800;
+                text-transform: none;
+            }
+
+            #lista-equipes.equipes-lista .btn-pedir-equipe {
+                width: 100%;
+                min-height: 48px;
+                margin: 0;
+                border-radius: var(--radius-pill);
+            }
+
+            #lista-equipes.equipes-lista .btn-pedir-equipe.pedido-enviado {
+                background: rgba(255, 255, 255, 0.06);
+                border-color: rgba(255, 255, 255, 0.14);
+                color: var(--text-muted);
+                box-shadow: none;
+            }
+
+            #lista-equipes.equipes-lista .btn-pedir-equipe.pedido-enviado:hover {
+                transform: none;
+                box-shadow: none;
+            }
 
             .btn-buscar {
                 width: 100%;
@@ -3198,6 +3301,100 @@
             return null;
         }
 
+        function obterUsuarioAtualParaPedidoEquipe() {
+            if (typeof usuarioAtual !== 'undefined' && usuarioAtual && usuarioAtual.id) {
+                return usuarioAtual;
+            }
+
+            if (typeof usuarioLogado !== 'undefined' && usuarioLogado && usuarioLogado.id) {
+                return usuarioLogado;
+            }
+
+            const chavesPossiveis = ['usuario', 'usuarioLogado', 'usuario_atual'];
+
+            for (const chave of chavesPossiveis) {
+                const valor = localStorage.getItem(chave);
+
+                if (!valor) continue;
+
+                try {
+                    const usuario = JSON.parse(valor);
+
+                    if (usuario && usuario.id) {
+                        return usuario;
+                    }
+                } catch (erro) {
+                    console.warn(`Não foi possível ler ${chave} do localStorage`, erro);
+                }
+            }
+
+            return null;
+        }
+
+        async function pedirEntradaEquipe(clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                alert('Você precisa estar logado para pedir para entrar em uma equipe.');
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Pedir para entrar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Enviando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/pedidos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    const mensagemErro = dados.erro || 'Não foi possível enviar o pedido.';
+
+                    if (botao) {
+                        if (mensagemErro.includes('já enviou')) {
+                            botao.textContent = 'Pedido já enviado';
+                        } else if (mensagemErro.includes('já participa')) {
+                            botao.textContent = 'Você já está em uma equipe';
+                        } else {
+                            botao.textContent = textoOriginal;
+                            botao.disabled = false;
+                        }
+                    }
+
+                    alert(mensagemErro);
+                    return;
+                }
+
+                if (botao) {
+                    botao.textContent = 'Pedido enviado';
+                    botao.classList.add('pedido-enviado');
+                }
+
+                alert(dados.mensagem || 'Pedido enviado com sucesso.');
+            } catch (erro) {
+                console.error('Erro ao pedir entrada na equipe:', erro);
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
+
+                alert('Erro ao enviar pedido. Tente novamente.');
+            }
+        }
+
         function abrirMinhaEquipe() {
             const modal = document.getElementById('modal-equipe');
             const container = document.getElementById('conteudo-equipe');
@@ -3362,9 +3559,35 @@
 
                 const minhaEquipe = await respostaMinhaEquipe.json();
 
-                if (minhaEquipe) {
+                if (minhaEquipe && minhaEquipe.id) {
                     abrirEquipe(minhaEquipe.id);
                     return;
+                }
+
+                const respostaClubes = await fetch(`${API_URL}/clubes`);
+
+                if (!respostaClubes.ok) {
+                    container.innerHTML = '<p>Erro ao buscar equipes no servidor.</p>';
+                    return;
+                }
+
+                const clubes = await respostaClubes.json();
+
+                if (!Array.isArray(clubes)) {
+                    container.innerHTML = '<p>Resposta inesperada ao carregar equipes.</p>';
+                    console.error('Resposta inesperada:', clubes);
+                    return;
+                }
+
+                const clubesDetalhados = [];
+
+                for (const clube of clubes) {
+                    const respostaDetalhe = await fetch(`${API_URL}/clubes/${clube.id}`);
+
+                    if (respostaDetalhe.ok) {
+                        const detalhe = await respostaDetalhe.json();
+                        clubesDetalhados.push(detalhe);
+                    }
                 }
 
                 container.innerHTML = `
@@ -3390,6 +3613,9 @@
 
                 const lista = document.getElementById('lista-equipes');
 
+                lista.classList.add('equipes-lista');
+                lista.innerHTML = '';
+
                 if (!clubes.length) {
                     lista.innerHTML = '<p>Nenhuma equipe criada ainda.</p>';
                     return;
@@ -3397,14 +3623,25 @@
 
                 clubes.forEach(clube => {
                     const card = document.createElement('div');
-                    card.className = 'equipe-card';
+                    card.className = 'equipe-lista-card';
+
+                    const totalMembros = clube.total_membros || 0;
 
                     card.innerHTML = `
-                        <h4>${clube.nome}</h4>
-                        <p>${clube.descricao || 'Equipe sem descrição.'}</p>
-                        <div class="equipe-meta">Criado por @${clube.username_dono}</div>
-                        <div class="equipe-meta">Membros: ${clube.total_membros}</div>
-                        <button type="button" class="btn-equipe-secundario" onclick="pedirEntradaEquipe()">
+                        <h4>${textoSeguro(clube.nome)}</h4>
+
+                        <p>${textoSeguro(clube.descricao || 'Equipe sem descrição.')}</p>
+
+                        <div class="equipe-lista-meta">
+                            <span>👤 Criado por @${textoSeguro(clube.username_dono || 'usuario')}</span>
+                            <span>🏁 ${totalMembros} membro${Number(totalMembros) === 1 ? '' : 's'}</span>
+                        </div>
+
+                        <button 
+                            type="button" 
+                            class="btn-principal btn-pedir-equipe" 
+                            onclick="pedirEntradaEquipe(${clube.id}, this)"
+                        >
                             Pedir para entrar
                         </button>
                     `;
@@ -3467,10 +3704,6 @@
             } catch (erro) {
                 alert('Erro ao criar equipe.');
             }
-        }
-
-        function pedirEntradaEquipe() {
-            alert('Sistema de pedidos de entrada será implementado em breve.');
         }
 
         async function abrirPerfil(usuarioId) {

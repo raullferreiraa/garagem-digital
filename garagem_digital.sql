@@ -7,6 +7,7 @@ COLLATE utf8mb4_general_ci;
 
 USE garagem_digital;
 
+DROP TABLE IF EXISTS pedidos_clube;
 DROP TABLE IF EXISTS membros_clube;
 DROP TABLE IF EXISTS clubes;
 DROP TABLE IF EXISTS seguidores;
@@ -104,6 +105,25 @@ CREATE TABLE clubes (
     PRIMARY KEY (id),
     CONSTRAINT fk_clubes_dono
         FOREIGN KEY (dono_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE pedidos_clube (
+    id INT NOT NULL AUTO_INCREMENT,
+    usuario_id INT NOT NULL,
+    clube_id INT NOT NULL,
+    status ENUM('pendente', 'aprovado', 'recusado') NOT NULL DEFAULT 'pendente',
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    UNIQUE KEY pedido_status_unico (usuario_id, clube_id, status),
+    KEY idx_pedidos_usuario (usuario_id),
+    KEY idx_pedidos_clube (clube_id),
+    CONSTRAINT fk_pedidos_usuario
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_pedidos_clube
+        FOREIGN KEY (clube_id) REFERENCES clubes(id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 

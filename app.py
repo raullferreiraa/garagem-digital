@@ -1236,6 +1236,95 @@ def buscar_clube(id):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+    
+@app.route('/clubes/<int:id>/pedidos', methods=['POST'])
+def pedir_entrada_clube(id):
+    try:
+        dados = request.get_json()
+
+        if not dados:
+            return jsonify({"erro": "Dados não enviados."}), 400
+
+        usuario_id = dados.get('usuario_id')
+
+        if not usuario_id:
+            return jsonify({"erro": "Usuário não informado."}), 400
+
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute(
+            "SELECT id FROM clubes WHERE id = %s",
+            (id,)
+        )
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Equipe não encontrada."}), 404
+
+        cursor.execute(
+            "SELECT id FROM membros_clube WHERE usuario_id = %s LIMIT 1",
+            (usuario_id,)
+        )
+        membro_existente = cursor.fetchone()
+
+        if membro_existente:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você já participa de uma equipe."}), 400
+
+        cursor.execute(
+            """
+            SELECT id 
+            FROM pedidos_clube 
+            WHERE usuario_id = %s 
+              AND clube_id = %s 
+              AND status = 'pendente'
+            LIMIT 1
+            """,
+            (usuario_id, id)
+        )
+        pedido_existente = cursor.fetchone()
+
+        if pedido_existente:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você já enviou um pedido para esta equipe."}), 400
+
+        cursor.execute(
+            """
+            INSERT INTO pedidos_clube (usuario_id, clube_id, status)
+            VALUES (%s, %s, 'pendente')
+            """,
+            (usuario_id, id)
+        )
+
+        conexao.commit()
+
+        pedido_id = cursor.lastrowid
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({
+            "mensagem": "Pedido enviado com sucesso.",
+            "pedido": {
+                "id": pedido_id,
+                "usuario_id": usuario_id,
+                "clube_id": id,
+                "status": "pendente"
+            }
+        }), 201
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
 
 @app.route('/clubes/<int:clube_id>/entrar', methods=['POST'])
 def entrar_clube(clube_id):
