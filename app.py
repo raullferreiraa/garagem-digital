@@ -938,6 +938,82 @@ def listar_carros_usuario(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
     
+@app.route('/usuarios/<int:id>/clube', methods=['GET'])
+def buscar_clube_usuario(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT 
+                c.id,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                c.criado_em,
+                dono.nome AS nome_dono,
+                dono.username AS username_dono,
+                COUNT(DISTINCT todos_membros.id) AS total_membros
+            FROM membros_clube membro_usuario
+            INNER JOIN clubes c ON membro_usuario.clube_id = c.id
+            INNER JOIN usuarios dono ON c.dono_id = dono.id
+            LEFT JOIN membros_clube todos_membros ON c.id = todos_membros.clube_id
+            WHERE membro_usuario.usuario_id = %s
+            GROUP BY 
+                c.id,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                c.criado_em,
+                dono.nome,
+                dono.username
+            LIMIT 1
+            """,
+            (id,)
+        )
+
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify(None), 200
+
+        cursor.execute(
+            """
+            SELECT 
+                u.id,
+                u.nome,
+                u.username,
+                u.avatar_url,
+                m.criado_em
+            FROM membros_clube m
+            INNER JOIN usuarios u ON m.usuario_id = u.id
+            WHERE m.clube_id = %s
+            ORDER BY m.criado_em ASC
+            """,
+            (clube['id'],)
+        )
+
+        membros = cursor.fetchall()
+        clube['membros'] = membros
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(clube), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+    
 @app.route('/clubes', methods=['POST'])
 def criar_clube():
     dados = request.json
