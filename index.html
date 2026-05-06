@@ -3353,36 +3353,14 @@
             container.innerHTML = '<p>Carregando equipe...</p>';
 
             try {
-                const resposta = await fetch('http://localhost:5000/clubes');
+                const respostaMinhaEquipe = await fetch(`${API_URL}/usuarios/${usuario.id}/clube`);
 
-                if (!resposta.ok) {
-                    container.innerHTML = '<p>Erro ao buscar equipes no servidor.</p>';
+                if (!respostaMinhaEquipe.ok) {
+                    container.innerHTML = '<p>Erro ao carregar sua equipe.</p>';
                     return;
                 }
 
-                const clubes = await resposta.json();
-
-                if (!Array.isArray(clubes)) {
-                    container.innerHTML = '<p>Resposta inesperada ao carregar equipes.</p>';
-                    console.error('Resposta inesperada:', clubes);
-                    return;
-                }
-
-                const clubesDetalhados = [];
-
-                for (const clube of clubes) {
-                    const respostaDetalhe = await fetch(`http://localhost:5000/clubes/${clube.id}`);
-
-                    if (respostaDetalhe.ok) {
-                        const detalhe = await respostaDetalhe.json();
-                        clubesDetalhados.push(detalhe);
-                    }
-                }
-
-                const minhaEquipe = clubesDetalhados.find(clube =>
-                    Array.isArray(clube.membros) &&
-                    clube.membros.some(membro => String(membro.id) === String(usuario.id))
-                );
+                const minhaEquipe = await respostaMinhaEquipe.json();
 
                 if (minhaEquipe) {
                     abrirEquipe(minhaEquipe.id);
@@ -3979,26 +3957,23 @@
             container.innerHTML = '';
 
             try {
-                const res = await fetch('http://localhost:5000/clubes');
-                const clubes = await res.json();
+                const resposta = await fetch(`${API_URL}/usuarios/${usuarioId}/clube`);
 
-                const clubesDetalhados = await Promise.all(
-                    clubes.map(c =>
-                        fetch(`http://localhost:5000/clubes/${c.id}`).then(r => r.json())
-                    )
-                );
+                if (!resposta.ok) {
+                    container.innerHTML = '';
+                    return;
+                }
 
-                const equipe = clubesDetalhados.find(c =>
-                    Array.isArray(c.membros) &&
-                    c.membros.some(m => String(m.id) === String(usuarioId))
-                );
+                const equipe = await resposta.json();
 
                 if (!equipe) {
                     container.innerHTML = '';
                     return;
                 }
 
-                const totalMembros = Array.isArray(equipe.membros) ? equipe.membros.length : 0;
+                const totalMembros = Array.isArray(equipe.membros)
+                    ? equipe.membros.length
+                    : (equipe.total_membros || 0);
 
                 container.innerHTML = `
                     <div class="perfil-equipe-badge" onclick="abrirEquipe(${equipe.id})">
@@ -4013,9 +3988,9 @@
                         <div class="perfil-equipe-acao">Ver →</div>
                     </div>
                 `;
-
-            } catch (err) {
-                console.error('Erro ao carregar equipe do perfil:', err);
+            } catch (erro) {
+                console.error('Erro ao carregar equipe do perfil:', erro);
+                container.innerHTML = '';
             }
         }
 
