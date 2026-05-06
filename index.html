@@ -1027,7 +1027,40 @@
             }
 
             .equipe-garagem-futura {
+                border-radius: 18px;
+            }
+
+            .equipe-garagem-futura-topo {
+                align-items: flex-start;
+                padding: 16px;
+            }
+
+            .equipe-garagem-icone {
+                width: 44px;
+                height: 44px;
                 border-radius: 16px;
+                font-size: 1.25em;
+            }
+
+            .equipe-garagem-texto h3 {
+                font-size: 1em;
+            }
+
+            .equipe-garagem-texto p {
+                font-size: 0.88em;
+            }
+
+            .equipe-garagem-status {
+                margin: 0 16px 16px 16px;
+            }
+
+            .equipe-garagem-preview {
+                padding: 0 16px 16px 16px;
+            }
+
+            .equipe-garagem-preview-item {
+                height: 46px;
+                border-radius: 12px;
             }
 
             .usuario-menu {
@@ -1430,12 +1463,89 @@
 
             .equipe-garagem-futura {
                 margin-top: 18px;
-                padding: 14px;
-                border: 1px dashed #333;
-                border-radius: 12px;
-                color: #888;
+                padding: 0;
+                border: 1px solid rgba(255, 71, 87, 0.22);
+                border-radius: var(--radius-lg);
+                color: var(--text-muted);
                 text-transform: none;
-                background: #101010;
+                background:
+                    radial-gradient(circle at top left, rgba(255, 71, 87, 0.12), transparent 34%),
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                    #101010;
+                overflow: hidden;
+                box-shadow: 0 12px 28px rgba(0, 0, 0, 0.25);
+            }
+
+            .equipe-garagem-futura-topo {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 18px;
+            }
+
+            .equipe-garagem-icone {
+                width: 52px;
+                height: 52px;
+                border-radius: 18px;
+                background: rgba(255, 71, 87, 0.12);
+                border: 1px solid rgba(255, 71, 87, 0.32);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 1.45em;
+                flex-shrink: 0;
+            }
+
+            .equipe-garagem-texto {
+                flex: 1;
+                min-width: 0;
+            }
+
+            .equipe-garagem-texto h3 {
+                margin: 0 0 6px 0;
+                color: #fff;
+                font-size: 1.05em;
+                text-transform: uppercase;
+            }
+
+            .equipe-garagem-texto p {
+                margin: 0;
+                color: var(--text-muted);
+                line-height: 1.5;
+                font-size: 0.92em;
+                text-transform: none;
+            }
+
+            .equipe-garagem-status {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 18px 18px 18px;
+                padding: 8px 12px;
+                border-radius: var(--radius-pill);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                background: rgba(255, 255, 255, 0.035);
+                color: var(--accent);
+                font-size: 0.78em;
+                font-weight: 900;
+                text-transform: uppercase;
+                letter-spacing: 0.06em;
+            }
+
+            .equipe-garagem-preview {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 8px;
+                padding: 0 18px 18px 18px;
+            }
+
+            .equipe-garagem-preview-item {
+                height: 54px;
+                border-radius: 14px;
+                border: 1px dashed rgba(255, 255, 255, 0.12);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                    rgba(0, 0, 0, 0.18);
             }
 
             .equipe-meta {
@@ -3201,7 +3311,22 @@
                     </div>
 
                     <div class="equipe-garagem-futura">
-                        Garagem da equipe será implementada em uma próxima etapa.
+                        <div class="equipe-garagem-futura-topo">
+                            <div class="equipe-garagem-icone">🏎️</div>
+
+                            <div class="equipe-garagem-texto">
+                                <h3>Garagem da equipe</h3>
+                                <p>Em breve, os projetos dos membros poderão aparecer juntos aqui como uma garagem coletiva.</p>
+                            </div>
+                        </div>
+
+                        <div class="equipe-garagem-status">Em breve</div>
+
+                        <div class="equipe-garagem-preview">
+                            <div class="equipe-garagem-preview-item"></div>
+                            <div class="equipe-garagem-preview-item"></div>
+                            <div class="equipe-garagem-preview-item"></div>
+                        </div>
                     </div>
                 `;
 
