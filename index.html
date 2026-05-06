@@ -789,31 +789,75 @@
             }
 
             body {
-                padding: 22px 10px;
+                padding: 18px 10px 28px 10px;
                 font-size: 16px;
+                background:
+                    radial-gradient(circle at top, rgba(255, 71, 87, 0.1), transparent 28%),
+                    var(--bg-main);
             }
 
             h1 {
-                margin-bottom: 30px;
+                font-size: 2.05em;
+                line-height: 1.02;
+                margin-bottom: 24px;
                 letter-spacing: -1px;
+                padding-bottom: 16px;
+            }
+
+            h1::after {
+                width: 92px;
+                margin-top: 14px;
             }
 
             .auth-container,
             .formulario-container,
             .filtros-container {
-                border-radius: 16px;
+                border-radius: 18px;
                 padding: 16px;
+                margin-bottom: 18px;
+                box-shadow: 0 10px 26px rgba(0, 0, 0, 0.28);
             }
             
+            .filtros-container {
+                max-width: 380px;
+            }
+
             .filtros-container input,
             .filtros-container select,
             .btn-buscar {
                 width: 100%;
+                margin-bottom: 8px;
+            }
+
+            .filtros-container .btn-buscar {
+                margin-bottom: 0;
+            }
+
+            button,
+            .btn-principal,
+            .btn-ver,
+            .btn-buscar {
+                min-height: 46px;
+            }
+
+            input,
+            select,
+            textarea {
+                min-height: 46px;
+                font-size: 0.95em;
+            }
+
+            #btn-toggle-form {
+                max-width: 380px;
+                margin: 0 auto 18px auto;
+                border-radius: var(--radius-pill);
+                box-shadow: 0 12px 28px rgba(255, 71, 87, 0.18);
             }
 
             .galeria {
                 grid-template-columns: 1fr;
-                max-width: 600px;
+                gap: 18px;
+                max-width: 420px;
             }
 
             .galeria.um-card {
@@ -844,12 +888,16 @@
             .abas-garagem {
                 flex-direction: column;
                 gap: 8px;
-                border-radius: 18px;
+                border-radius: 20px;
+                max-width: 380px;
+                margin-left: auto;
+                margin-right: auto;
             }
 
             .auth-tabs button,
             .abas-garagem button {
                 margin-bottom: 0;
+                min-height: 44px;
             }
 
             .titulo-card h2 {
@@ -1000,6 +1048,26 @@
                 margin: 0;
                 border-radius: 16px;
                 box-sizing: border-box;
+            }
+
+            .carro-card {
+                border-radius: 20px;
+            }
+
+            .foto-carro {
+                height: 210px;
+            }
+
+            .card-info {
+                padding: 15px;
+            }
+
+            .card-acoes {
+                gap: 8px;
+            }
+
+            .card-acoes-principais {
+                align-items: center;
             }
         }
 
