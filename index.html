@@ -792,6 +792,114 @@
             }
         }
 
+        .pedidos-equipe-bloco {
+            margin-top: 18px;
+            padding: 18px;
+            border: 1px solid rgba(255, 71, 87, 0.22);
+            border-radius: var(--radius-lg);
+            background:
+                radial-gradient(circle at top left, rgba(255, 71, 87, 0.11), transparent 34%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                #111;
+            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
+            text-transform: none;
+        }
+
+        .pedidos-equipe-bloco h3 {
+            margin: 0 0 8px 0;
+            color: #fff;
+            font-size: 1.05em;
+            text-transform: uppercase;
+        }
+
+        .pedidos-equipe-bloco > p {
+            margin: 0 0 14px 0;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            line-height: 1.5;
+            text-transform: none;
+        }
+
+        .pedido-equipe-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.035);
+            margin-top: 10px;
+        }
+
+        .pedido-equipe-info {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .pedido-equipe-info strong {
+            display: block;
+            color: #fff;
+            font-size: 0.95em;
+            margin-bottom: 3px;
+        }
+
+        .pedido-equipe-info span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.82em;
+            text-transform: none;
+        }
+
+        .pedido-equipe-acoes {
+            display: flex;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .btn-aprovar-pedido,
+        .btn-recusar-pedido {
+            width: auto;
+            min-height: 38px;
+            margin: 0;
+            padding: 8px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 0.78em;
+            font-weight: 900;
+        }
+
+        .btn-aprovar-pedido {
+            background: rgba(46, 213, 115, 0.12);
+            border-color: rgba(46, 213, 115, 0.45);
+            color: #2ed573;
+        }
+
+        .btn-aprovar-pedido:hover {
+            border-color: #2ed573;
+            box-shadow: 0 10px 22px rgba(46, 213, 115, 0.14);
+        }
+
+        .btn-recusar-pedido {
+            background: rgba(255, 71, 87, 0.08);
+            border-color: rgba(255, 71, 87, 0.38);
+            color: var(--accent);
+        }
+
+        .btn-recusar-pedido:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 22px rgba(255, 71, 87, 0.14);
+        }
+
+        .pedidos-equipe-vazio {
+            padding: 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.025);
+            border: 1px dashed rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+            font-size: 0.9em;
+            text-transform: none;
+        }        
+
         @media (max-width: 600px) {
             .linha-inputs {
                 flex-direction: column;
@@ -1010,6 +1118,20 @@
 
             .perfil-equipe-acao {
                 display: none;
+            }
+
+            .pedido-equipe-item {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .pedido-equipe-acoes {
+                width: 100%;
+            }
+
+            .btn-aprovar-pedido,
+            .btn-recusar-pedido {
+                flex: 1;
             }
 
             .perfil-equipe-nome {
@@ -3507,6 +3629,8 @@
                         </div>
                     </div>
 
+                    <div id="pedidos-equipe-container"></div>
+
                     <div class="equipe-garagem-futura">
                         <div class="equipe-garagem-futura-topo">
                             <div class="equipe-garagem-icone">🏎️</div>
@@ -3527,9 +3651,204 @@
                     </div>
                 `;
 
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (usuario && String(usuario.id) === String(equipe.dono_id)) {
+                carregarPedidosEquipe(equipe.id);
+            }
+
             } catch (erro) {
                 console.error('Erro ao abrir equipe:', erro);
                 container.innerHTML = '<p>Erro ao carregar equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
+        async function carregarPedidosEquipe(clubeId) {
+            const container = document.getElementById('pedidos-equipe-container');
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!container || !usuario || !usuario.id) return;
+
+            container.innerHTML = `
+                <div class="pedidos-equipe-bloco">
+                    <h3>Pedidos pendentes</h3>
+                    <p>Carregando solicitações de entrada...</p>
+                </div>
+            `;
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/pedidos?usuario_id=${usuario.id}`);
+
+                if (!resposta.ok) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const pedidos = await resposta.json();
+
+                if (!Array.isArray(pedidos) || pedidos.length === 0) {
+                    container.innerHTML = `
+                        <div class="pedidos-equipe-bloco">
+                            <h3>Pedidos pendentes</h3>
+                            <div class="pedidos-equipe-vazio">
+                                Nenhum pedido pendente no momento.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const pedidosHtml = pedidos.map(pedido => `
+                    <div class="pedido-equipe-item">
+                        <div class="pedido-equipe-info">
+                            <strong>${textoSeguro(pedido.nome)}</strong>
+                            <span>@${textoSeguro(pedido.username || 'usuario')}</span>
+                        </div>
+
+                        <div class="pedido-equipe-acoes">
+                            <button 
+                                type="button" 
+                                class="btn-aprovar-pedido"
+                                onclick="aprovarPedidoEquipe(${pedido.id}, ${clubeId}, this)"
+                            >
+                                Aprovar
+                            </button>
+
+                            <button 
+                                type="button" 
+                                class="btn-recusar-pedido"
+                                onclick="recusarPedidoEquipe(${pedido.id}, ${clubeId}, this)"
+                            >
+                                Recusar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = `
+                    <div class="pedidos-equipe-bloco">
+                        <h3>Pedidos pendentes</h3>
+                        <p>Analise quem pode entrar na equipe.</p>
+                        ${pedidosHtml}
+                    </div>
+                `;
+            } catch (erro) {
+                console.error('Erro ao carregar pedidos da equipe:', erro);
+                container.innerHTML = '';
+            }
+        }
+
+        async function aprovarPedidoEquipe(pedidoId, clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                alert('Você precisa estar logado para aprovar pedidos.');
+                return;
+            }
+
+            if (!confirm('Aprovar este pedido de entrada?')) {
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Aprovar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Aprovando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/pedidos-clube/${pedidoId}/aprovar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    alert(dados.erro || 'Não foi possível aprovar o pedido.');
+
+                    if (botao) {
+                        botao.disabled = false;
+                        botao.textContent = textoOriginal;
+                    }
+
+                    return;
+                }
+
+                alert(dados.mensagem || 'Pedido aprovado com sucesso.');
+
+                abrirEquipe(clubeId);
+            } catch (erro) {
+                console.error('Erro ao aprovar pedido:', erro);
+                alert('Erro ao aprovar pedido. Tente novamente.');
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
+            }
+        }
+
+        async function recusarPedidoEquipe(pedidoId, clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                alert('Você precisa estar logado para recusar pedidos.');
+                return;
+            }
+
+            if (!confirm('Recusar este pedido de entrada?')) {
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Recusar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Recusando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/pedidos-clube/${pedidoId}/recusar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    alert(dados.erro || 'Não foi possível recusar o pedido.');
+
+                    if (botao) {
+                        botao.disabled = false;
+                        botao.textContent = textoOriginal;
+                    }
+
+                    return;
+                }
+
+                alert(dados.mensagem || 'Pedido recusado com sucesso.');
+
+                carregarPedidosEquipe(clubeId);
+            } catch (erro) {
+                console.error('Erro ao recusar pedido:', erro);
+                alert('Erro ao recusar pedido. Tente novamente.');
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
             }
         }
 
