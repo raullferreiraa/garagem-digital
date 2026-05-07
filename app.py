@@ -1598,6 +1598,8 @@ def recusar_pedido_clube(id):
             """
             SELECT 
                 p.id,
+                p.usuario_id,
+                p.clube_id,
                 p.status,
                 c.dono_id
             FROM pedidos_clube p
@@ -1623,6 +1625,17 @@ def recusar_pedido_clube(id):
             cursor.close()
             conexao.close()
             return jsonify({"erro": "Você não tem permissão para recusar este pedido."}), 403
+        
+        cursor.execute(
+            """
+            DELETE FROM pedidos_clube
+            WHERE usuario_id = %s
+            AND clube_id = %s
+            AND status = 'recusado'
+            AND id <> %s
+            """,
+            (pedido['usuario_id'], pedido['clube_id'], id)
+        )
 
         cursor.execute(
             """
