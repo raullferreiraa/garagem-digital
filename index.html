@@ -160,6 +160,11 @@
             box-shadow: none;
         }
 
+        .btn-pedir-equipe.pedido-pendente {
+            cursor: not-allowed;
+            opacity: 0.72;
+        }
+
         .acoes-garagem {
             display: flex;
             justify-content: center;
@@ -3453,6 +3458,28 @@
             return null;
         }
 
+        async function carregarPedidosPendentesUsuario(usuarioId) {
+            try {
+                const resposta = await fetch(`${API_URL}/usuarios/${usuarioId}/pedidos-clube?status=pendente`);
+
+                if (!resposta.ok) {
+                    console.warn('Não foi possível carregar pedidos pendentes do usuário.');
+                    return [];
+                }
+
+                const pedidos = await resposta.json();
+
+                if (!Array.isArray(pedidos)) {
+                    return [];
+                }
+
+                return pedidos;
+            } catch (erro) {
+                console.error('Erro ao carregar pedidos pendentes do usuário:', erro);
+                return [];
+            }
+        }
+
         async function pedirEntradaEquipe(clubeId, botao) {
             const usuario = obterUsuarioAtualParaPedidoEquipe();
 
@@ -3486,7 +3513,9 @@
 
                     if (botao) {
                         if (mensagemErro.includes('já enviou')) {
-                            botao.textContent = 'Pedido já enviado';
+                            botao.textContent = 'Pedido pendente';
+                            botao.classList.add('pedido-enviado', 'pedido-pendente');
+                            botao.disabled = true;
                         } else if (mensagemErro.includes('já participa')) {
                             botao.textContent = 'Você já está em uma equipe';
                         } else {
@@ -3500,8 +3529,9 @@
                 }
 
                 if (botao) {
-                    botao.textContent = 'Pedido enviado';
-                    botao.classList.add('pedido-enviado');
+                    botao.textContent = 'Pedido pendente';
+                    botao.classList.add('pedido-enviado', 'pedido-pendente');
+                    botao.disabled = true;
                 }
 
                 alert(dados.mensagem || 'Pedido enviado com sucesso.');
@@ -3940,11 +3970,38 @@
                     return;
                 }
 
+                const pedidosPendentes = await carregarPedidosPendentesUsuario(usuario.id);
+                const clubesComPedidoPendente = new Set(
+                    pedidosPendentes.map(pedido => String(pedido.clube_id))
+                );
+
                 clubes.forEach(clube => {
                     const card = document.createElement('div');
                     card.className = 'equipe-lista-card';
 
                     const totalMembros = clube.total_membros || 0;
+
+                    const temPedidoPendente = clubesComPedidoPendente.has(String(clube.id));
+
+                    const botaoPedidoHtml = temPedidoPendente
+                        ? `
+                            <button 
+                                type="button" 
+                                class="btn-principal btn-pedir-equipe pedido-enviado pedido-pendente" 
+                                disabled
+                            >
+                                Pedido pendente
+                            </button>
+                        `
+                        : `
+                            <button 
+                                type="button" 
+                                class="btn-principal btn-pedir-equipe" 
+                                onclick="pedirEntradaEquipe(${clube.id}, this)"
+                            >
+                                Pedir para entrar
+                            </button>
+                        `;
 
                     card.innerHTML = `
                         <h4>${textoSeguro(clube.nome)}</h4>
@@ -3956,13 +4013,7 @@
                             <span>🏁 ${totalMembros} membro${Number(totalMembros) === 1 ? '' : 's'}</span>
                         </div>
 
-                        <button 
-                            type="button" 
-                            class="btn-principal btn-pedir-equipe" 
-                            onclick="pedirEntradaEquipe(${clube.id}, this)"
-                        >
-                            Pedir para entrar
-                        </button>
+                        ${botaoPedidoHtml}
                     `;
 
                     lista.appendChild(card);

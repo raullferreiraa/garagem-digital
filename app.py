@@ -1013,6 +1013,76 @@ def buscar_clube_usuario(id):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+@app.route('/usuarios/<int:id>/pedidos-clube', methods=['GET'])
+def listar_pedidos_clube_usuario(id):
+    status = request.args.get('status', 'pendente')
+
+    status_permitidos = ['pendente', 'aprovado', 'recusado', 'todos']
+
+    if status not in status_permitidos:
+        return jsonify({"erro": "Status inválido."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        sql = """
+            SELECT 
+                p.id,
+                p.usuario_id,
+                p.clube_id,
+                p.status,
+                p.criado_em,
+                c.nome AS nome_clube,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                dono.username AS username_dono,
+                COUNT(DISTINCT membros.id) AS total_membros
+            FROM pedidos_clube p
+            INNER JOIN clubes c ON p.clube_id = c.id
+            INNER JOIN usuarios dono ON c.dono_id = dono.id
+            LEFT JOIN membros_clube membros ON c.id = membros.clube_id
+            WHERE p.usuario_id = %s
+        """
+
+        valores = [id]
+
+        if status != 'todos':
+            sql += " AND p.status = %s"
+            valores.append(status)
+
+        sql += """
+            GROUP BY 
+                p.id,
+                p.usuario_id,
+                p.clube_id,
+                p.status,
+                p.criado_em,
+                c.nome,
+                c.slug,
+                c.descricao,
+                c.dono_id,
+                dono.username
+            ORDER BY p.criado_em DESC
+        """
+
+        cursor.execute(sql, tuple(valores))
+        pedidos = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(pedidos), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
     
 @app.route('/clubes', methods=['POST'])
 def criar_clube():
