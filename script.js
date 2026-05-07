@@ -1,0 +1,2154 @@
+// Configuração global e estado da aplicação
+        const API_URL = 'http://127.0.0.1:5000';
+        let todosCarros = [];
+        let modoGaragem = "todos";
+
+        function textoFeedbackSeguro(valor) {
+            return String(valor || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function mostrarMensagem(mensagem, tipo = 'sucesso', duracao = 3600) {
+            const container = document.getElementById('feedback-container');
+
+            if (!container) {
+                alert(mensagem);
+                return;
+            }
+
+            const tiposPermitidos = ['sucesso', 'erro', 'aviso'];
+            const tipoFinal = tiposPermitidos.includes(tipo) ? tipo : 'sucesso';
+
+            const titulos = {
+                sucesso: 'Tudo certo',
+                erro: 'Algo deu errado',
+                aviso: 'Atenção'
+            };
+
+            const item = document.createElement('div');
+            item.className = `feedback-item feedback-${tipoFinal}`;
+
+            item.innerHTML = `
+                <div class="feedback-conteudo">
+                    <strong>${titulos[tipoFinal]}</strong>
+                    <span>${textoFeedbackSeguro(mensagem)}</span>
+                </div>
+
+                <button 
+                    type="button" 
+                    class="feedback-fechar" 
+                    aria-label="Fechar mensagem"
+                >
+                    ×
+                </button>
+            `;
+
+            const remover = () => {
+                item.classList.add('saindo');
+
+                setTimeout(() => {
+                    item.remove();
+                }, 220);
+            };
+
+            item.querySelector('.feedback-fechar').addEventListener('click', remover);
+
+            container.appendChild(item);
+
+            setTimeout(remover, duracao);
+        }
+
+        function formatarTempoRelativo(dataTexto) {
+            if (!dataTexto) {
+                return "";
+            }
+
+            let data = new Date(dataTexto);
+
+            if (isNaN(data.getTime())) {
+                return dataTexto;
+            }
+
+            const agora = new Date();
+
+            data = new Date(data.getTime() + (3 * 60 * 60 * 1000));
+
+            let diferencaEmSegundos = Math.floor((agora - data) / 1000);
+
+            if (diferencaEmSegundos < 0) {
+                diferencaEmSegundos = 0;
+            }
+
+            if (diferencaEmSegundos < 10) {
+                return "agora";
+            }
+
+            if (diferencaEmSegundos < 60) {
+                return `há ${diferencaEmSegundos} segundos`;
+            }
+
+            const diferencaEmMinutos = Math.floor(diferencaEmSegundos / 60);
+
+            if (diferencaEmMinutos < 60) {
+                return diferencaEmMinutos === 1 ? "há 1 minuto" : `há ${diferencaEmMinutos} minutos`;
+            }
+
+            const diferencaEmHoras = Math.floor(diferencaEmMinutos / 60);
+
+            if (diferencaEmHoras < 24) {
+                return diferencaEmHoras === 1 ? "há 1 hora" : `há ${diferencaEmHoras} horas`;
+            }
+
+            const diferencaEmDias = Math.floor(diferencaEmHoras / 24);
+
+            if (diferencaEmDias < 30) {
+                return diferencaEmDias === 1 ? "há 1 dia" : `há ${diferencaEmDias} dias`;
+            }
+
+            return data.toLocaleDateString();
+        }
+
+        function getUsuarioLogado() {
+            const usuario = localStorage.getItem('usuarioLogado');
+
+            if (!usuario) {
+                return null;
+            }
+
+            return JSON.parse(usuario);
+        }
+
+        function usuarioEDono(carro) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                return false;
+            }
+
+            return String(carro.usuario_id) === String(usuario.id);
+        }
+
+        function mostrarTodosProjetos() {
+            modoGaragem = "todos";
+
+            document.getElementById('aba-todos').classList.add('ativo');
+            document.getElementById('aba-meus').classList.remove('ativo');
+
+            carregarGaragem();
+        }
+
+        function mostrarMeusProjetos() {
+            modoGaragem = "meus";
+
+            document.getElementById('aba-meus').classList.add('ativo');
+            document.getElementById('aba-todos').classList.remove('ativo');
+
+            carregarGaragem();
+        }
+
+        function atualizarTelaUsuario() {
+            const usuario = getUsuarioLogado();
+
+            if (usuario) {
+                document.getElementById('auth-container').style.display = "none";
+                document.getElementById('usuario-barra').style.display = "block";
+                document.getElementById('conteudo-app').style.display = "block";
+                const nomeEl = document.getElementById('usuario-nome');
+                const avatarEl = document.getElementById('usuario-avatar');
+
+                nomeEl.innerText = usuario.username
+                    ? `@${usuario.username}`
+                    : usuario.nome;
+
+                if (usuario.avatar_url) {
+                    const src = usuario.avatar_url.startsWith('http')
+                        ? usuario.avatar_url
+                        : `${API_URL}/uploads/${usuario.avatar_url}`;
+
+                    avatarEl.innerHTML = `<img src="${src}">`;
+                } else {
+                    avatarEl.innerText = usuario.nome.charAt(0).toUpperCase();
+                }
+                document.getElementById('input-dono').value = usuario.nome;
+
+                carregarGaragem();
+            } else {
+                document.getElementById('auth-container').style.display = "block";
+                document.getElementById('usuario-barra').style.display = "none";
+                document.getElementById('conteudo-app').style.display = "none";
+            }
+        }
+
+        function mostrarLogin() {
+            document.getElementById('area-login').style.display = "block";
+            document.getElementById('area-cadastro').style.display = "none";
+            document.getElementById('tab-login').classList.add('ativo');
+            document.getElementById('tab-cadastro').classList.remove('ativo');
+        }
+
+        function mostrarCadastro() {
+            document.getElementById('area-login').style.display = "none";
+            document.getElementById('area-cadastro').style.display = "block";
+            document.getElementById('tab-login').classList.remove('ativo');
+            document.getElementById('tab-cadastro').classList.add('ativo');
+        }
+
+        async function cadastrarUsuario() {
+            const nome = document.getElementById('cadastro-nome').value.trim();
+            const username = document.getElementById('cadastro-username').value.trim().toLowerCase();
+            const email = document.getElementById('cadastro-email').value.trim();
+            const senha = document.getElementById('cadastro-senha').value.trim();
+
+            if (!nome || !email || !senha) {
+                alert("Preencha nome, email e senha.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/cadastro`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ nome, username, email, senha })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    alert("Conta criada com sucesso! Agora faça login.");
+                    mostrarLogin();
+                    document.getElementById('login-email').value = email;
+                    document.getElementById('login-senha').value = "";
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível criar a conta."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
+        async function loginUsuario() {
+            const email = document.getElementById('login-email').value.trim();
+            const senha = document.getElementById('login-senha').value.trim();
+
+            if (!email || !senha) {
+                alert("Preencha email e senha.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, senha })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
+                    alert("Login realizado com sucesso!");
+                    atualizarTelaUsuario();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível fazer login."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
+        function sair() {
+            localStorage.removeItem('usuarioLogado');
+            resetarFormulario();
+            atualizarTelaUsuario();
+        }
+
+        function alternarFormularioProjeto() {
+            const container = document.getElementById('container-form');
+            const botao = document.querySelector('.btn-toggle-form');
+
+            if (!container || !botao) {
+                return;
+            }
+
+            const estaAberto = container.style.display === 'block';
+
+            container.style.display = estaAberto ? 'none' : 'block';
+            botao.innerText = estaAberto ? '+ Estacionar novo projeto' : 'Fechar formulário';
+
+            if (!estaAberto) {
+                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+
+        function fecharFormularioProjeto() {
+            const container = document.getElementById('container-form');
+            const botao = document.querySelector('.btn-toggle-form');
+
+            if (container) {
+                container.style.display = 'none';
+            }
+
+            if (botao) {
+                botao.innerText = '+ Estacionar novo projeto';
+            }
+        }
+
+        async function carregarGaragem() {
+            const mod = document.getElementById('filtro-modelo').value;
+            const sus = document.getElementById('filtro-suspensao').value;
+            const aro = document.getElementById('filtro-aro').value;
+
+            const params = new URLSearchParams();
+
+            if (mod) params.append('modelo', mod);
+            if (sus) params.append('suspensao', sus);
+            if (aro) params.append('aro', aro);
+
+            const usuario = getUsuarioLogado();
+
+            if (usuario) {
+                params.append('usuario_id', usuario.id);
+            }
+
+            if (modoGaragem === "meus") {
+                params.append('apenas_meus', '1');
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros?${params.toString()}`);
+                todosCarros = await res.json();
+
+                const galeria = document.getElementById('lista-carros');
+                galeria.innerHTML = '';
+                galeria.classList.remove('um-card');
+
+                if (!Array.isArray(todosCarros) || todosCarros.length === 0) {
+                    galeria.innerHTML = `
+                        <div style="text-align:center; color:#666; padding: 30px;">
+                            ${modoGaragem === "meus" ? "Você ainda não cadastrou nenhum projeto." : "Nenhum projeto encontrado na garagem."}
+                        </div>
+                    `;
+                    return;
+                }
+
+                let carrosParaExibir = todosCarros;
+
+                if (modoGaragem === "meus" && usuario) {
+                    carrosParaExibir = todosCarros.filter(carro => String(carro.usuario_id) === String(usuario.id));
+                }
+
+                if (carrosParaExibir.length === 0) {
+                    galeria.innerHTML = `
+                        <div style="text-align:center; color:#666; padding: 30px;">
+                            Você ainda não cadastrou nenhum projeto.
+                        </div>
+                    `;
+                    return;
+                }
+
+                galeria.classList.toggle('um-card', carrosParaExibir.length === 1);
+
+                carrosParaExibir.forEach(carro => {
+                    const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
+                    const card = document.createElement('div');
+                    const dono = usuarioEDono(carro);
+                    const totalCurtidas = carro.total_curtidas || 0;
+                    const curtido = estaCurtido(carro.curtido_pelo_usuario);
+
+                    card.className = 'carro-card';
+
+                    card.innerHTML = `
+                        ${img ? `<img src="${img}" class="foto-carro">` : '<div class="foto-carro" style="display:flex;align-items:center;justify-content:center;color:#333">SEM FOTO</div>'}
+
+                        <div class="card-info">
+                            <div class="titulo-card">
+                                <h2 style="margin:0">${carro.modelo} (${carro.ano})</h2>
+                                ${dono ? '<span class="dono-badge">Seu projeto</span>' : ''}
+                            </div>
+
+                            <p class="specs">
+                                Proprietário:
+                                ${carro.usuario_id
+                                    ? `<span class="dono-link" data-id="${carro.usuario_id}">
+                                        ${carro.nome_dono}
+                                    </span>`
+                                    : '---'}
+                            </p>
+
+                            <p class="specs">Cor: ${carro.cor}</p>
+                            <p class="specs">Placa: ${carro.placa || '---'}</p>
+
+                            <p class="specs">
+                                <span style="display:block; margin-top:12px; color:#666; font-size:0.75em; font-weight:bold;">
+                                    FICHA TÉCNICA:
+                                </span>
+
+                                <span class="destaque">
+                                    ARO ${carro.aro_roda} | SUSPENSÃO ${carro.tipo_suspensao}
+                                </span>
+                            </p>
+
+                            ${carro.historia ? `
+                                <div class="historia-projeto">
+                                    <strong>História do projeto</strong>
+                                    ${carro.historia}
+                                </div>
+                            ` : ''}
+
+                            <div class="acoes-principais">
+                                <div class="barra-social">
+                                    <span class="like-btn ${curtido ? 'curtido' : ''}">
+                                        👍 <span>${totalCurtidas}</span>
+                                    </span>
+
+                                    <span class="comment-btn">
+                                        💬 ${carro.total_comentarios || 0}
+                                    </span>
+                                </div>
+
+                                <button type="button" class="btn-ver">Ver projeto</button>
+                            </div>
+
+                            ${dono ? `
+                                <div class="acoes-dono">
+                                    <button type="button" class="btn-editar">Editar</button>
+                                    <button type="button" class="btn-excluir">Remover</button>
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+
+                    const donoLink = card.querySelector('.dono-link');
+
+                    if (donoLink) {
+                        donoLink.onclick = () => abrirPerfil(donoLink.dataset.id);
+                    }
+
+                    card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
+
+                    const likeBtn = card.querySelector('.like-btn');
+
+                    likeBtn.onclick = () => {
+                        alternarCurtida(carro.id);
+
+                        likeBtn.classList.add('animando');
+                        criarParticulas(likeBtn);
+
+                        if (navigator.vibrate) {
+                            navigator.vibrate(10);
+                        }
+
+                        setTimeout(() => {
+                            likeBtn.classList.remove('animando');
+                        }, 300);
+                    };
+
+                    card.querySelector('.comment-btn').onclick = () => abrirComentariosProjeto(carro);
+
+                    if (dono) {
+                        card.querySelector('.btn-editar').onclick = () => prepararEdicao(carro);
+                        card.querySelector('.btn-excluir').onclick = () => solicitarExclusao(carro.id);
+                    }
+
+                    galeria.appendChild(card);
+                });
+
+            } catch (error) {
+                alert("Erro ao carregar a garagem. Verifique se o Flask está rodando.");
+                console.error(error);
+            }
+        }
+
+        async function alternarCurtida(carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para curtir um projeto.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/curtir`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ usuario_id: usuario.id })
+                });
+
+                let resposta = {};
+
+                try {
+                    resposta = await res.json();
+                } catch {
+                    resposta = {};
+                }
+
+                if (res.ok) {
+                    carregarGaragem();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível atualizar a curtida."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor.");
+                console.error(error);
+            }
+        }
+
+        function abrirModalProjeto(carro, scrollManter = null) {
+            const modal = document.getElementById('modal-projeto');
+            const modalContent = document.getElementById('modal-content');
+
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+
+            const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
+            const totalCurtidas = carro.total_curtidas || 0;
+            const curtido = estaCurtido(carro.curtido_pelo_usuario);
+
+            modalContent.innerHTML = `
+                <button type="button" class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+
+                ${img
+                    ? `<img src="${img}" class="modal-img">`
+                    : '<div class="modal-sem-foto">Sem foto</div>'
+                }
+
+                <div class="modal-info">
+                    <h2>${carro.modelo} (${carro.ano})</h2>
+
+                    <div class="modal-grid">
+                        <div class="modal-item">
+                            <span>Proprietário</span>
+                            ${carro.usuario_id
+                                ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
+                                    ${carro.nome_dono}
+                                </strong>`
+                                : `<strong>${carro.nome_dono || '---'}</strong>`
+                            }
+                        </div>
+
+                        <div class="modal-item">
+                            <span>Cor</span>
+                            <strong>${carro.cor}</strong>
+                        </div>
+
+                        <div class="modal-item">
+                            <span>Placa</span>
+                            <strong>${carro.placa || '---'}</strong>
+                        </div>
+
+                        <div class="modal-item">
+                            <span>Aro</span>
+                            <strong>${carro.aro_roda}</strong>
+                        </div>
+
+                        <div class="modal-item">
+                            <span>Suspensão</span>
+                            <strong>${carro.tipo_suspensao}</strong>
+                        </div>
+
+                        <div class="modal-item">
+                            <span>Ano</span>
+                            <strong>${carro.ano}</strong>
+                        </div>
+                    </div>
+
+                    ${carro.historia ? `
+                        <div class="historia-projeto">
+                            <strong>História do projeto</strong>
+                            ${carro.historia}
+                        </div>
+                    ` : ''}
+
+                    <div class="comentarios-container" id="comentarios-container">
+                        <div class="comentarios-header">
+                            <h3>Comentários</h3>
+
+                            <span class="comentarios-like ${curtido ? 'curtido' : ''}" onclick="curtirPeloModal(${carro.id})">
+                                👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
+                            </span>
+                        </div>
+
+                        <div id="lista-comentarios" style="margin-top:10px;"></div>
+
+                        <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
+                        <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
+                            Comentar
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            setTimeout(() => {
+                if (scrollManter !== null) {
+                    modal.scrollTop = scrollManter;
+                } else {
+                    modal.scrollTop = 0;
+                }
+
+                modalContent.scrollTop = 0;
+            }, 0);
+
+            setTimeout(() => carregarComentarios(carro.id), 100);
+        }
+
+        function fecharModalProjeto() {
+            const modal = document.getElementById('modal-projeto');
+
+            modal.style.display = "none";
+            document.body.style.overflow = "";
+        }
+
+        document.getElementById('modal-projeto').addEventListener('click', function(e) {
+            if (e.target.id === 'modal-projeto') {
+                fecharModalProjeto();
+            }
+        });
+
+        function prepararEdicao(carro) {
+            if (!usuarioEDono(carro)) {
+                alert("Você não tem permissão para editar este projeto.");
+                return;
+            }
+
+            const container = document.getElementById('container-form');
+            const botaoToggle = document.querySelector('.btn-toggle-form');
+
+            if (container) {
+                container.style.display = 'block';
+            }
+
+            if (botaoToggle) {
+                botaoToggle.innerText = 'Fechar formulário';
+            }
+
+            document.getElementById('input-id').value = carro.id;
+            document.getElementById('input-dono').value = carro.nome_dono;
+            document.getElementById('input-modelo').value = carro.modelo;
+            document.getElementById('input-ano').value = carro.ano;
+            document.getElementById('input-cor').value = carro.cor;
+            document.getElementById('input-placa').value = carro.placa || '';
+            document.getElementById('input-historia').value = carro.historia || '';
+            document.getElementById('input-suspensao').value = carro.tipo_suspensao;
+            document.getElementById('input-aro').value = carro.aro_roda;
+
+            document.getElementById('btn-submit').innerText = "Confirmar Alterações";
+            document.getElementById('btn-cancelar-edicao').style.display = "block";
+
+            document.getElementById('titulo-form').innerText = "Editando Projeto";
+            document.getElementById('container-form').style.borderColor = "#ff4757";
+            document.getElementById('container-form').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        document.getElementById('form-carro').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para cadastrar um projeto.");
+                return;
+            }
+
+            const btnSubmit = document.getElementById('btn-submit');
+            const id = document.getElementById('input-id').value;
+
+            const formData = new FormData();
+
+            formData.append('usuario_id', usuario.id);
+            formData.append('nome_dono', document.getElementById('input-dono').value.trim());
+            formData.append('modelo', document.getElementById('input-modelo').value.trim());
+            formData.append('ano', document.getElementById('input-ano').value);
+            formData.append('cor', document.getElementById('input-cor').value.trim());
+            formData.append('placa', document.getElementById('input-placa').value.trim());
+            formData.append('historia', document.getElementById('input-historia').value.trim());
+            formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
+            formData.append('aro_roda', document.getElementById('input-aro').value);
+
+            const foto = document.getElementById('input-foto').files[0];
+
+            if (foto) {
+                const formatosPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
+                const extensoesPermitidas = ['png', 'jpg', 'jpeg', 'webp'];
+                const extensao = foto.name.split('.').pop().toLowerCase();
+
+                if (
+                    !formatosPermitidos.includes(foto.type) ||
+                    !extensoesPermitidas.includes(extensao)
+                ) {
+                    alert("Formato de imagem inválido. Use PNG, JPG, JPEG ou WEBP.");
+                    return;
+                }
+
+                formData.append('foto', foto);
+            }
+
+            const url = id ? `${API_URL}/carros/${id}` : `${API_URL}/carros`;
+            const metodo = id ? 'PUT' : 'POST';
+
+            try {
+                btnSubmit.disabled = true;
+                btnSubmit.innerText = id ? "Salvando alterações..." : "Estacionando...";
+
+                const res = await fetch(url, {
+                    method: metodo,
+                    body: formData
+                });
+
+                let resposta = {};
+
+                try {
+                    resposta = await res.json();
+                } catch {
+                    resposta = {};
+                }
+
+                if (res.ok) {
+                    alert("Operação realizada com sucesso!");
+                    resetarFormulario();
+                    carregarGaragem();
+
+                    const container = document.getElementById('container-form');
+                    const botaoToggle = document.querySelector('.btn-toggle-form');
+
+                    if (container) {
+                        container.style.display = 'none';
+                    }
+
+                    if (botaoToggle) {
+                        botaoToggle.innerText = '+ Estacionar novo projeto';
+                    }
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível concluir a operação."));
+                    btnSubmit.disabled = false;
+                    btnSubmit.innerText = id ? "Confirmar Alterações" : "Estacionar na Garagem";
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor. Verifique se o Flask está rodando.");
+                console.error(error);
+
+                btnSubmit.disabled = false;
+                btnSubmit.innerText = id ? "Confirmar Alterações" : "Estacionar na Garagem";
+            }
+        });
+
+        function resetarFormulario() {
+            const usuario = getUsuarioLogado();
+
+            document.getElementById('form-carro').reset();
+
+            document.getElementById('input-id').value = "";
+            document.getElementById('input-historia').value = "";
+
+            if (usuario) {
+                document.getElementById('input-dono').value = usuario.nome;
+            }
+
+            document.getElementById('btn-submit').disabled = false;
+            document.getElementById('btn-submit').innerText = "Estacionar na Garagem";
+            document.getElementById('btn-cancelar-edicao').style.display = "none";
+
+            document.getElementById('titulo-form').innerText = "Registrar Novo Projeto";
+            document.getElementById('container-form').style.borderColor = "#555";
+
+            document.getElementById('input-suspensao').selectedIndex = 0;
+        }
+
+        async function solicitarExclusao(id) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login novamente.");
+                return;
+            }
+
+            const confirmar = confirm("Tem certeza que deseja remover este projeto?");
+
+            if (!confirmar) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                let resposta = {};
+
+                try {
+                    resposta = await res.json();
+                } catch {
+                    resposta = {};
+                }
+
+                if (res.ok) {
+                    alert("Projeto removido com sucesso!");
+                    carregarGaragem();
+                } else {
+                    alert("Erro: " + (resposta.erro || "Não foi possível remover o projeto."));
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor. Verifique se o Flask está rodando.");
+                console.error(error);
+            }
+        }
+
+        async function carregarComentarios(carroId) {
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`);
+                const comentarios = await res.json();
+                const usuario = getUsuarioLogado();
+
+                const lista = document.getElementById('lista-comentarios');
+                lista.innerHTML = '';
+
+                if (!comentarios.length) {
+                    lista.innerHTML = `<div style="color:#666;">Nenhum comentário ainda.</div>`;
+                    return;
+                }
+
+                comentarios.forEach(c => {
+                    const div = document.createElement('div');
+
+                    div.innerHTML = `
+                        <div class="comentario-item">
+                            <div class="comentario-topo">
+                                ${c.usuario_id
+                                    ? `<span class="comentario-autor" onclick="abrirPerfil(${c.usuario_id})">
+                                        ${c.nome_usuario}
+                                    </span>`
+                                    : `<span class="comentario-autor">
+                                        ${c.nome_usuario}
+                                    </span>`
+                                }
+
+                                <div style="display: flex; gap: 8px; align-items: center;">
+                                    <span class="comentario-data" title="${new Date(c.criado_em).toLocaleString()}">
+                                        ${formatarTempoRelativo(c.criado_em)}
+                                    </span>
+
+                                    ${usuario && String(usuario.id) === String(c.usuario_id) ? `
+                                        <button 
+                                            type="button" 
+                                            class="btn-remover-comentario" 
+                                            onclick="excluirComentario(${c.id}, ${carroId})"
+                                        >
+                                            Remover
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+
+                            <div class="comentario-texto">
+                                ${c.texto}
+                            </div>
+                        </div>
+                    `;
+
+                    lista.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        async function enviarComentario(carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para comentar.");
+                return;
+            }
+
+            const input = document.getElementById('input-comentario');
+            const texto = input.value.trim();
+
+            if (!texto) {
+                alert("Digite um comentário.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/comentarios`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        texto: texto
+                    })
+                });
+
+                if (res.ok) {
+                    input.value = '';
+                    carregarComentarios(carroId);
+                    carregarGaragem();
+                } else {
+                    const erro = await res.json();
+                    alert(erro.erro || "Erro ao comentar.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+        }
+
+        async function excluirComentario(comentarioId, carroId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Você precisa estar logado para remover um comentário.");
+                return;
+            }
+
+            const confirmar = confirm("Remover este comentário?");
+
+            if (!confirmar) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/comentarios/${comentarioId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    carregarComentarios(carroId);
+                    carregarGaragem();
+                } else {
+                    alert(resposta.erro || "Erro ao remover comentário.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+        }
+
+        function obterUsuarioLogado() {
+            const usuarioSalvo = localStorage.getItem('usuario');
+            const usuarioLogadoSalvo = localStorage.getItem('usuarioLogado');
+
+            if (usuarioSalvo) {
+                return JSON.parse(usuarioSalvo);
+            }
+
+            if (usuarioLogadoSalvo) {
+                return JSON.parse(usuarioLogadoSalvo);
+            }
+
+            if (typeof usuario !== 'undefined' && usuario) {
+                return usuario;
+            }
+
+            return null;
+        }
+
+        function obterUsuarioAtualParaPedidoEquipe() {
+            if (typeof usuarioAtual !== 'undefined' && usuarioAtual && usuarioAtual.id) {
+                return usuarioAtual;
+            }
+
+            if (typeof usuarioLogado !== 'undefined' && usuarioLogado && usuarioLogado.id) {
+                return usuarioLogado;
+            }
+
+            const chavesPossiveis = ['usuario', 'usuarioLogado', 'usuario_atual'];
+
+            for (const chave of chavesPossiveis) {
+                const valor = localStorage.getItem(chave);
+
+                if (!valor) continue;
+
+                try {
+                    const usuario = JSON.parse(valor);
+
+                    if (usuario && usuario.id) {
+                        return usuario;
+                    }
+                } catch (erro) {
+                    console.warn(`Não foi possível ler ${chave} do localStorage`, erro);
+                }
+            }
+
+            return null;
+        }
+
+        async function carregarPedidosPendentesUsuario(usuarioId) {
+            try {
+                const resposta = await fetch(`${API_URL}/usuarios/${usuarioId}/pedidos-clube?status=pendente`);
+
+                if (!resposta.ok) {
+                    console.warn('Não foi possível carregar pedidos pendentes do usuário.');
+                    return [];
+                }
+
+                const pedidos = await resposta.json();
+
+                if (!Array.isArray(pedidos)) {
+                    return [];
+                }
+
+                return pedidos;
+            } catch (erro) {
+                console.error('Erro ao carregar pedidos pendentes do usuário:', erro);
+                return [];
+            }
+        }
+
+        async function pedirEntradaEquipe(clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                mostrarMensagem('Você precisa estar logado para pedir para entrar em uma equipe.', 'aviso');
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Pedir para entrar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Enviando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/pedidos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    const mensagemErro = dados.erro || 'Não foi possível enviar o pedido.';
+
+                    if (botao) {
+                        if (mensagemErro.includes('já enviou')) {
+                            botao.textContent = 'Pedido pendente';
+                            botao.classList.add('pedido-enviado', 'pedido-pendente');
+                            botao.disabled = true;
+                        } else if (mensagemErro.includes('já participa')) {
+                            botao.textContent = 'Você já está em uma equipe';
+                        } else {
+                            botao.textContent = textoOriginal;
+                            botao.disabled = false;
+                        }
+                    }
+
+                    mostrarMensagem(mensagemErro, 'erro');
+                    return;
+                }
+
+                if (botao) {
+                    botao.textContent = 'Pedido pendente';
+                    botao.classList.add('pedido-enviado', 'pedido-pendente');
+                    botao.disabled = true;
+                }
+
+                mostrarMensagem(dados.mensagem || 'Pedido enviado com sucesso.', 'sucesso');
+            } catch (erro) {
+                console.error('Erro ao pedir entrada na equipe:', erro);
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
+
+                mostrarMensagem('Erro ao enviar pedido. Tente novamente.', 'erro');
+            }
+        }
+
+        function abrirMinhaEquipe() {
+            const modal = document.getElementById('modal-equipe');
+            const container = document.getElementById('conteudo-equipe');
+
+            if (!modal) {
+                alert('Modal de equipe não encontrado.');
+                return;
+            }
+
+            modal.style.display = 'block';
+
+            if (container) {
+                container.innerHTML = '<p>Carregando equipe...</p>';
+            }
+
+            carregarMinhaEquipe();
+        }
+
+        function fecharMinhaEquipe() {
+            const modal = document.getElementById('modal-equipe');
+
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function textoSeguro(valor) {
+            const div = document.createElement('div');
+            div.textContent = valor || '';
+            return div.innerHTML;
+        }
+
+        async function abrirEquipe(clubeId) {
+            const modal = document.getElementById('modal-equipe');
+            const titulo = document.getElementById('titulo-modal-equipe');
+            const container = document.getElementById('conteudo-equipe');
+
+            if (!modal || !container) {
+                alert('Modal de equipe não encontrado.');
+                return;
+            }
+
+            modal.style.display = 'block';
+
+            if (titulo) {
+                titulo.textContent = 'Equipe';
+            }
+
+            container.innerHTML = '<p>Carregando equipe...</p>';
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}`);
+
+                if (!resposta.ok) {
+                    container.innerHTML = '<p>Erro ao carregar equipe.</p>';
+                    return;
+                }
+
+                const equipe = await resposta.json();
+                const membros = Array.isArray(equipe.membros) ? equipe.membros : [];
+
+                const membrosHtml = membros.length
+                    ? membros.map(membro => {
+                        const nome = textoSeguro(membro.nome || 'Usuário');
+                        const username = textoSeguro(membro.username || 'usuario');
+                        const inicial = (membro.nome || membro.username || '?').charAt(0).toUpperCase();
+
+                        const avatarUrl = membro.avatar_url
+                            ? (
+                                membro.avatar_url.startsWith('http')
+                                    ? membro.avatar_url
+                                    : `${API_URL}/uploads/${membro.avatar_url}`
+                            )
+                            : '';
+
+                        const avatarHtml = avatarUrl
+                            ? `<img class="equipe-membro-avatar" src="${avatarUrl}" alt="Avatar de ${nome}">`
+                            : `<div class="equipe-membro-avatar-fallback">${inicial}</div>`;
+
+                        return `
+                            <div class="equipe-membro" onclick="fecharMinhaEquipe(); abrirPerfil(${membro.id})">
+                                ${avatarHtml}
+                                <div class="equipe-membro-info">
+                                    <strong>${nome}</strong>
+                                    <span>@${username}</span>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')
+                    : '<p>Nenhum membro encontrado.</p>';
+
+                container.innerHTML = `
+                    <div class="equipe-detalhe-header">
+                        <h3>${textoSeguro(equipe.nome)}</h3>
+                        <p>${textoSeguro(equipe.descricao || 'Equipe sem descrição.')}</p>
+
+                        <div class="equipe-meta">
+                            Criado por @${textoSeguro(equipe.username_dono || 'usuario')}
+                        </div>
+
+                        <div class="equipe-meta">
+                            Membros: ${membros.length}
+                        </div>
+                    </div>
+
+                    <div class="equipe-card">
+                        <h3>Membros</h3>
+                        <div class="equipe-membros-lista">
+                            ${membrosHtml}
+                        </div>
+                    </div>
+
+                    <div id="pedidos-equipe-container"></div>
+
+                    <div class="equipe-garagem-futura">
+                        <div class="equipe-garagem-futura-topo">
+                            <div class="equipe-garagem-icone">🏎️</div>
+
+                            <div class="equipe-garagem-texto">
+                                <h3>Garagem da equipe</h3>
+                                <p>Em breve, os projetos dos membros poderão aparecer juntos aqui como uma garagem coletiva.</p>
+                            </div>
+                        </div>
+
+                        <div class="equipe-garagem-status">Em breve</div>
+
+                        <div class="equipe-garagem-preview">
+                            <div class="equipe-garagem-preview-item"></div>
+                            <div class="equipe-garagem-preview-item"></div>
+                            <div class="equipe-garagem-preview-item"></div>
+                        </div>
+                    </div>
+                `;
+
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (usuario && String(usuario.id) === String(equipe.dono_id)) {
+                carregarPedidosEquipe(equipe.id);
+            }
+
+            } catch (erro) {
+                console.error('Erro ao abrir equipe:', erro);
+                container.innerHTML = '<p>Erro ao carregar equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
+        async function carregarPedidosEquipe(clubeId) {
+            const container = document.getElementById('pedidos-equipe-container');
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!container || !usuario || !usuario.id) return;
+
+            container.innerHTML = `
+                <div class="pedidos-equipe-bloco">
+                    <h3>Pedidos pendentes</h3>
+                    <p>Carregando solicitações de entrada...</p>
+                </div>
+            `;
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/pedidos?usuario_id=${usuario.id}`);
+
+                if (!resposta.ok) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const pedidos = await resposta.json();
+
+                if (!Array.isArray(pedidos) || pedidos.length === 0) {
+                    container.innerHTML = `
+                        <div class="pedidos-equipe-bloco">
+                            <h3>Pedidos pendentes</h3>
+                            <div class="pedidos-equipe-vazio">
+                                Nenhum pedido pendente no momento.
+                            </div>
+                        </div>
+                    `;
+                    return;
+                }
+
+                const pedidosHtml = pedidos.map(pedido => `
+                    <div class="pedido-equipe-item">
+                        <div class="pedido-equipe-info">
+                            <strong>${textoSeguro(pedido.nome)}</strong>
+                            <span>@${textoSeguro(pedido.username || 'usuario')}</span>
+                        </div>
+
+                        <div class="pedido-equipe-acoes">
+                            <button 
+                                type="button" 
+                                class="btn-aprovar-pedido"
+                                onclick="aprovarPedidoEquipe(${pedido.id}, ${clubeId}, this)"
+                            >
+                                Aprovar
+                            </button>
+
+                            <button 
+                                type="button" 
+                                class="btn-recusar-pedido"
+                                onclick="recusarPedidoEquipe(${pedido.id}, ${clubeId}, this)"
+                            >
+                                Recusar
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+                container.innerHTML = `
+                    <div class="pedidos-equipe-bloco">
+                        <h3>Pedidos pendentes</h3>
+                        <p>Analise quem pode entrar na equipe.</p>
+                        ${pedidosHtml}
+                    </div>
+                `;
+            } catch (erro) {
+                console.error('Erro ao carregar pedidos da equipe:', erro);
+                container.innerHTML = '';
+            }
+        }
+
+        async function aprovarPedidoEquipe(pedidoId, clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                mostrarMensagem('Você precisa estar logado para aprovar pedidos.', 'aviso');
+                return;
+            }
+
+            if (!confirm('Aprovar este pedido de entrada?')) {
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Aprovar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Aprovando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/pedidos-clube/${pedidoId}/aprovar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    mostrarMensagem(dados.erro || 'Não foi possível aprovar o pedido.', 'erro');
+
+                    if (botao) {
+                        botao.disabled = false;
+                        botao.textContent = textoOriginal;
+                    }
+
+                    return;
+                }
+
+                mostrarMensagem(dados.mensagem || 'Pedido aprovado com sucesso.', 'sucesso');
+
+                abrirEquipe(clubeId);
+            } catch (erro) {
+                console.error('Erro ao aprovar pedido:', erro);
+                mostrarMensagem('Erro ao aprovar pedido. Tente novamente.', 'erro');
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
+            }
+        }
+
+        async function recusarPedidoEquipe(pedidoId, clubeId, botao) {
+            const usuario = obterUsuarioAtualParaPedidoEquipe();
+
+            if (!usuario || !usuario.id) {
+                mostrarMensagem('Você precisa estar logado para recusar pedidos.', 'aviso');
+                return;
+            }
+
+            if (!confirm('Recusar este pedido de entrada?')) {
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : 'Recusar';
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = 'Recusando...';
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/pedidos-clube/${pedidoId}/recusar`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    mostrarMensagem(dados.erro || 'Não foi possível recusar o pedido.', 'erro');
+
+                    if (botao) {
+                        botao.disabled = false;
+                        botao.textContent = textoOriginal;
+                    }
+
+                    return;
+                }
+
+                mostrarMensagem(dados.mensagem || 'Pedido recusado com sucesso.', 'sucesso');
+
+                carregarPedidosEquipe(clubeId);
+            } catch (erro) {
+                console.error('Erro ao recusar pedido:', erro);
+                mostrarMensagem('Erro ao recusar pedido. Tente novamente.', 'erro');
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
+            }
+        }
+
+        async function carregarMinhaEquipe() {
+            const container = document.getElementById('conteudo-equipe');
+            const usuario = obterUsuarioLogado();
+
+            if (!container) {
+                console.error('Container conteudo-equipe não encontrado.');
+                return;
+            }
+
+            if (!usuario) {
+                container.innerHTML = '<p>Faça login para acessar sua equipe.</p>';
+                return;
+            }
+
+            container.innerHTML = '<p>Carregando equipe...</p>';
+
+            try {
+                const respostaMinhaEquipe = await fetch(`${API_URL}/usuarios/${usuario.id}/clube`);
+
+                if (!respostaMinhaEquipe.ok) {
+                    container.innerHTML = '<p>Erro ao carregar sua equipe.</p>';
+                    return;
+                }
+
+                const minhaEquipe = await respostaMinhaEquipe.json();
+
+                if (minhaEquipe && minhaEquipe.id) {
+                    abrirEquipe(minhaEquipe.id);
+                    return;
+                }
+
+                const respostaClubes = await fetch(`${API_URL}/clubes`);
+
+                if (!respostaClubes.ok) {
+                    container.innerHTML = '<p>Erro ao buscar equipes no servidor.</p>';
+                    return;
+                }
+
+                const clubes = await respostaClubes.json();
+
+                if (!Array.isArray(clubes)) {
+                    container.innerHTML = '<p>Resposta inesperada ao carregar equipes.</p>';
+                    console.error('Resposta inesperada:', clubes);
+                    return;
+                }
+
+                const clubesDetalhados = [];
+
+                for (const clube of clubes) {
+                    const respostaDetalhe = await fetch(`${API_URL}/clubes/${clube.id}`);
+
+                    if (respostaDetalhe.ok) {
+                        const detalhe = await respostaDetalhe.json();
+                        clubesDetalhados.push(detalhe);
+                    }
+                }
+
+                container.innerHTML = `
+                    <p>Você ainda não participa de nenhuma equipe.</p>
+
+                    <div class="equipe-acoes">
+                        <button type="button" class="btn-equipe-principal" onclick="toggleFormEquipe()">
+                            Criar equipe
+                        </button>
+                    </div>
+
+                    <div id="form-equipe" class="form-equipe">
+                        <input type="text" id="equipe-nome" placeholder="Nome da equipe">
+                        <textarea id="equipe-descricao" placeholder="Descrição da equipe"></textarea>
+                        <button type="button" class="btn-equipe-principal" onclick="criarEquipe()">
+                            Criar
+                        </button>
+                    </div>
+
+                    <h3>Equipes existentes</h3>
+                    <div id="lista-equipes"></div>
+                `;
+
+                const lista = document.getElementById('lista-equipes');
+
+                lista.classList.add('equipes-lista');
+                lista.innerHTML = '';
+
+                if (!clubes.length) {
+                    lista.innerHTML = '<p>Nenhuma equipe criada ainda.</p>';
+                    return;
+                }
+
+                const pedidosPendentes = await carregarPedidosPendentesUsuario(usuario.id);
+                const clubesComPedidoPendente = new Set(
+                    pedidosPendentes.map(pedido => String(pedido.clube_id))
+                );
+
+                clubes.forEach(clube => {
+                    const card = document.createElement('div');
+                    card.className = 'equipe-lista-card';
+
+                    const totalMembros = clube.total_membros || 0;
+
+                    const temPedidoPendente = clubesComPedidoPendente.has(String(clube.id));
+
+                    const botaoPedidoHtml = temPedidoPendente
+                        ? `
+                            <button 
+                                type="button" 
+                                class="btn-principal btn-pedir-equipe pedido-enviado pedido-pendente" 
+                                disabled
+                            >
+                                Pedido pendente
+                            </button>
+                        `
+                        : `
+                            <button 
+                                type="button" 
+                                class="btn-principal btn-pedir-equipe" 
+                                onclick="pedirEntradaEquipe(${clube.id}, this)"
+                            >
+                                Pedir para entrar
+                            </button>
+                        `;
+
+                    card.innerHTML = `
+                        <h4>${textoSeguro(clube.nome)}</h4>
+
+                        <p>${textoSeguro(clube.descricao || 'Equipe sem descrição.')}</p>
+
+                        <div class="equipe-lista-meta">
+                            <span>👤 Criado por @${textoSeguro(clube.username_dono || 'usuario')}</span>
+                            <span>🏁 ${totalMembros} membro${Number(totalMembros) === 1 ? '' : 's'}</span>
+                        </div>
+
+                        ${botaoPedidoHtml}
+                    `;
+
+                    lista.appendChild(card);
+                });
+
+            } catch (erro) {
+                console.error('Erro ao carregar equipe:', erro);
+                container.innerHTML = '<p>Erro ao carregar informações da equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
+        function toggleFormEquipe() {
+            const form = document.getElementById('form-equipe');
+
+            if (form) {
+                form.classList.toggle('ativo');
+            }
+        }
+
+        async function criarEquipe() {
+            const usuario = obterUsuarioLogado();
+            const nome = document.getElementById('equipe-nome').value.trim();
+            const descricao = document.getElementById('equipe-descricao').value.trim();
+
+            if (!usuario) {
+                alert('Faça login para criar uma equipe.');
+                return;
+            }
+
+            if (!nome) {
+                alert('Informe o nome da equipe.');
+                return;
+            }
+
+            try {
+                const resposta = await fetch('http://localhost:5000/clubes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        nome,
+                        descricao
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    alert(dados.erro || 'Erro ao criar equipe.');
+                    return;
+                }
+
+                alert('Equipe criada com sucesso!');
+                carregarMinhaEquipe();
+
+            } catch (erro) {
+                alert('Erro ao criar equipe.');
+            }
+        }
+
+        async function abrirPerfil(usuarioId) {
+            const modal = document.getElementById('modal-projeto');
+            const modalContent = document.getElementById('modal-content');
+
+            modal.style.display = "block";
+            document.body.style.overflow = "hidden";
+
+            try {
+                const usuarioLogadoAtual = getUsuarioLogado();
+                const queryUsuarioLogado = usuarioLogadoAtual ? `?usuario_logado_id=${usuarioLogadoAtual.id}` : '';
+                const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}${queryUsuarioLogado}`);
+
+                if (!resUser.ok) {
+                    alert("Perfil não disponível.");
+                    return;
+                }
+
+                const usuario = await resUser.json();
+                const usuarioLogado = usuarioLogadoAtual;
+                const perfilProprio = usuarioLogado && String(usuarioLogado.id) === String(usuario.id);
+                const resCarros = await fetch(`${API_URL}/usuarios/${usuarioId}/carros`);
+                const carros = await resCarros.json();
+                const inicialPerfil = usuario.nome ? usuario.nome.charAt(0).toUpperCase() : "?";
+                const avatarSrc = usuario.avatar_url
+                    ? (usuario.avatar_url.startsWith('http')
+                        ? usuario.avatar_url
+                        : `${API_URL}/uploads/${usuario.avatar_url}`)
+                    : '';
+
+                const avatarPerfil = avatarSrc
+                    ? `<img src="${avatarSrc}" alt="" class="perfil-avatar">`
+                    : `<div class="perfil-avatar-fallback">${inicialPerfil}</div>`;
+
+                const bioPerfil = usuario.bio && usuario.bio.trim()
+                    ? usuario.bio
+                    : "Esse usuário ainda não adicionou uma bio.";
+
+                const formularioEdicaoPerfil = perfilProprio ? `
+                    <div class="perfil-edicao" id="perfil-edicao" style="display: none;">
+                        <input
+                            type="hidden"
+                            id="perfil-avatar-atual"
+                            value="${usuario.avatar_url || ''}"
+                        >
+
+                        <label class="perfil-label">
+                            Foto de perfil
+                        </label>
+
+                        <label class="upload-container">
+                            <span class="upload-btn">Escolher foto</span>
+                            <span class="upload-nome" id="avatar-nome">Nenhum arquivo</span>
+
+                            <input
+                                type="file"
+                                id="perfil-avatar-arquivo"
+                                accept="image/png, image/jpeg, image/webp"
+                                style="display: none;"
+                            >
+                        </label>
+
+                        <textarea
+                            id="perfil-bio"
+                            maxlength="280"
+                            placeholder="Escreva uma bio curta sobre você e sua garagem..."
+                        >${usuario.bio || ''}</textarea>
+
+                        <button
+                            type="button"
+                            class="btn-salvar-perfil"
+                            onclick="salvarPerfil(${usuario.id})"
+                        >
+                            Salvar perfil
+                        </button>
+                    </div>
+                ` : '';
+
+                const botaoEditarPerfil = perfilProprio ? `
+                    <button
+                        type="button"
+                        class="btn-editar-perfil"
+                        onclick="mostrarEdicaoPerfil()"
+                    >
+                        Editar perfil
+                    </button>
+                ` : '';
+
+                const botaoSeguirPerfil = !perfilProprio && usuarioLogado ? `
+                    <button
+                        type="button"
+                        class="btn-seguir-perfil ${usuario.seguido_pelo_usuario ? 'seguindo' : ''}"
+                        onclick="alternarSeguir(${usuario.id}, ${usuario.seguido_pelo_usuario ? 'true' : 'false'})"
+                    >
+                        ${usuario.seguido_pelo_usuario ? 'Seguindo' : 'Seguir'}
+                    </button>
+                ` : '';
+
+                modalContent.innerHTML = `
+                    <button class="modal-fechar" onclick="fecharModalProjeto()">X</button>
+
+                    <div class="perfil-container">
+
+                        <div class="perfil-header">
+                            ${avatarPerfil}
+
+                            <h2>${usuario.nome}</h2>
+                            <p class="perfil-username">@${usuario.username}</p>
+
+                            <div class="perfil-stats">
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_projetos}</strong>
+                                    <span>Projetos</span>
+                                </div>
+
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_seguidores || 0}</strong>
+                                    <span>Seguidores</span>
+                                </div>
+
+                                <div class="perfil-stat">
+                                    <strong>${usuario.total_seguindo || 0}</strong>
+                                    <span>Seguindo</span>
+                                </div>
+                            </div>
+
+                            <p class="perfil-bio">${bioPerfil}</p>
+
+                            ${botaoEditarPerfil}
+
+                            ${formularioEdicaoPerfil}
+
+                            <div id="perfil-equipe"></div>
+
+                            ${botaoSeguirPerfil}
+                        </div>
+
+                        <div class="perfil-grid">
+                            ${carros.length === 0
+                                ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
+                                : carros.map(c => `
+                                    <div class="perfil-card" onclick="abrirProjetoPorId(${c.id})">
+
+                                        ${c.foto_url
+                                            ? `<img src="${API_URL}/uploads/${c.foto_url}">`
+                                            : `<div class="perfil-sem-foto">SEM FOTO</div>`
+                                        }
+
+                                        <div class="perfil-card-info">
+                                            <strong>${c.modelo}</strong>
+                                            <span>${c.ano}</span>
+                                        </div>
+
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+
+                    </div>
+                `;
+
+                carregarEquipeDoPerfil(usuarioId);
+
+                setTimeout(() => {
+                    modal.scrollTop = 0;
+                    modalContent.scrollTop = 0;
+                }, 0);
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao carregar perfil.");
+            }
+        }
+
+        async function salvarPerfil(usuarioId) {
+            const usuarioLogado = getUsuarioLogado();
+
+            if (!usuarioLogado || String(usuarioLogado.id) !== String(usuarioId)) {
+                alert("Você não tem permissão para editar este perfil.");
+                return;
+            }
+
+            const avatarArquivoInput = document.getElementById('perfil-avatar-arquivo');
+            const avatarAtualInput = document.getElementById('perfil-avatar-atual');
+            const bioInput = document.getElementById('perfil-bio');
+
+            let avatarUrlFinal = avatarAtualInput ? avatarAtualInput.value : '';
+
+            try {
+                if (avatarArquivoInput && avatarArquivoInput.files.length > 0) {
+                    const arquivoAvatar = avatarArquivoInput.files[0];
+
+                    const tamanhoMaximoMB = 3;
+                    const tamanhoMaximoBytes = tamanhoMaximoMB * 1024 * 1024;
+
+                    if (arquivoAvatar.size > tamanhoMaximoBytes) {
+                        alert(`A imagem deve ter no máximo ${tamanhoMaximoMB}MB.`);
+                        return;
+                    }
+
+                    const tiposPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
+
+                    if (!tiposPermitidos.includes(arquivoAvatar.type)) {
+                        alert("Formato não permitido. Use PNG, JPG, JPEG ou WEBP.");
+                        return;
+                    }
+
+                    const formData = new FormData();
+                    formData.append('usuario_id', usuarioLogado.id);
+                    formData.append('arquivo', arquivoAvatar);
+
+                    const resAvatar = await fetch(`${API_URL}/usuarios/${usuarioId}/avatar`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const respostaAvatar = await resAvatar.json();
+
+                    if (!resAvatar.ok) {
+                        alert(respostaAvatar.erro || "Erro ao enviar avatar.");
+                        return;
+                    }
+
+                    avatarUrlFinal = respostaAvatar.avatar_url;
+                }
+
+                const res = await fetch(`${API_URL}/usuarios/${usuarioId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioLogado.id,
+                        avatar_url: avatarUrlFinal,
+                        bio: bioInput.value.trim()
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    localStorage.setItem('usuarioLogado', JSON.stringify({
+                        ...usuarioLogado,
+                        avatar_url: resposta.avatar_url,
+                        bio: resposta.bio
+                    }));
+
+                    abrirPerfil(usuarioId);
+                } else {
+                    alert(resposta.erro || "Erro ao salvar perfil.");
+                }
+
+            } catch (error) {
+                console.error("Erro ao salvar perfil:", error);
+                alert("Erro de conexão. Veja o console do navegador e o terminal do Flask.");
+            }
+        }
+
+        function mostrarEdicaoPerfil() {
+            const form = document.getElementById('perfil-edicao');
+
+            if (!form) {
+                return;
+            }
+
+            const estaAberto = form.style.display === 'block';
+            form.style.display = estaAberto ? 'none' : 'block';
+        }
+
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'perfil-avatar-arquivo') {
+                const nome = document.getElementById('avatar-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+
+            if (e.target.id === 'input-foto') {
+                const nome = document.getElementById('carro-foto-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+        });
+
+        async function alternarSeguir(usuarioId, jaSegue) {
+            const usuarioLogado = getUsuarioLogado();
+
+            if (!usuarioLogado) {
+                alert("Você precisa estar logado para seguir usuários.");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/usuarios/${usuarioId}/seguir`, {
+                    method: jaSegue ? 'DELETE' : 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuarioLogado.id
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    abrirPerfil(usuarioId);
+                } else {
+                    alert(resposta.erro || "Erro ao atualizar follow.");
+                }
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro de conexão.");
+            }
+        }
+
+        async function abrirProjetoPorId(id) {
+            const carro = todosCarros.find(c => String(c.id) === String(id));
+
+            if (carro) {
+                abrirModalProjeto(carro);
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros`);
+                const lista = await res.json();
+
+                const encontrado = lista.find(c => String(c.id) === String(id));
+
+                if (encontrado) {
+                    abrirModalProjeto(encontrado);
+                } else {
+                    alert("Projeto não encontrado.");
+                }
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao abrir projeto.");
+            }
+        }
+
+        function abrirComentariosProjeto(carro) {
+            abrirModalProjeto(carro);
+
+            setTimeout(() => {
+                const comentarios = document.getElementById('comentarios-container');
+
+                if (comentarios) {
+                    comentarios.scrollIntoView({ behavior: 'smooth' });
+                }
+            }, 200);
+        }
+
+        function criarParticulas(element) {
+            const rect = element.getBoundingClientRect();
+
+            for (let i = 0; i < 6; i++) {
+                const p = document.createElement('div');
+                p.className = 'like-particle';
+
+                const x = (Math.random() - 0.5) * 60 + 'px';
+                const y = (Math.random() - 0.5) * 60 + 'px';
+
+                p.style.left = (rect.left + rect.width / 2) + 'px';
+                p.style.top = (rect.top + rect.height / 2) + 'px';
+
+                p.style.setProperty('--x', x);
+                p.style.setProperty('--y', y);
+
+                document.body.appendChild(p);
+
+                setTimeout(() => p.remove(), 600);
+            }
+        }
+
+       async function curtirPeloModal(carroId) {
+            await alternarCurtida(carroId);
+
+            await carregarGaragem();
+
+            const atualizado = todosCarros.find(c => String(c.id) === String(carroId));
+
+            if (!atualizado) return;
+
+            const blocoCurtidas = document.querySelector('.comentarios-like');
+
+            if (blocoCurtidas) {
+                const total = atualizado.total_curtidas || 0;
+
+                blocoCurtidas.innerHTML = `
+                    👍 ${total} ${total === 1 ? 'curtida' : 'curtidas'}
+                `;
+
+                // 🔥 FALTA ISSO AQUI
+                const curtido = estaCurtido(atualizado.curtido_pelo_usuario);
+
+                blocoCurtidas.classList.toggle('curtido', curtido);
+            }
+        }
+
+        function estaCurtido(valor) {
+            return valor === true || valor === 1 || valor === "1";
+        }
+
+        function abrirMeuPerfil() {
+            const menu = document.getElementById('usuario-barra');
+
+            if (menu) {
+                menu.classList.remove('aberto');
+            }
+
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                alert("Faça login para ver seu perfil.");
+                return;
+            }
+
+            abrirPerfil(usuario.id);
+        }
+
+        function alternarMenuUsuario(event) {
+            if (event) {
+                event.stopPropagation();
+            }
+
+            const menu = document.getElementById('usuario-barra');
+            const dropdown = document.getElementById('usuario-dropdown');
+
+            if (!menu || !dropdown) return;
+
+            const estaAberto = dropdown.classList.contains('aberto');
+
+            if (estaAberto) {
+                menu.classList.remove('aberto');
+                dropdown.classList.remove('aberto');
+                dropdown.style.display = 'none';
+            } else {
+                menu.classList.add('aberto');
+                dropdown.classList.add('aberto');
+                dropdown.style.display = 'block';
+            }
+        }
+
+        function fecharMenuUsuario() {
+            const menu = document.getElementById('usuario-barra');
+            const dropdown = document.getElementById('usuario-dropdown');
+
+            if (!menu || !dropdown) return;
+
+            menu.classList.remove('aberto');
+            dropdown.classList.remove('aberto');
+            dropdown.style.display = 'none';
+        }
+
+        document.addEventListener('click', function(event) {
+            const menu = document.getElementById('usuario-barra');
+
+            if (!menu) return;
+
+            if (!menu.contains(event.target)) {
+                fecharMenuUsuario();
+            }
+        });
+
+        async function carregarEquipeDoPerfil(usuarioId) {
+            const container = document.getElementById('perfil-equipe');
+
+            if (!container) return;
+
+            container.innerHTML = '';
+
+            try {
+                const resposta = await fetch(`${API_URL}/usuarios/${usuarioId}/clube`);
+
+                if (!resposta.ok) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const equipe = await resposta.json();
+
+                if (!equipe) {
+                    container.innerHTML = '';
+                    return;
+                }
+
+                const totalMembros = Array.isArray(equipe.membros)
+                    ? equipe.membros.length
+                    : (equipe.total_membros || 0);
+
+                container.innerHTML = `
+                    <div class="perfil-equipe-badge" onclick="abrirEquipe(${equipe.id})">
+                        <div class="perfil-equipe-icone">🏁</div>
+
+                        <div class="perfil-equipe-conteudo">
+                            <span class="perfil-equipe-label">Equipe</span>
+                            <strong class="perfil-equipe-nome">${textoSeguro(equipe.nome)}</strong>
+                            <span class="perfil-equipe-meta-linha">${totalMembros} membro${totalMembros === 1 ? '' : 's'}</span>
+                        </div>
+
+                        <div class="perfil-equipe-acao">Ver →</div>
+                    </div>
+                `;
+            } catch (erro) {
+                console.error('Erro ao carregar equipe do perfil:', erro);
+                container.innerHTML = '';
+            }
+        }
+
+        atualizarTelaUsuario();
