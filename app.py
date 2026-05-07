@@ -1326,6 +1326,253 @@ def pedir_entrada_clube(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/clubes/<int:id>/pedidos', methods=['GET'])
+def listar_pedidos_clube(id):
+    usuario_id = request.args.get('usuario_id')
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute(
+            "SELECT id, dono_id FROM clubes WHERE id = %s",
+            (id,)
+        )
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Equipe não encontrada."}), 404
+
+        if str(clube['dono_id']) != str(usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para ver os pedidos desta equipe."}), 403
+
+        cursor.execute(
+            """
+            SELECT 
+                p.id,
+                p.usuario_id,
+                p.clube_id,
+                p.status,
+                p.criado_em,
+                u.nome,
+                u.username,
+                u.avatar_url
+            FROM pedidos_clube p
+            INNER JOIN usuarios u ON p.usuario_id = u.id
+            WHERE p.clube_id = %s
+              AND p.status = 'pendente'
+            ORDER BY p.criado_em ASC
+            """,
+            (id,)
+        )
+
+        pedidos = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(pedidos), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/pedidos-clube/<int:id>/aprovar', methods=['PUT'])
+def aprovar_pedido_clube(id):
+    dados = request.json
+
+    if not dados:
+        return jsonify({"erro": "Dados não enviados."}), 400
+
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT 
+                p.id,
+                p.usuario_id,
+                p.clube_id,
+                p.status,
+                c.dono_id
+            FROM pedidos_clube p
+            INNER JOIN clubes c ON p.clube_id = c.id
+            WHERE p.id = %s
+            """,
+            (id,)
+        )
+
+        pedido = cursor.fetchone()
+
+        if not pedido:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Pedido não encontrado."}), 404
+
+        if pedido['status'] != 'pendente':
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Este pedido já foi analisado."}), 400
+
+        if str(pedido['dono_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para aprovar este pedido."}), 403
+
+        cursor.execute(
+            "SELECT id FROM membros_clube WHERE usuario_id = %s LIMIT 1",
+            (pedido['usuario_id'],)
+        )
+        membro_existente = cursor.fetchone()
+
+        if membro_existente:
+            cursor.execute(
+                """
+                UPDATE pedidos_clube
+                SET status = 'recusado'
+                WHERE id = %s
+                """,
+                (id,)
+            )
+
+            conexao.commit()
+
+            cursor.close()
+            conexao.close()
+
+            return jsonify({
+                "erro": "Este usuário já participa de uma equipe. O pedido foi recusado automaticamente."
+            }), 400
+
+        cursor.execute(
+            """
+            INSERT INTO membros_clube (usuario_id, clube_id)
+            VALUES (%s, %s)
+            """,
+            (pedido['usuario_id'], pedido['clube_id'])
+        )
+
+        cursor.execute(
+            """
+            UPDATE pedidos_clube
+            SET status = 'aprovado'
+            WHERE id = %s
+            """,
+            (id,)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Pedido aprovado com sucesso."}), 200
+
+    except mysql.connector.IntegrityError:
+        try:
+            conexao.rollback()
+            cursor.close()
+            conexao.close()
+        except:
+            pass
+
+        return jsonify({"erro": "Não foi possível aprovar. O usuário já participa de uma equipe."}), 400
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/pedidos-clube/<int:id>/recusar', methods=['PUT'])
+def recusar_pedido_clube(id):
+    dados = request.json
+
+    if not dados:
+        return jsonify({"erro": "Dados não enviados."}), 400
+
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT 
+                p.id,
+                p.status,
+                c.dono_id
+            FROM pedidos_clube p
+            INNER JOIN clubes c ON p.clube_id = c.id
+            WHERE p.id = %s
+            """,
+            (id,)
+        )
+
+        pedido = cursor.fetchone()
+
+        if not pedido:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Pedido não encontrado."}), 404
+
+        if pedido['status'] != 'pendente':
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Este pedido já foi analisado."}), 400
+
+        if str(pedido['dono_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para recusar este pedido."}), 403
+
+        cursor.execute(
+            """
+            UPDATE pedidos_clube
+            SET status = 'recusado'
+            WHERE id = %s
+            """,
+            (id,)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Pedido recusado com sucesso."}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/clubes/<int:clube_id>/entrar', methods=['POST'])
 def entrar_clube(clube_id):
     dados = request.json
