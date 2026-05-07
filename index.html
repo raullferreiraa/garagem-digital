@@ -903,7 +903,114 @@
             color: var(--text-muted);
             font-size: 0.9em;
             text-transform: none;
-        }        
+        }     
+
+        .feedback-container {
+            position: fixed;
+            top: 18px;
+            right: 18px;
+            z-index: 100000;
+            display: grid;
+            gap: 10px;
+            width: min(360px, calc(100vw - 32px));
+            pointer-events: none;
+        }
+
+        .feedback-item {
+            pointer-events: auto;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 14px 14px 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-lg);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                #131313;
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.42);
+            animation: feedbackEntrando 0.25s ease forwards;
+            text-transform: none;
+        }
+
+        .feedback-item.saindo {
+            opacity: 0;
+            transform: translateY(-8px);
+            transition: 0.2s ease;
+        }
+
+        .feedback-conteudo {
+            min-width: 0;
+        }
+
+        .feedback-conteudo strong {
+            display: block;
+            color: #fff;
+            font-size: 0.88em;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .feedback-conteudo span {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.88em;
+            line-height: 1.4;
+            text-transform: none;
+        }
+
+        .feedback-sucesso {
+            border-color: rgba(46, 213, 115, 0.38);
+            box-shadow:
+                0 18px 42px rgba(0, 0, 0, 0.42),
+                0 0 0 1px rgba(46, 213, 115, 0.08);
+        }
+
+        .feedback-erro {
+            border-color: rgba(255, 71, 87, 0.48);
+            box-shadow:
+                0 18px 42px rgba(0, 0, 0, 0.42),
+                0 0 0 1px rgba(255, 71, 87, 0.08);
+        }
+
+        .feedback-aviso {
+            border-color: rgba(255, 184, 108, 0.42);
+            box-shadow:
+                0 18px 42px rgba(0, 0, 0, 0.42),
+                0 0 0 1px rgba(255, 184, 108, 0.08);
+        }
+
+        .feedback-fechar {
+            width: auto;
+            min-height: auto;
+            margin: 0;
+            padding: 2px 8px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-pill);
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            font-size: 1em;
+            line-height: 1.3;
+        }
+
+        .feedback-fechar:hover {
+            color: #fff;
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: none;
+        }
+
+        @keyframes feedbackEntrando {
+            from {
+                opacity: 0;
+                transform: translateY(-8px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
 
         @media (max-width: 600px) {
             .linha-inputs {
@@ -1346,6 +1453,19 @@
             .btn-comentar {
                 min-height: 46px;
             }
+
+            .feedback-container {
+                top: 12px;
+                left: 10px;
+                right: 10px;
+                width: auto;
+            }
+
+            .feedback-item {
+                border-radius: 16px;
+                padding: 13px;
+            }
+
         }
 
             #lista-equipes.equipes-lista {
@@ -2341,6 +2461,7 @@
     </style>
 </head>
 <body>
+    <div id="feedback-container" class="feedback-container"></div>
 
     <h1>Garagem Digital</h1>
 
@@ -2507,6 +2628,65 @@
         const API_URL = 'http://127.0.0.1:5000';
         let todosCarros = [];
         let modoGaragem = "todos";
+
+        function textoFeedbackSeguro(valor) {
+            return String(valor || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function mostrarMensagem(mensagem, tipo = 'sucesso', duracao = 3600) {
+            const container = document.getElementById('feedback-container');
+
+            if (!container) {
+                alert(mensagem);
+                return;
+            }
+
+            const tiposPermitidos = ['sucesso', 'erro', 'aviso'];
+            const tipoFinal = tiposPermitidos.includes(tipo) ? tipo : 'sucesso';
+
+            const titulos = {
+                sucesso: 'Tudo certo',
+                erro: 'Algo deu errado',
+                aviso: 'Atenção'
+            };
+
+            const item = document.createElement('div');
+            item.className = `feedback-item feedback-${tipoFinal}`;
+
+            item.innerHTML = `
+                <div class="feedback-conteudo">
+                    <strong>${titulos[tipoFinal]}</strong>
+                    <span>${textoFeedbackSeguro(mensagem)}</span>
+                </div>
+
+                <button 
+                    type="button" 
+                    class="feedback-fechar" 
+                    aria-label="Fechar mensagem"
+                >
+                    ×
+                </button>
+            `;
+
+            const remover = () => {
+                item.classList.add('saindo');
+
+                setTimeout(() => {
+                    item.remove();
+                }, 220);
+            };
+
+            item.querySelector('.feedback-fechar').addEventListener('click', remover);
+
+            container.appendChild(item);
+
+            setTimeout(remover, duracao);
+        }
 
         function formatarTempoRelativo(dataTexto) {
             if (!dataTexto) {
@@ -3484,7 +3664,7 @@
             const usuario = obterUsuarioAtualParaPedidoEquipe();
 
             if (!usuario || !usuario.id) {
-                alert('Você precisa estar logado para pedir para entrar em uma equipe.');
+                mostrarMensagem('Você precisa estar logado para pedir para entrar em uma equipe.', 'aviso');
                 return;
             }
 
@@ -3524,7 +3704,7 @@
                         }
                     }
 
-                    alert(mensagemErro);
+                    mostrarMensagem(mensagemErro, 'erro');
                     return;
                 }
 
@@ -3534,7 +3714,7 @@
                     botao.disabled = true;
                 }
 
-                alert(dados.mensagem || 'Pedido enviado com sucesso.');
+                mostrarMensagem(dados.mensagem || 'Pedido enviado com sucesso.', 'sucesso');
             } catch (erro) {
                 console.error('Erro ao pedir entrada na equipe:', erro);
 
@@ -3543,7 +3723,7 @@
                     botao.textContent = textoOriginal;
                 }
 
-                alert('Erro ao enviar pedido. Tente novamente.');
+                mostrarMensagem('Erro ao enviar pedido. Tente novamente.', 'erro');
             }
         }
 
@@ -3772,7 +3952,7 @@
             const usuario = obterUsuarioAtualParaPedidoEquipe();
 
             if (!usuario || !usuario.id) {
-                alert('Você precisa estar logado para aprovar pedidos.');
+                mostrarMensagem('Você precisa estar logado para aprovar pedidos.', 'aviso');
                 return;
             }
 
@@ -3801,7 +3981,7 @@
                 const dados = await resposta.json();
 
                 if (!resposta.ok) {
-                    alert(dados.erro || 'Não foi possível aprovar o pedido.');
+                    mostrarMensagem(dados.erro || 'Não foi possível aprovar o pedido.', 'erro');
 
                     if (botao) {
                         botao.disabled = false;
@@ -3811,12 +3991,12 @@
                     return;
                 }
 
-                alert(dados.mensagem || 'Pedido aprovado com sucesso.');
+                mostrarMensagem(dados.mensagem || 'Pedido aprovado com sucesso.', 'sucesso');
 
                 abrirEquipe(clubeId);
             } catch (erro) {
                 console.error('Erro ao aprovar pedido:', erro);
-                alert('Erro ao aprovar pedido. Tente novamente.');
+                mostrarMensagem('Erro ao aprovar pedido. Tente novamente.', 'erro');
 
                 if (botao) {
                     botao.disabled = false;
@@ -3829,7 +4009,7 @@
             const usuario = obterUsuarioAtualParaPedidoEquipe();
 
             if (!usuario || !usuario.id) {
-                alert('Você precisa estar logado para recusar pedidos.');
+                mostrarMensagem('Você precisa estar logado para recusar pedidos.', 'aviso');
                 return;
             }
 
@@ -3858,7 +4038,7 @@
                 const dados = await resposta.json();
 
                 if (!resposta.ok) {
-                    alert(dados.erro || 'Não foi possível recusar o pedido.');
+                    mostrarMensagem(dados.erro || 'Não foi possível recusar o pedido.', 'erro');
 
                     if (botao) {
                         botao.disabled = false;
@@ -3868,12 +4048,12 @@
                     return;
                 }
 
-                alert(dados.mensagem || 'Pedido recusado com sucesso.');
+                mostrarMensagem(dados.mensagem || 'Pedido recusado com sucesso.', 'sucesso');
 
                 carregarPedidosEquipe(clubeId);
             } catch (erro) {
                 console.error('Erro ao recusar pedido:', erro);
-                alert('Erro ao recusar pedido. Tente novamente.');
+                mostrarMensagem('Erro ao recusar pedido. Tente novamente.', 'erro');
 
                 if (botao) {
                     botao.disabled = false;
