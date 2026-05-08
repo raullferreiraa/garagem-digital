@@ -466,7 +466,7 @@
                 });
 
             } catch (error) {
-                alert("Erro ao carregar a garagem. Verifique se o Flask está rodando.");
+                mostrarMensagem("Erro ao carregar a garagem. Verifique se o Flask está rodando.", "erro");
                 console.error(error);
             }
         }
@@ -475,7 +475,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Faça login para curtir um projeto.");
+                mostrarMensagem("Faça login para curtir um projeto.", "aviso");
                 return;
             }
 
@@ -499,11 +499,11 @@
                 if (res.ok) {
                     carregarGaragem();
                 } else {
-                    alert("Erro: " + (resposta.erro || "Não foi possível atualizar a curtida."));
+                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível atualizar a curtida."), "erro");
                 }
 
             } catch (error) {
-                alert("Erro de conexão com o servidor.");
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
                 console.error(error);
             }
         }
