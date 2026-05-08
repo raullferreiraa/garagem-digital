@@ -4,7 +4,7 @@ Uma aplicação web full stack criada para catalogar, documentar e exibir projet
 
 O projeto nasceu com a proposta de criar uma **garagem digital** fora dos algoritmos das redes sociais tradicionais, valorizando a identidade de cada carro, sua ficha técnica, sua história e a cultura automotiva local.
 
-A Garagem Digital evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva social, com autenticação, garagem pessoal, feed geral, curtidas, comentários, perfis de usuário, avatar, bio, seguidores, controle de propriedade, upload de imagens e uma interface dark premium.
+A Garagem Digital evoluiu de um CRUD de veículos para a base inicial de uma plataforma automotiva social, com autenticação, usuários, feed geral, garagem pessoal, curtidas, comentários, seguidores, perfis, avatar, bio, `@username`, feedback visual e sistema inicial de equipes automotivas.
 
 A interface utiliza uma estética escura, minimalista e low profile, inspirada em revistas automotivas modernas e aplicativos sociais, dando destaque às máquinas, suas configurações reais e suas histórias.
 
@@ -14,9 +14,13 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 
 🚧 Projeto em evolução.
 
-A Garagem Digital já conta com cadastro e login de usuários, senhas com hash, cadastro de projetos automotivos, upload de imagens, feed geral, área de projetos pessoais, filtros de busca, sistema de curtidas, sistema de comentários, contador de comentários, tempo relativo nos comentários, remoção de comentário próprio, modal de visualização detalhada, perfis com avatar e bio, edição do próprio perfil, upload de avatar, seguidores/seguindo, menu de usuário logado e controle de propriedade para edição e exclusão de projetos.
+A Garagem Digital já conta com cadastro e login de usuários, senhas com hash, cadastro de projetos automotivos, upload de imagens, feed geral, área de projetos pessoais, filtros de busca, sistema de curtidas, sistema de comentários, contador de comentários, tempo relativo nos comentários, remoção de comentário próprio, modal de visualização detalhada, perfis com avatar, bio e `@username`, edição do próprio perfil, upload de avatar, seguidores/seguindo, menu de usuário logado, controle de propriedade para edição e exclusão de projetos e uma interface dark premium responsiva.
 
-As próximas melhorias planejadas incluem refinamento mobile, feed social personalizado, ranking de projetos, edição de comentários, organização técnica do front-end, melhorias de autenticação e deploy online.
+O projeto também possui uma base inicial de **equipes automotivas**, permitindo criar equipes, visualizar detalhes, exibir equipe no perfil, pedir para entrar, mostrar status de pedido pendente e aprovar ou recusar solicitações de entrada.
+
+Recentemente, o front-end também foi organizado separando os estilos em `style.css` e o JavaScript em `script.js`, deixando o projeto mais limpo e preparado para futuras manutenções.
+
+As próximas melhorias planejadas incluem garagem coletiva da equipe, convites, cargos de equipe, notificações, feed social personalizado, ranking de projetos, autenticação mais robusta e deploy online.
 
 ---
 
@@ -25,6 +29,8 @@ As próximas melhorias planejadas incluem refinamento mobile, feed social person
 - **Back-end:** Python + Flask
 - **Banco de Dados:** MySQL / MariaDB
 - **Front-end:** HTML5, CSS3 e JavaScript Vanilla
+- **Estilos:** CSS separado em `style.css`
+- **Scripts:** JavaScript separado em `script.js`
 - **Autenticação:** Cadastro e login de usuários
 - **Segurança:** Hash de senha com Werkzeug
 - **Upload:** Validação de imagens, nomes únicos e organização em pastas
@@ -36,9 +42,10 @@ As próximas melhorias planejadas incluem refinamento mobile, feed social person
 
 ## ⚙️ Funcionalidades
 
-- [x] **Cadastro de Usuários:** criação de contas com nome, email e senha.
+- [x] **Cadastro de Usuários:** criação de contas com nome, email, senha e nome de usuário.
 - [x] **Login de Usuários:** autenticação simples para acessar a aplicação.
 - [x] **Hash de Senha:** senhas dos usuários não são salvas em texto puro no banco.
+- [x] **Username Único:** usuários possuem `@username` único para identificação social.
 - [x] **Catálogo Dinâmico:** listagem de veículos consumindo API REST.
 - [x] **Feed Geral:** aba com todos os projetos cadastrados na plataforma.
 - [x] **Garagem Pessoal:** aba com apenas os projetos do usuário logado.
@@ -67,17 +74,27 @@ As próximas melhorias planejadas incluem refinamento mobile, feed social person
 - [x] **Contador de Comentários:** cards exibem o total de comentários do projeto.
 - [x] **Tempo Relativo nos Comentários:** comentários exibem tempo como “há 5 minutos”.
 - [x] **Remoção de Comentário Próprio:** o autor pode remover seu próprio comentário.
-- [x] **Perfil de Usuário:** exibe avatar, nome, bio, contadores sociais e projetos cadastrados.
+- [x] **Perfil de Usuário:** exibe avatar, nome, `@username`, bio, contadores sociais e projetos cadastrados.
 - [x] **Edição do Próprio Perfil:** usuário pode editar bio e foto de perfil.
 - [x] **Seguidores e Seguindo:** usuários podem seguir e deixar de seguir outros perfis.
 - [x] **Contadores Sociais:** perfil mostra total de projetos, seguidores e seguindo.
 - [x] **Cards Clicáveis no Perfil:** carros exibidos no perfil podem abrir a visualização detalhada.
 - [x] **Nomes Clicáveis:** nome do proprietário e autor de comentário podem abrir o perfil.
-- [x] **Menu do Usuário Logado:** menu/dropdown com avatar, nome, botão de perfil e sair.
+- [x] **Menu do Usuário Logado:** menu/dropdown com avatar, nome, `@username`, perfil, equipe e sair.
 - [x] **Mensagem de Lista Vazia:** feedback visual quando não há projetos encontrados.
 - [x] **Modo de Edição:** interface muda visualmente ao editar um projeto.
 - [x] **Interface Dark Premium:** cards, botões, modal, perfil e menu com visual mais moderno.
 - [x] **Interface Responsiva:** ajustes para melhor uso em dispositivos móveis.
+- [x] **Equipes Automotivas:** base inicial para criação e visualização de equipes.
+- [x] **Minha Equipe:** modal dedicado para mostrar a equipe do usuário ou equipes disponíveis.
+- [x] **Detalhe da Equipe:** visualização com nome, descrição, criador, membros e espaço futuro para garagem coletiva.
+- [x] **Equipe no Perfil:** perfil exibe um bloco compacto da equipe quando o usuário participa de uma.
+- [x] **Pedidos de Entrada:** usuários sem equipe podem pedir para entrar em uma equipe.
+- [x] **Status de Pedido Pendente:** a interface mostra quando o usuário já enviou uma solicitação.
+- [x] **Aprovação e Recusa de Pedidos:** criador da equipe pode aprovar ou recusar solicitações.
+- [x] **Feedback Visual Global:** mensagens visuais de sucesso, erro e aviso integradas à interface.
+- [x] **CSS Separado:** estilos organizados no arquivo `style.css`.
+- [x] **JavaScript Separado:** scripts organizados no arquivo `script.js`.
 - [x] **SQL Limpo:** script de banco sem dados pessoais ou sensíveis.
 
 ---
@@ -88,263 +105,317 @@ As próximas melhorias planejadas incluem refinamento mobile, feed social person
 
 ![Cadastro e Login](screenshots/01-login-cadastro.png)
 
-*Área inicial da aplicação com autenticação de usuários.*
+*Área inicial da aplicação com autenticação de usuários, visual dark premium e campos de entrada para acessar ou criar uma conta.*
 
 ### Feed Geral de Projetos
 
 ![Feed Geral](screenshots/02-feed-geral.png)
 
-*Tela principal logada com menu do usuário, botão de novo projeto, filtros, abas e cards da garagem.*
+*Tela principal logada com feed geral de projetos, menu do usuário, filtros de busca, botão de novo projeto e listagem da garagem.*
 
-### Cadastro de Projeto
+### Cards de Projetos
 
-![Formulário de Projeto](screenshots/03-formulario-projeto.png)
+![Cards de Projetos](screenshots/03-cards-projetos.png)
 
-*Formulário recolhível para cadastrar um novo projeto automotivo com ficha técnica, história e upload de imagem.*
-
-### Card de Projeto
-
-![Card de Projeto](screenshots/04-card-projeto.png)
-
-*Card de projeto com imagem, informações principais, curtidas, comentários, botão de visualização e ações do proprietário.*
+*Cards dos projetos automotivos com imagem, informações principais, proprietário, curtidas, comentários, botão de visualização e ações disponíveis para o dono.*
 
 ### Visualização Detalhada do Projeto
 
-![Modal de Projeto](screenshots/05-modal-projeto.png)
+![Modal de Projeto](screenshots/04-modal-projeto.png)
 
-*Modal com imagem ampliada, ficha técnica, história do projeto, curtidas e área social.*
+*Modal com imagem ampliada, ficha técnica, história do projeto, proprietário clicável, curtidas e área social.*
 
 ### Comentários
 
-![Comentários](screenshots/06-comentarios.png)
+![Comentários](screenshots/05-comentarios.png)
 
-*Área de comentários com autor clicável, tempo relativo, remoção de comentário próprio e campo para novo comentário.*
+*Área de comentários dentro do projeto, com autor clicável, tempo relativo, campo para novo comentário e remoção de comentário próprio.*
 
 ### Perfil de Usuário
 
-![Perfil de Usuário](screenshots/07-perfil-usuario.png)
+![Perfil de Usuário](screenshots/06-perfil-usuario.png)
 
-*Perfil com avatar, nome, bio, contadores de projetos, seguidores, seguindo e cards dos projetos cadastrados.*
+*Perfil público com avatar, nome, `@username`, bio, contadores sociais, equipe e projetos cadastrados pelo usuário.*
 
 ### Edição de Perfil
 
-![Edição de Perfil](screenshots/08-editar-perfil.png)
+![Edição de Perfil](screenshots/07-editar-perfil.png)
 
-*Área de edição do próprio perfil com upload de avatar, campo de bio e botão de salvar.*
+*Área de edição do próprio perfil com alteração de nome, bio e upload de avatar pelo dispositivo.*
 
 ### Menu do Usuário Logado
 
-![Menu do Usuário](screenshots/09-menu-usuario.png)
+![Menu do Usuário](screenshots/08-menu-usuario.png)
 
-*Menu/dropdown do usuário logado com avatar, nome, ação para ver perfil e botão de sair.*
+*Menu/dropdown do usuário logado com avatar, nome, `@username`, acesso ao perfil, área de equipe e opção de sair.*
+
+### Minha Equipe
+
+![Minha Equipe](screenshots/09-minha-equipe.png)
+
+*Modal “Minha equipe” exibindo o estado do usuário sem equipe, botão para criar equipe e lista de equipes disponíveis.*
+
+### Detalhe da Equipe
+
+![Detalhe da Equipe](screenshots/10-detalhe-equipe.png)
+
+*Visualização detalhada de uma equipe com nome, descrição, criador, membros e espaço preparado para a futura garagem coletiva.*
+
+### Pedidos de Entrada em Equipe
+
+![Pedidos de Equipe](screenshots/11-pedidos-equipe.png)
+
+*Área de pedidos pendentes da equipe, permitindo ao criador aprovar ou recusar solicitações de entrada.*
+
+### Feedback Visual Global
+
+![Feedback Visual Global](screenshots/12-feedback-global.png)
+
+*Mensagem visual integrada à interface para ações de sucesso, erro ou aviso, substituindo gradualmente alertas simples do navegador.*
 
 ### Prévia Mobile
 
-![Prévia Mobile](screenshots/10-mobile-preview.png)
+![Prévia Mobile](screenshots/13-mobile-preview.png)
 
-*Prévia da aplicação em tela menor, mostrando a adaptação da interface para uso mobile.*
+*Prévia da aplicação em tela menor, mostrando adaptação da interface para uso mobile, com layout responsivo e visual preservado.*
 
 ---
 
 ## 🔐 Segurança e Controle de Acesso
 
-O projeto foi evoluído para aplicar boas práticas básicas de segurança e organização:
+O projeto possui uma base inicial de autenticação e controle de permissões:
 
-- Credenciais do banco removidas do código-fonte.
-- Uso de arquivo `.env` para configuração local.
-- `.env` ignorado pelo Git.
-- `.env.example` disponível como modelo.
-- Senhas de usuários armazenadas com hash.
-- Validação de formato de imagem no front-end e no back-end.
-- Limitação de tamanho para upload de avatar no front-end.
-- Geração de nomes únicos para imagens de projetos e avatares.
-- Armazenamento de avatares em subpasta própria.
-- Remoção de dados pessoais do script SQL.
-- Vínculo de projetos ao usuário proprietário.
-- Edição e exclusão permitidas apenas ao dono do projeto.
-- Edição de perfil permitida apenas ao próprio usuário.
-- Upload de avatar permitido apenas ao próprio usuário.
-- Curtidas vinculadas ao usuário logado.
-- Prevenção de curtidas duplicadas por meio de restrição única no banco.
-- Comentários vinculados ao usuário logado.
-- Remoção de comentário permitida apenas ao autor do comentário.
-- Sistema de seguir/deixar de seguir com bloqueio para impedir seguir a si mesmo.
-- Controle visual para exibir ações de edição e exclusão apenas ao proprietário.
+- Senhas são armazenadas com hash usando Werkzeug.
+- Projetos são vinculados ao usuário que os cadastrou.
+- Apenas o dono do projeto pode editar ou remover seus próprios veículos.
+- Apenas o próprio usuário pode editar seu perfil, bio e avatar.
+- Usuários não podem seguir a si mesmos.
+- Curtidas duplicadas são impedidas no banco de dados.
+- Comentários só podem ser removidos pelo próprio autor.
+- Cada usuário pode participar de apenas uma equipe.
+- Pedidos de entrada em equipe passam por aprovação do criador.
+- A interface exibe ações de edição e exclusão apenas quando o usuário tem permissão.
 
-> Observação: a autenticação atual é simples e adequada para fins de estudo/portfólio. Futuramente, o projeto pode evoluir para uso de sessões, tokens JWT ou outro modelo mais robusto de autenticação.
+Atualmente, a autenticação ainda é simples e baseada no estado mantido no front-end. Uma melhoria futura importante é adotar uma autenticação mais robusta com sessões Flask ou JWT, protegendo rotas sensíveis diretamente no back-end.
 
 ---
 
-## 🗄️ Banco de Dados
-
-O projeto utiliza MySQL/MariaDB.
-
-O arquivo `garagem_digital.sql` cria a estrutura necessária para a aplicação, incluindo:
-
-- Banco `garagem_digital`.
-- Tabela `usuarios`.
-- Tabela `carros`.
-- Tabela `curtidas`.
-- Tabela `comentarios`.
-- Tabela `seguidores`.
-- Relacionamento entre carros e usuários.
-- Relacionamento entre curtidas, usuários e carros.
-- Relacionamento entre comentários, usuários e carros.
-- Relacionamento entre seguidores e usuários.
-- Campos `avatar_url` e `bio` na tabela `usuarios`.
-- Campos principais da ficha técnica.
-- Campo de história/descrição do projeto.
-- Campos de data `criado_em` e `atualizado_em`.
-
-> Observação: os dados de teste devem ser criados pela própria aplicação para garantir que senhas, vínculos, curtidas, comentários, seguidores e permissões sejam salvos corretamente.
-
----
-
-## 🚀 Como rodar o projeto na sua máquina
-
-### 1. Clone este repositório
-
-```bash
-git clone https://github.com/raullferreiraa/garagem-digital.git
-```
-
-### 2. Acesse a pasta do projeto
-
-```bash
-cd garagem-digital
-```
-
-### 3. Instale as dependências
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure as variáveis de ambiente
-
-Crie um arquivo `.env` na raiz do projeto com base no `.env.example`.
-
-Exemplo:
-
-```env
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=
-DB_NAME=garagem_digital
-DEBUG=True
-```
-
-### 5. Configure o banco de dados
-
-Importe o arquivo:
-
-```text
-garagem_digital.sql
-```
-
-Você pode importar pelo phpMyAdmin ou pelo terminal do MySQL.
-
-### 6. Inicie o servidor Flask
-
-```bash
-python app.py
-```
-
-O servidor será iniciado em:
-
-```text
-http://127.0.0.1:5000
-```
-
-### 7. Acesse a aplicação
-
-Abra o arquivo `index.html` diretamente no navegador.
-
----
-
-## 📁 Estrutura do Projeto
+## 🧱 Estrutura Atual do Projeto
 
 ```text
 garagem-digital/
 ├── app.py
 ├── index.html
+├── style.css
+├── script.js
 ├── garagem_digital.sql
-├── requirements.txt
-├── .env.example
-├── .gitignore
 ├── README.md
-├── screenshots/
-└── uploads/
-    └── avatars/
+├── .gitignore
+├── uploads/
+│   └── avatars/
+└── screenshots/
+    ├── 01-login-cadastro.png
+    ├── 02-feed-geral.png
+    ├── 03-cards-projetos.png
+    ├── 04-modal-projeto.png
+    ├── 05-comentarios.png
+    ├── 06-perfil-usuario.png
+    ├── 07-editar-perfil.png
+    ├── 08-menu-usuario.png
+    ├── 09-minha-equipe.png
+    ├── 10-detalhe-equipe.png
+    ├── 11-pedidos-equipe.png
+    ├── 12-feedback-global.png
+    └── 13-mobile-preview.png
 ```
 
-> A pasta `uploads/` é criada automaticamente durante a execução do projeto e não é versionada no GitHub.
+> Observação: a pasta `uploads/` é usada localmente para armazenar imagens enviadas pelos usuários, mas os arquivos enviados não são versionados no GitHub.
+
+---
+
+## 🗄️ Banco de Dados
+
+O banco de dados MySQL/MariaDB possui as principais tabelas:
+
+- `usuarios`
+- `carros`
+- `curtidas`
+- `comentarios`
+- `seguidores`
+- `clubes`
+- `membros_clube`
+- `pedidos_clube`
+
+A tabela `usuarios` armazena dados de autenticação, perfil, avatar, bio e `username`.
+
+A tabela `carros` armazena os projetos automotivos e possui vínculo com `usuarios`.
+
+A tabela `curtidas` registra curtidas por usuário e projeto, impedindo duplicação.
+
+A tabela `comentarios` registra comentários vinculados a usuários e projetos.
+
+A tabela `seguidores` registra relações sociais entre usuários.
+
+As tabelas `clubes`, `membros_clube` e `pedidos_clube` formam a base do sistema de equipes automotivas, permitindo criação de equipes, vínculo de membros e solicitações de entrada.
+
+O arquivo `garagem_digital.sql` contém a estrutura atual do banco de dados e deve ser mantido atualizado sempre que houver mudanças estruturais.
+
+---
+
+## 🚀 Como Executar o Projeto
+
+### 1. Clonar o repositório
+
+```bash
+git clone https://github.com/raullferreiraa/garagem-digital.git
+cd garagem-digital
+```
+
+### 2. Criar e ativar ambiente virtual
+
+```bash
+python -m venv venv
+```
+
+No Windows:
+
+```bash
+venv\Scripts\activate
+```
+
+No Linux/Mac:
+
+```bash
+source venv/bin/activate
+```
+
+### 3. Instalar dependências
+
+```bash
+pip install flask flask-cors mysql-connector-python python-dotenv werkzeug
+```
+
+### 4. Configurar o banco de dados
+
+Crie um banco MySQL/MariaDB e importe o arquivo:
+
+```bash
+mysql -u seu_usuario -p nome_do_banco < garagem_digital.sql
+```
+
+### 5. Configurar variáveis de ambiente
+
+Crie um arquivo `.env` na raiz do projeto:
+
+```env
+DB_HOST=localhost
+DB_USER=seu_usuario
+DB_PASSWORD=sua_senha
+DB_NAME=nome_do_banco
+```
+
+### 6. Rodar o back-end
+
+```bash
+python app.py
+```
+
+O back-end será iniciado em:
+
+```text
+http://127.0.0.1:5000
+```
+
+### 7. Abrir o front-end
+
+Abra o arquivo `index.html` no navegador ou use uma extensão como Live Server.
+
+---
+
+## 🧪 Fluxo de Uso
+
+1. Cadastre um usuário.
+2. Faça login.
+3. Cadastre um projeto automotivo.
+4. Faça upload da imagem do projeto.
+5. Veja o projeto no feed geral.
+6. Use os filtros para buscar modelos, suspensão ou aro.
+7. Curta e comente em projetos.
+8. Abra o modal para ver a ficha técnica completa.
+9. Acesse perfis clicando no nome de usuários.
+10. Edite seu próprio perfil, avatar e bio.
+11. Siga outros usuários.
+12. Crie ou acesse uma equipe automotiva.
+13. Peça para entrar em uma equipe.
+14. Aprove ou recuse pedidos se você for o criador da equipe.
 
 ---
 
 ## 🧭 Roadmap
 
-Próximas evoluções planejadas:
-
-- [x] Adicionar sistema de curtidas em projetos.
-- [x] Adicionar comentários em projetos.
-- [x] Criar perfis públicos de usuários.
-- [x] Adicionar avatar/foto de perfil.
-- [x] Adicionar bio no perfil.
-- [x] Permitir edição do próprio perfil.
-- [x] Criar sistema de seguidores e seguindo.
-- [x] Melhorar visual dos cards e modal.
-- [x] Permitir excluir comentários próprios.
-- [x] Exibir tempo relativo nos comentários, como “há 5 minutos”.
-- [x] Melhorar campos de upload de imagem.
-- [x] Melhorar menu do usuário logado.
-- [ ] Permitir editar comentários próprios.
-- [ ] Criar feed social personalizado.
-- [ ] Criar ranking de projetos.
-- [ ] Criar sistema de equipes/clubes automotivos.
-- [ ] Permitir que usuários adicionem carros a uma equipe.
-- [ ] Criar grupos para postagens, fotos e discussões.
-- [ ] Adicionar categorias como Antigo, Rebaixado, Turbo, Daily e Projeto em andamento.
-- [ ] Adicionar ordenação por mais recentes, ano, aro e modelo.
-- [ ] Melhorar responsividade mobile.
-- [ ] Separar CSS e JavaScript em arquivos próprios.
-- [ ] Melhorar autenticação com sessões ou tokens.
-- [ ] Criar deploy online.
-- [ ] Gravar demonstração do sistema.
+- [x] CRUD completo de projetos automotivos.
+- [x] Upload de imagens dos projetos.
+- [x] Validação de imagens enviadas.
+- [x] Autenticação de usuários.
+- [x] Hash de senha.
+- [x] Área “Todos os projetos”.
+- [x] Área “Meus projetos”.
+- [x] Controle de edição e exclusão por dono.
+- [x] Sistema de curtidas.
+- [x] Sistema de comentários.
+- [x] Modal detalhado do projeto.
+- [x] Perfil de usuário.
+- [x] Avatar e bio.
+- [x] Username único.
+- [x] Sistema de seguidores.
+- [x] Menu de usuário logado.
+- [x] Equipes automotivas.
+- [x] Exibição da equipe no perfil.
+- [x] Modal detalhado da equipe.
+- [x] Pedidos de entrada em equipe.
+- [x] Aprovação e recusa de pedidos.
+- [x] Status visual de pedido pendente.
+- [x] Feedback visual global.
+- [x] Interface responsiva.
+- [x] CSS separado em `style.css`.
+- [x] JavaScript separado em `script.js`.
+- [ ] Garagem coletiva da equipe.
+- [ ] Sistema de convites para equipes.
+- [ ] Cargos de equipe, como administrador ou moderador.
+- [ ] Notificações internas.
+- [ ] Feed social personalizado.
+- [ ] Ranking de projetos mais curtidos.
+- [ ] Página pública por projeto.
+- [ ] Autenticação com sessões Flask ou JWT.
+- [ ] Deploy online.
+- [ ] Melhorias de acessibilidade.
 
 ---
 
-## 🎯 Aprendizados
+## 📌 Observações de Desenvolvimento
 
-Durante o desenvolvimento, foram praticados conceitos como:
+O projeto segue um fluxo incremental:
 
-- Criação de API REST com Flask.
-- Integração entre front-end, back-end e banco de dados.
-- Autenticação básica de usuários.
-- Relacionamento entre tabelas no banco de dados.
-- Associação de registros ao usuário proprietário.
-- Controle de permissão para edição e exclusão.
-- Manipulação de formulários com `FormData`.
-- Upload e armazenamento de arquivos.
-- Validação de imagens no front-end e no back-end.
-- Consultas SQL com filtros dinâmicos.
-- Sistema de curtidas com controle por usuário.
-- Sistema de comentários associado a usuários e projetos.
-- Criação de perfis de usuário com avatar, bio e projetos.
-- Sistema de seguidores e seguindo.
-- Atualização dinâmica da interface com JavaScript puro.
-- Controle de estado visual de curtidas.
-- Criação de modal de visualização detalhada.
-- Criação de menu/dropdown para usuário logado.
-- Uso de hash para armazenamento seguro de senhas.
-- Configuração de ambiente com `.env`.
-- Organização de projeto para GitHub e portfólio.
-- Uso de issues, branches e pull requests.
-- Resolução de conflitos de branch.
-- Evolução incremental de um CRUD para uma aplicação com características sociais.
+- Uma issue por melhoria.
+- Uma branch pequena por issue.
+- Pull requests pequenas e testáveis.
+- Merges somente depois de testar localmente.
+- Alterações no banco sempre acompanhadas da atualização de `garagem_digital.sql`.
+
+Esse fluxo ajuda a manter o projeto organizado e reduz o risco de quebrar funcionalidades já existentes.
 
 ---
 
 ## 👨‍💻 Autor
 
-Projeto desenvolvido por **Raul Ferreira** como parte dos estudos em Ciência da Computação na UVV, unindo desenvolvimento web, persistência de dados, aprendizado prático e cultura automotiva.
+Desenvolvido por **Raul Ferreira**.
+
+GitHub: [@raullferreiraa](https://github.com/raullferreiraa)
+
+---
+
+## 🏁 Conceito
+
+A Garagem Digital busca valorizar a cultura automotiva de rua e os projetos reais construídos por entusiastas.
+
+Mais do que um catálogo, a ideia é criar uma plataforma onde cada carro tenha identidade, história, evolução, comunidade e presença própria.
