@@ -204,7 +204,7 @@
             const senha = document.getElementById('cadastro-senha').value.trim();
 
             if (!nome || !email || !senha) {
-                alert("Preencha nome, email e senha.");
+                mostrarMensagem("Preencha nome, email e senha.", "aviso");
                 return;
             }
 
@@ -220,16 +220,16 @@
                 const resposta = await res.json();
 
                 if (res.ok) {
-                    alert("Conta criada com sucesso! Agora faça login.");
+                    mostrarMensagem("Conta criada com sucesso! Agora faça login.", "sucesso");
                     mostrarLogin();
                     document.getElementById('login-email').value = email;
                     document.getElementById('login-senha').value = "";
                 } else {
-                    alert("Erro: " + (resposta.erro || "Não foi possível criar a conta."));
+                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível criar a conta."), "erro");
                 }
 
             } catch (error) {
-                alert("Erro de conexão com o servidor.");
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
                 console.error(error);
             }
         }
@@ -239,7 +239,7 @@
             const senha = document.getElementById('login-senha').value.trim();
 
             if (!email || !senha) {
-                alert("Preencha email e senha.");
+                mostrarMensagem("Preencha email e senha.", "aviso");
                 return;
             }
 
@@ -256,14 +256,14 @@
 
                 if (res.ok) {
                     localStorage.setItem('usuarioLogado', JSON.stringify(resposta.usuario));
-                    alert("Login realizado com sucesso!");
+                    mostrarMensagem("Login realizado com sucesso!", "sucesso");
                     atualizarTelaUsuario();
                 } else {
-                    alert("Erro: " + (resposta.erro || "Não foi possível fazer login."));
+                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível fazer login."), "erro");
                 }
 
             } catch (error) {
-                alert("Erro de conexão com o servidor.");
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
                 console.error(error);
             }
         }
