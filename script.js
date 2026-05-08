@@ -890,7 +890,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Faça login para comentar.");
+                mostrarMensagem("Faça login para comentar.", "aviso");
                 return;
             }
 
@@ -898,7 +898,7 @@
             const texto = input.value.trim();
 
             if (!texto) {
-                alert("Digite um comentário.");
+                mostrarMensagem("Digite um comentário.", "aviso");
                 return;
             }
 
@@ -920,12 +920,12 @@
                     carregarGaragem();
                 } else {
                     const erro = await res.json();
-                    alert(erro.erro || "Erro ao comentar.");
+                    mostrarMensagem(erro.erro || "Erro ao comentar.", "erro");
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Erro de conexão.");
+                mostrarMensagem("Erro de conexão.", "erro");
             }
         }
 
@@ -933,7 +933,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Você precisa estar logado para remover um comentário.");
+                mostrarMensagem("Você precisa estar logado para remover um comentário.", "aviso");
                 return;
             }
 
@@ -960,12 +960,12 @@
                     carregarComentarios(carroId);
                     carregarGaragem();
                 } else {
-                    alert(resposta.erro || "Erro ao remover comentário.");
+                    mostrarMensagem(resposta.erro || "Erro ao remover comentário.", "erro");
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Erro de conexão.");
+                mostrarMensagem("Erro de conexão.", "erro");
             }
         }
 
