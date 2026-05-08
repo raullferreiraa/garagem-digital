@@ -2450,3 +2450,207 @@
                     }
                 }
             }
+
+            @media (max-width: 760px) {
+                body {
+                    padding: 24px 12px 36px;
+                    font-size: 16px;
+                }
+
+                h1 {
+                    font-size: clamp(2rem, 12vw, 2.7rem);
+                    letter-spacing: -1px;
+                    margin-bottom: 28px;
+                    padding-bottom: 16px;
+                    line-height: 0.95;
+                }
+
+                h1::after {
+                    width: 86px;
+                    margin-top: 14px;
+                }
+
+                input,
+                button,
+                select,
+                textarea {
+                    font-size: 0.92rem;
+                    padding: 12px 13px;
+                }
+
+                .auth-container,
+                .formulario-container {
+                    padding: 18px;
+                    margin-bottom: 28px;
+                    border-radius: 16px;
+                }
+
+                .auth-tabs {
+                    gap: 8px;
+                }
+
+                .abas-garagem {
+                    max-width: 100%;
+                    gap: 6px;
+                    padding: 5px;
+                    overflow-x: auto;
+                    border-radius: 18px;
+                }
+
+                .abas-garagem button {
+                    min-width: max-content;
+                    padding: 11px 14px;
+                    font-size: 0.78rem;
+                }
+
+                .acoes-garagem {
+                    margin: 18px 0;
+                }
+
+                .btn-toggle-form {
+                    width: 100%;
+                    min-width: 0;
+                }
+
+                .linha-inputs {
+                    flex-direction: column;
+                    gap: 0;
+                }
+
+                .filtros-container {
+                    padding: 14px;
+                    gap: 10px;
+                    border-radius: 16px;
+                }
+
+                .filtros-container input,
+                .filtros-container select,
+                .btn-buscar {
+                    width: 100%;
+                    min-width: 0;
+                }
+
+                .galeria,
+                .galeria.um-card {
+                    grid-template-columns: 1fr;
+                    gap: 18px;
+                    max-width: 100%;
+                }
+
+                .carro-card {
+                    border-radius: 16px;
+                }
+
+                .carro-card:hover {
+                    transform: none;
+                }
+
+                .foto-carro {
+                    height: 210px;
+                }
+
+                .card-info {
+                    padding: 15px;
+                }
+
+                .carro-card h2 {
+                    font-size: 1.12em;
+                    line-height: 1.15;
+                }
+
+                .specs {
+                    font-size: 0.86em;
+                }
+
+                .historia-projeto {
+                    font-size: 0.86em;
+                    padding: 12px;
+                }
+
+                .acoes-principais {
+                    align-items: stretch;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+
+                .barra-social {
+                    justify-content: space-between;
+                }
+
+                .like-btn,
+                .comment-btn,
+                .btn-ver {
+                    text-align: center;
+                }
+
+                .btn-ver {
+                    width: 100%;
+                    padding: 11px 14px;
+                }
+
+                .acoes-dono {
+                    flex-direction: column;
+                }
+
+                .btn-editar,
+                .btn-excluir {
+                    width: 100%;
+                }
+
+                .modal {
+                    padding: 14px 10px;
+                }
+
+                .modal-content {
+                    border-radius: 18px;
+                }
+
+                .modal-img {
+                    height: 260px;
+                }
+
+                .modal-sem-foto {
+                    height: 230px;
+                }
+
+                .modal-info {
+                    padding: 20px 16px;
+                }
+
+                .modal-info h2 {
+                    font-size: 1.55em;
+                    line-height: 1.1;
+                }
+
+                .modal-grid {
+                    grid-template-columns: 1fr;
+                    gap: 10px;
+                }
+
+                .comentarios-header {
+                    align-items: flex-start;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+
+                .pedido-equipe-item {
+                    align-items: stretch;
+                    flex-direction: column;
+                }
+
+                .pedido-equipe-acoes {
+                    width: 100%;
+                }
+
+                .btn-aprovar-pedido,
+                .btn-recusar-pedido {
+                    flex: 1;
+                }
+
+                .feedback-container {
+                    top: 12px;
+                    right: 12px;
+                    left: 12px;
+                    width: auto;
+                }
+            }
