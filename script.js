@@ -621,7 +621,7 @@
 
         function prepararEdicao(carro) {
             if (!usuarioEDono(carro)) {
-                alert("Você não tem permissão para editar este projeto.");
+                mostrarMensagem("Você não tem permissão para editar este projeto.", "erro");
                 return;
             }
 
@@ -665,7 +665,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Faça login para cadastrar um projeto.");
+                mostrarMensagem("Faça login para cadastrar um projeto.", "aviso");
                 return;
             }
 
@@ -687,6 +687,7 @@
             const foto = document.getElementById('input-foto').files[0];
 
             if (foto) {
+                const tamanhoMaximoImagem = 5 * 1024 * 1024;
                 const formatosPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
                 const extensoesPermitidas = ['png', 'jpg', 'jpeg', 'webp'];
                 const extensao = foto.name.split('.').pop().toLowerCase();
@@ -695,7 +696,12 @@
                     !formatosPermitidos.includes(foto.type) ||
                     !extensoesPermitidas.includes(extensao)
                 ) {
-                    alert("Formato de imagem inválido. Use PNG, JPG, JPEG ou WEBP.");
+                    mostrarMensagem("Formato de imagem inválido. Use PNG, JPG, JPEG ou WEBP.", "aviso");
+                    return;
+                }
+
+                if (foto.size > tamanhoMaximoImagem) {
+                    mostrarMensagem("Imagem muito pesada. Envie uma imagem com no máximo 5 MB.", "aviso");
                     return;
                 }
 
@@ -723,7 +729,7 @@
                 }
 
                 if (res.ok) {
-                    alert("Operação realizada com sucesso!");
+                    mostrarMensagem("Operação realizada com sucesso!", "sucesso");
                     resetarFormulario();
                     carregarGaragem();
 
@@ -738,13 +744,13 @@
                         botaoToggle.innerText = '+ Estacionar novo projeto';
                     }
                 } else {
-                    alert("Erro: " + (resposta.erro || "Não foi possível concluir a operação."));
+                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível concluir a operação."), "erro");
                     btnSubmit.disabled = false;
                     btnSubmit.innerText = id ? "Confirmar Alterações" : "Estacionar na Garagem";
                 }
 
             } catch (error) {
-                alert("Erro de conexão com o servidor. Verifique se o Flask está rodando.");
+                mostrarMensagem("Erro de conexão com o servidor. Verifique se o Flask está rodando.", "erro");
                 console.error(error);
 
                 btnSubmit.disabled = false;
@@ -778,7 +784,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Faça login novamente.");
+                mostrarMensagem("Faça login novamente.", "aviso");
                 return;
             }
 
@@ -808,14 +814,14 @@
                 }
 
                 if (res.ok) {
-                    alert("Projeto removido com sucesso!");
+                    mostrarMensagem("Projeto removido com sucesso!", "sucesso");
                     carregarGaragem();
                 } else {
-                    alert("Erro: " + (resposta.erro || "Não foi possível remover o projeto."));
+                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível remover o projeto."), "erro");
                 }
 
             } catch (error) {
-                alert("Erro de conexão com o servidor. Verifique se o Flask está rodando.");
+                mostrarMensagem("Erro de conexão com o servidor. Verifique se o Flask está rodando.", "erro");
                 console.error(error);
             }
         }
