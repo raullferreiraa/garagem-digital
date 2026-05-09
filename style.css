@@ -153,19 +153,25 @@
             box-shadow: none;
         }
 
-        .btn-pedir-equipe.pedido-pendente {
+        .btn-pedir-equipe.pedido-pendente:not(.btn-pedido-pendente) {
             cursor: not-allowed;
             opacity: 0.72;
         }
 
         .btn-pedido-pendente {
-            background: rgba(255, 193, 7, 0.12);
-            border: 1px solid rgba(255, 193, 7, 0.35);
+            background:
+                linear-gradient(135deg, rgba(255, 193, 7, 0.18), rgba(255, 193, 7, 0.08));
+            border: 1px solid rgba(255, 193, 7, 0.42);
             color: #ffd166;
+            box-shadow: 0 10px 24px rgba(255, 193, 7, 0.08);
         }
 
         .btn-pedido-pendente:hover {
-            background: rgba(255, 193, 7, 0.18);
+            background:
+                linear-gradient(135deg, rgba(255, 193, 7, 0.24), rgba(255, 193, 7, 0.11));
+            border-color: rgba(255, 193, 7, 0.62);
+            color: #ffe08a;
+            box-shadow: 0 14px 30px rgba(255, 193, 7, 0.12);
         }
 
         .acoes-garagem {
@@ -803,13 +809,13 @@
         .pedidos-equipe-bloco {
             margin-top: 18px;
             padding: 18px;
-            border: 1px solid rgba(255, 71, 87, 0.22);
+            border: 1px solid rgba(255, 71, 87, 0.28);
             border-radius: var(--radius-lg);
             background:
                 radial-gradient(circle at top left, rgba(255, 71, 87, 0.11), transparent 34%),
                 linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
                 #111;
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.26);
+            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
             text-transform: none;
         }
 
@@ -836,8 +842,17 @@
             padding: 12px;
             border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 16px;
-            background: rgba(255, 255, 255, 0.035);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                rgba(255, 255, 255, 0.03);
             margin-top: 10px;
+        }
+
+        .pedido-equipe-item:hover {
+            border-color: rgba(255, 71, 87, 0.28);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.06), transparent),
+                rgba(255, 255, 255, 0.04);
         }
 
         .pedido-equipe-info {
@@ -2580,6 +2595,12 @@
             }
 
             @media (max-width: 760px) {
+                html,
+                body {
+                    max-width: 100%;
+                    overflow-x: hidden;
+                }
+
                 body {
                     padding: 24px 12px 36px;
                     font-size: 16px;
@@ -2761,15 +2782,6 @@
                     gap: 8px;
                 }
 
-                .pedido-equipe-item {
-                    align-items: stretch;
-                    flex-direction: column;
-                }
-
-                .pedido-equipe-acoes {
-                    width: 100%;
-                }
-
                 .btn-aprovar-pedido,
                 .btn-recusar-pedido {
                     flex: 1;
@@ -2780,5 +2792,40 @@
                     right: 12px;
                     left: 12px;
                     width: auto;
+                }
+
+                .pedidos-equipe-bloco,
+                .pedido-equipe-item,
+                .pedido-equipe-info,
+                .pedido-equipe-acoes,
+                .btn-pedir-equipe,
+                .btn-pedido-pendente {
+                    max-width: 100%;
+                    box-sizing: border-box;
+                }
+
+                .pedidos-equipe-bloco {
+                    overflow: hidden;
+                }
+
+                .pedido-equipe-item {
+                    min-width: 0;
+                    flex-direction: column;
+                    align-items: stretch;
+                }
+
+                .pedido-equipe-info {
+                    min-width: 0;
+                }
+
+                .pedido-equipe-acoes {
+                    width: 100%;
+                    min-width: 0;
+                    flex-direction: column;
+                }
+
+                .pedido-equipe-acoes button {
+                    width: 100%;
+                    min-width: 0;
                 }
             }
