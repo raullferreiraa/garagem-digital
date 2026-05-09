@@ -3,6 +3,46 @@
         let todosCarros = [];
         let modoGaragem = "todos";
 
+        if ('scrollRestoration' in history) {
+            history.scrollRestoration = 'manual';
+        }
+
+        function resetarScrollPaginaInicial() {
+            if (window.location.hash) {
+                return;
+            }
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'auto'
+            });
+
+            requestAnimationFrame(() => {
+                window.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: 'auto'
+                });
+            });
+
+            setTimeout(() => {
+                window.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: 'auto'
+                });
+            }, 120);
+        }
+
+        window.addEventListener('load', resetarScrollPaginaInicial);
+
+        window.addEventListener('pageshow', function(event) {
+            if (event.persisted) {
+                resetarScrollPaginaInicial();
+            }
+        });
+
         function textoFeedbackSeguro(valor) {
             return String(valor || '')
                 .replace(/&/g, '&amp;')
@@ -594,12 +634,7 @@
             `;
 
             setTimeout(() => {
-                if (scrollManter !== null) {
-                    modal.scrollTop = scrollManter;
-                } else {
-                    modal.scrollTop = 0;
-                }
-
+                modal.scrollTop = 0;
                 modalContent.scrollTop = 0;
             }, 0);
 
@@ -608,16 +643,69 @@
 
         function fecharModalProjeto() {
             const modal = document.getElementById('modal-projeto');
+            const modalContent = document.getElementById('modal-content');
+
+            resetarScrollModalProjeto();
 
             modal.style.display = "none";
             document.body.style.overflow = "";
+
+            if (modalContent) {
+                modalContent.classList.remove("trocando-conteudo");
+                modalContent.style.visibility = "visible";
+            }
+
+            setTimeout(resetarScrollModalProjeto, 0);
         }
 
-        document.getElementById('modal-projeto').addEventListener('click', function(e) {
-            if (e.target.id === 'modal-projeto') {
-                fecharModalProjeto();
+        const modalProjeto = document.getElementById('modal-projeto');
+
+        if (modalProjeto) {
+            modalProjeto.addEventListener('click', function(event) {
+                if (event.target === modalProjeto) {
+                    fecharModalProjeto();
+                }
+            });
+        }
+
+        function resetarScrollModalProjeto() {
+            const modal = document.getElementById('modal-projeto');
+            const modalContent = document.getElementById('modal-content');
+
+            if (!modal) {
+                return;
             }
-        });
+
+            modal.scrollTop = 0;
+
+            if (modalContent) {
+                modalContent.scrollTop = 0;
+            }
+
+            requestAnimationFrame(() => {
+                modal.scrollTop = 0;
+
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+
+                requestAnimationFrame(() => {
+                    modal.scrollTop = 0;
+
+                    if (modalContent) {
+                        modalContent.scrollTop = 0;
+                    }
+                });
+            });
+
+            setTimeout(() => {
+                modal.scrollTop = 0;
+
+                if (modalContent) {
+                    modalContent.scrollTop = 0;
+                }
+            }, 120);
+        }
 
         function prepararEdicao(carro) {
             if (!usuarioEDono(carro)) {
@@ -1112,7 +1200,7 @@
             const container = document.getElementById('conteudo-equipe');
 
             if (!modal) {
-                alert('Modal de equipe não encontrado.');
+                mostrarMensagem('Modal de equipe não encontrado.', 'erro');
                 return;
             }
 
@@ -1145,7 +1233,7 @@
             const container = document.getElementById('conteudo-equipe');
 
             if (!modal || !container) {
-                alert('Modal de equipe não encontrado.');
+                mostrarMensagem('Modal de equipe não encontrado.', 'erro');
                 return;
             }
 
@@ -1599,12 +1687,12 @@
             const descricao = document.getElementById('equipe-descricao').value.trim();
 
             if (!usuario) {
-                alert('Faça login para criar uma equipe.');
+                mostrarMensagem('Faça login para criar uma equipe.', 'aviso');
                 return;
             }
 
             if (!nome) {
-                alert('Informe o nome da equipe.');
+                mostrarMensagem('Informe o nome da equipe.', 'aviso');
                 return;
             }
 
@@ -1624,23 +1712,32 @@
                 const dados = await resposta.json();
 
                 if (!resposta.ok) {
-                    alert(dados.erro || 'Erro ao criar equipe.');
+                    mostrarMensagem(dados.erro || 'Erro ao criar equipe.', 'erro');
                     return;
                 }
 
-                alert('Equipe criada com sucesso!');
+                mostrarMensagem('Equipe criada com sucesso!', 'sucesso');
                 carregarMinhaEquipe();
 
             } catch (erro) {
-                alert('Erro ao criar equipe.');
+                mostrarMensagem('Erro ao criar equipe.', 'erro');
             }
         }
 
         async function abrirPerfil(usuarioId) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
+            const modalJaAberto = modal.style.display === "block";
 
-            modal.style.display = "block";
+            if (!modalJaAberto) {
+                modal.style.display = "none";
+                modalContent.innerHTML = "";
+                modalContent.style.visibility = "hidden";
+                resetarScrollModalProjeto();
+            } else {
+                modalContent.classList.add("trocando-conteudo");
+            }
+
             document.body.style.overflow = "hidden";
 
             try {
@@ -1649,7 +1746,7 @@
                 const resUser = await fetch(`${API_URL}/usuarios/${usuarioId}${queryUsuarioLogado}`);
 
                 if (!resUser.ok) {
-                    alert("Perfil não disponível.");
+                    mostrarMensagem("Perfil não disponível.", "aviso");
                     return;
                 }
 
@@ -1767,7 +1864,7 @@
 
                             ${formularioEdicaoPerfil}
 
-                            <div id="perfil-equipe"></div>
+                            <div id="perfil-equipe" class="perfil-equipe-placeholder"></div>
 
                             ${botaoSeguirPerfil}
                         </div>
@@ -1796,16 +1893,21 @@
                     </div>
                 `;
 
-                carregarEquipeDoPerfil(usuarioId);
+                modal.style.display = "block";
+                modalContent.style.visibility = "visible";
+
+                resetarScrollModalProjeto();
 
                 setTimeout(() => {
-                    modal.scrollTop = 0;
-                    modalContent.scrollTop = 0;
-                }, 0);
+                    resetarScrollModalProjeto();
+                    modalContent.classList.remove("trocando-conteudo");
+                }, 120);
+
+                carregarEquipeDoPerfil(usuarioId);
 
             } catch (error) {
                 console.error(error);
-                alert("Erro ao carregar perfil.");
+                mostrarMensagem("Erro ao carregar perfil.", "erro");
             }
         }
 
@@ -1813,7 +1915,7 @@
             const usuarioLogado = getUsuarioLogado();
 
             if (!usuarioLogado || String(usuarioLogado.id) !== String(usuarioId)) {
-                alert("Você não tem permissão para editar este perfil.");
+                mostrarMensagem("Você não tem permissão para editar este perfil.", "erro");
                 return;
             }
 
@@ -1831,14 +1933,14 @@
                     const tamanhoMaximoBytes = tamanhoMaximoMB * 1024 * 1024;
 
                     if (arquivoAvatar.size > tamanhoMaximoBytes) {
-                        alert(`A imagem deve ter no máximo ${tamanhoMaximoMB}MB.`);
+                        mostrarMensagem(`A imagem deve ter no máximo ${tamanhoMaximoMB}MB.`, "aviso");
                         return;
                     }
 
                     const tiposPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
 
                     if (!tiposPermitidos.includes(arquivoAvatar.type)) {
-                        alert("Formato não permitido. Use PNG, JPG, JPEG ou WEBP.");
+                        mostrarMensagem("Formato não permitido. Use PNG, JPG, JPEG ou WEBP.", "aviso");
                         return;
                     }
 
@@ -1854,7 +1956,7 @@
                     const respostaAvatar = await resAvatar.json();
 
                     if (!resAvatar.ok) {
-                        alert(respostaAvatar.erro || "Erro ao enviar avatar.");
+                        mostrarMensagem(respostaAvatar.erro || "Erro ao enviar avatar.", "erro");
                         return;
                     }
 
@@ -1884,12 +1986,12 @@
 
                     abrirPerfil(usuarioId);
                 } else {
-                    alert(resposta.erro || "Erro ao salvar perfil.");
+                    mostrarMensagem(resposta.erro || "Erro ao salvar perfil.", "erro");
                 }
 
             } catch (error) {
                 console.error("Erro ao salvar perfil:", error);
-                alert("Erro de conexão. Veja o console do navegador e o terminal do Flask.");
+                mostrarMensagem("Erro de conexão. Veja o console do navegador e o terminal do Flask.", "erro");
             }
         }
 
@@ -1934,7 +2036,7 @@
             const usuarioLogado = getUsuarioLogado();
 
             if (!usuarioLogado) {
-                alert("Você precisa estar logado para seguir usuários.");
+                mostrarMensagem("Você precisa estar logado para seguir usuários.", "aviso");
                 return;
             }
 
@@ -1952,14 +2054,35 @@
                 const resposta = await res.json();
 
                 if (res.ok) {
-                    abrirPerfil(usuarioId);
+                    const novoEstadoSeguindo = !jaSegue;
+                    const botaoSeguir = document.querySelector('.btn-seguir-perfil');
+                    const perfilStats = document.querySelectorAll('.perfil-stat strong');
+                    const seguidoresEl = perfilStats[1];
+
+                    if (botaoSeguir) {
+                        botaoSeguir.classList.toggle('seguindo', novoEstadoSeguindo);
+                        botaoSeguir.innerText = novoEstadoSeguindo ? 'Seguindo' : 'Seguir';
+                        botaoSeguir.setAttribute(
+                            'onclick',
+                            `alternarSeguir(${usuarioId}, ${novoEstadoSeguindo})`
+                        );
+                    }
+
+                    if (seguidoresEl) {
+                        const totalAtual = parseInt(seguidoresEl.innerText, 10) || 0;
+                        const novoTotal = novoEstadoSeguindo
+                            ? totalAtual + 1
+                            : Math.max(0, totalAtual - 1);
+
+                        seguidoresEl.innerText = novoTotal;
+                    }
                 } else {
-                    alert(resposta.erro || "Erro ao atualizar follow.");
+                    mostrarMensagem(resposta.erro || "Erro ao atualizar follow.", "erro");
                 }
 
             } catch (error) {
                 console.error(error);
-                alert("Erro de conexão.");
+                mostrarMensagem("Erro de conexão.", "erro");
             }
         }
 
@@ -1980,11 +2103,11 @@
                 if (encontrado) {
                     abrirModalProjeto(encontrado);
                 } else {
-                    alert("Projeto não encontrado.");
+                    mostrarMensagem("Projeto não encontrado.", "aviso");
                 }
             } catch (error) {
                 console.error(error);
-                alert("Erro ao abrir projeto.");
+                mostrarMensagem("Erro ao abrir projeto.", "erro");
             }
         }
 
@@ -2061,7 +2184,7 @@
             const usuario = getUsuarioLogado();
 
             if (!usuario) {
-                alert("Faça login para ver seu perfil.");
+                mostrarMensagem("Faça login para ver seu perfil.", "aviso");
                 return;
             }
 
