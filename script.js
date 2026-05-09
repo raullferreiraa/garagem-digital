@@ -1266,9 +1266,15 @@
                 }
 
                 if (botao) {
-                    botao.textContent = 'Pedido pendente';
-                    botao.classList.add('pedido-enviado', 'pedido-pendente');
-                    botao.disabled = true;
+                    botao.classList.remove('pedido-enviado', 'pedido-pendente');
+                    botao.classList.add('btn-principal', 'btn-pedir-equipe', 'btn-pedido-pendente');
+                    botao.disabled = false;
+                    botao.textContent = 'Cancelar pedido';
+
+                    botao.onclick = (event) => {
+                        event.stopPropagation();
+                        cancelarPedidoEquipe(clubeId, botao);
+                    };
                 }
 
                 mostrarMensagem(dados.mensagem || 'Pedido enviado com sucesso.', 'sucesso');
@@ -1281,6 +1287,80 @@
                 }
 
                 mostrarMensagem('Erro ao enviar pedido. Tente novamente.', 'erro');
+            }
+        }
+
+        async function cancelarPedidoEquipe(clubeId, botao = null) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario || !usuario.id) {
+                mostrarMensagem("Faça login para cancelar o pedido.", "aviso");
+                return;
+            }
+
+            const confirmar = await confirmarAcao({
+                titulo: "Cancelar pedido?",
+                mensagem: "Seu pedido pendente para entrar nesta equipe será cancelado.",
+                textoConfirmar: "Cancelar pedido",
+                textoCancelar: "Voltar"
+            });
+
+            if (!confirmar) {
+                return;
+            }
+
+            const textoOriginal = botao ? botao.textContent : "Cancelar pedido";
+
+            if (botao) {
+                botao.disabled = true;
+                botao.textContent = "Cancelando...";
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/pedidos`, {
+                    method: "DELETE",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id
+                    })
+                });
+
+                const dados = await resposta.json();
+
+                if (!resposta.ok) {
+                    mostrarMensagem(dados.erro || "Erro ao cancelar pedido.", "erro");
+
+                    if (botao) {
+                        botao.disabled = false;
+                        botao.textContent = textoOriginal;
+                    }
+
+                    return;
+                }
+
+                mostrarMensagem(dados.mensagem || "Pedido cancelado com sucesso.", "sucesso");
+
+                if (botao) {
+                    botao.classList.remove('btn-pedido-pendente', 'pedido-pendente', 'pedido-enviado');
+                    botao.classList.add('btn-principal', 'btn-pedir-equipe');
+                    botao.disabled = false;
+                    botao.textContent = "Pedir para entrar";
+
+                    botao.onclick = (event) => {
+                        event.stopPropagation();
+                        pedirEntradaEquipe(clubeId, botao);
+                    };
+                }
+            } catch (erro) {
+                console.error("Erro ao cancelar pedido:", erro);
+                mostrarMensagem("Erro de conexão ao cancelar pedido.", "erro");
+
+                if (botao) {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                }
             }
         }
 
@@ -1736,19 +1816,19 @@
 
                     const botaoPedidoHtml = temPedidoPendente
                         ? `
-                            <button 
-                                type="button" 
-                                class="btn-principal btn-pedir-equipe pedido-enviado pedido-pendente" 
-                                disabled
+                            <button
+                                type="button"
+                                class="btn-principal btn-pedir-equipe btn-pedido-pendente"
+                                onclick="event.stopPropagation(); cancelarPedidoEquipe(${clube.id}, this)"
                             >
-                                Pedido pendente
+                                Cancelar pedido
                             </button>
                         `
                         : `
                             <button 
                                 type="button" 
                                 class="btn-principal btn-pedir-equipe" 
-                                onclick="pedirEntradaEquipe(${clube.id}, this)"
+                                onclick="event.stopPropagation(); pedirEntradaEquipe(${clube.id}, this)"
                             >
                                 Pedir para entrar
                             </button>
