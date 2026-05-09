@@ -181,6 +181,85 @@
             });
         }
 
+        function confirmarAcao({
+            titulo = "Confirmar ação",
+            mensagem = "Tem certeza que deseja continuar?",
+            textoConfirmar = "Confirmar",
+            textoCancelar = "Cancelar"
+        } = {}) {
+            return new Promise((resolve) => {
+                const modalExistente = document.querySelector('.confirmacao-overlay');
+
+                if (modalExistente) {
+                    modalExistente.remove();
+                }
+
+                const overlay = document.createElement('div');
+                overlay.className = 'confirmacao-overlay';
+
+                overlay.innerHTML = `
+                    <div class="confirmacao-card">
+                        <div class="confirmacao-icone">!</div>
+
+                        <h3>${textoFeedbackSeguro(titulo)}</h3>
+                        <p>${textoFeedbackSeguro(mensagem)}</p>
+
+                        <div class="confirmacao-acoes">
+                            <button type="button" class="btn-confirmacao-cancelar">
+                                ${textoFeedbackSeguro(textoCancelar)}
+                            </button>
+
+                            <button type="button" class="btn-confirmacao-confirmar">
+                                ${textoFeedbackSeguro(textoConfirmar)}
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+
+                let fechado = false;
+
+                const fechar = (resultado) => {
+                    if (fechado) {
+                        return;
+                    }
+
+                    fechado = true;
+                    document.removeEventListener('keydown', fecharComEsc);
+
+                    overlay.classList.add('saindo');
+
+                    setTimeout(() => {
+                        overlay.remove();
+                        resolve(resultado);
+                    }, 180);
+                };
+
+                function fecharComEsc(event) {
+                    if (event.key === 'Escape') {
+                        fechar(false);
+                    }
+                }
+
+                overlay.querySelector('.btn-confirmacao-cancelar').addEventListener('click', () => {
+                    fechar(false);
+                });
+
+                overlay.querySelector('.btn-confirmacao-confirmar').addEventListener('click', () => {
+                    fechar(true);
+                });
+
+                overlay.addEventListener('click', (event) => {
+                    if (event.target === overlay) {
+                        fechar(false);
+                    }
+                });
+
+                document.addEventListener('keydown', fecharComEsc);
+            });
+        }
+
         function formatarTempoRelativo(dataTexto) {
             if (!dataTexto) {
                 return "";
@@ -1513,7 +1592,14 @@
                 return;
             }
 
-            if (!confirm('Aprovar este pedido de entrada?')) {
+            const confirmar = await confirmarAcao({
+                titulo: "Aprovar pedido?",
+                mensagem: "Este usuário será adicionado à equipe.",
+                textoConfirmar: "Aprovar",
+                textoCancelar: "Cancelar"
+            });
+
+            if (!confirmar) {
                 return;
             }
 
@@ -1570,7 +1656,14 @@
                 return;
             }
 
-            if (!confirm('Recusar este pedido de entrada?')) {
+            const confirmar = await confirmarAcao({
+                titulo: "Recusar pedido?",
+                mensagem: "O pedido de entrada será recusado.",
+                textoConfirmar: "Recusar",
+                textoCancelar: "Cancelar"
+            });
+
+            if (!confirmar) {
                 return;
             }
 
