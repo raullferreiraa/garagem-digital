@@ -1478,22 +1478,20 @@
 
                     <div id="pedidos-equipe-container"></div>
 
-                    <div class="equipe-garagem-futura">
+                    <div class="equipe-garagem-futura garagem-equipe-bloco">
                         <div class="equipe-garagem-futura-topo">
                             <div class="equipe-garagem-icone">🏎️</div>
 
                             <div class="equipe-garagem-texto">
                                 <h3>Garagem da equipe</h3>
-                                <p>Em breve, os projetos dos membros poderão aparecer juntos aqui como uma garagem coletiva.</p>
+                                <p>Projetos cadastrados pelos membros da equipe.</p>
                             </div>
                         </div>
 
-                        <div class="equipe-garagem-status">Em breve</div>
-
-                        <div class="equipe-garagem-preview">
-                            <div class="equipe-garagem-preview-item"></div>
-                            <div class="equipe-garagem-preview-item"></div>
-                            <div class="equipe-garagem-preview-item"></div>
+                        <div id="garagem-equipe-lista" class="garagem-equipe-lista">
+                            <p class="garagem-equipe-vazio">
+                                Carregando projetos da equipe...
+                            </p>
                         </div>
                     </div>
                 `;
@@ -1504,9 +1502,100 @@
                 carregarPedidosEquipe(equipe.id);
             }
 
+            carregarGaragemEquipe(equipe.id);
+
             } catch (erro) {
                 console.error('Erro ao abrir equipe:', erro);
                 container.innerHTML = '<p>Erro ao carregar equipe. Verifique se o servidor Flask está rodando.</p>';
+            }
+        }
+
+        async function carregarGaragemEquipe(clubeId) {
+            const container = document.getElementById('garagem-equipe-lista');
+
+            if (!container) {
+                return;
+            }
+
+            container.innerHTML = `
+                <p class="garagem-equipe-vazio">
+                    Carregando projetos da equipe...
+                </p>
+            `;
+
+            const usuario = getUsuarioLogado();
+            const params = new URLSearchParams();
+
+            if (usuario && usuario.id) {
+                params.append('usuario_id', usuario.id);
+            }
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/carros?${params.toString()}`);
+                const projetos = await resposta.json();
+
+                if (!resposta.ok) {
+                    container.innerHTML = `
+                        <p class="garagem-equipe-vazio">
+                            Não foi possível carregar a garagem da equipe.
+                        </p>
+                    `;
+                    return;
+                }
+
+                if (!Array.isArray(projetos) || projetos.length === 0) {
+                    container.innerHTML = `
+                        <p class="garagem-equipe-vazio">
+                            Nenhum projeto cadastrado pelos membros ainda.
+                        </p>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = projetos.map((projeto) => {
+                    const foto = projeto.foto_url
+                        ? `${API_URL}/uploads/${projeto.foto_url}`
+                        : '';
+
+                    return `
+                        <div class="garagem-equipe-card" data-projeto-id="${projeto.id}">
+                            ${
+                                foto
+                                    ? `<img src="${foto}" alt="" class="garagem-equipe-img">`
+                                    : `<div class="garagem-equipe-sem-foto">SEM FOTO</div>`
+                            }
+
+                            <div class="garagem-equipe-info">
+                                <strong>${projeto.modelo}</strong>
+                                <span>${projeto.ano} • Aro ${projeto.aro_roda}</span>
+                                <small>@${projeto.username_usuario || 'usuario'}</small>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+
+                container.querySelectorAll('.garagem-equipe-card').forEach((card) => {
+                    card.addEventListener('click', () => {
+                        const projeto = projetos.find((item) => {
+                            return String(item.id) === String(card.dataset.projetoId);
+                        });
+
+                        if (!projeto) {
+                            return;
+                        }
+
+                        fecharMinhaEquipe();
+                        abrirModalProjeto(projeto);
+                    });
+                });
+            } catch (erro) {
+                console.error('Erro ao carregar garagem da equipe:', erro);
+
+                container.innerHTML = `
+                    <p class="garagem-equipe-vazio">
+                        Erro ao carregar a garagem da equipe.
+                    </p>
+                `;
             }
         }
 

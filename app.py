@@ -1306,6 +1306,80 @@ def buscar_clube(id):
 
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
+
+@app.route('/clubes/<int:id>/carros', methods=['GET'])
+def listar_carros_clube(id):
+    usuario_id = request.args.get('usuario_id', '')
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM clubes WHERE id = %s", (id,))
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Equipe não encontrada."}), 404
+
+        cursor.execute(
+            """
+            SELECT
+                c.id,
+                c.usuario_id,
+                c.nome_dono,
+                c.modelo,
+                c.ano,
+                c.cor,
+                c.placa,
+                c.tipo_suspensao,
+                c.aro_roda,
+                c.foto_url,
+                c.historia,
+                u.nome AS nome_usuario,
+                u.username AS username_usuario,
+                COUNT(DISTINCT cur.id) AS total_curtidas,
+                COUNT(DISTINCT com.id) AS total_comentarios,
+                CASE
+                    WHEN SUM(CASE WHEN cur.usuario_id = %s THEN 1 ELSE 0 END) > 0
+                    THEN 1
+                    ELSE 0
+                END AS curtido_pelo_usuario
+            FROM carros c
+            INNER JOIN membros_clube mc ON c.usuario_id = mc.usuario_id
+            INNER JOIN usuarios u ON c.usuario_id = u.id
+            LEFT JOIN curtidas cur ON c.id = cur.carro_id
+            LEFT JOIN comentarios com ON c.id = com.carro_id
+            WHERE mc.clube_id = %s
+            GROUP BY
+                c.id,
+                c.usuario_id,
+                c.nome_dono,
+                c.modelo,
+                c.ano,
+                c.cor,
+                c.placa,
+                c.tipo_suspensao,
+                c.aro_roda,
+                c.foto_url,
+                c.historia,
+                u.nome,
+                u.username
+            ORDER BY c.id DESC
+            """,
+            (usuario_id if usuario_id else 0, id)
+        )
+
+        carros = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(carros), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
     
 @app.route('/clubes/<int:id>/pedidos', methods=['POST'])
 def pedir_entrada_clube(id):
