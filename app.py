@@ -1396,6 +1396,65 @@ def pedir_entrada_clube(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/clubes/<int:id>/pedidos', methods=['DELETE'])
+def cancelar_pedido_clube(id):
+    dados = request.json or {}
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute("SELECT id FROM clubes WHERE id = %s", (id,))
+        clube = cursor.fetchone()
+
+        if not clube:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Equipe não encontrada."}), 404
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM pedidos_clube
+            WHERE usuario_id = %s
+              AND clube_id = %s
+              AND status = 'pendente'
+            LIMIT 1
+            """,
+            (usuario_id, id)
+        )
+
+        pedido = cursor.fetchone()
+
+        if not pedido:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Pedido pendente não encontrado."}), 404
+
+        cursor.execute(
+            "DELETE FROM pedidos_clube WHERE id = %s",
+            (pedido['id'],)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Pedido cancelado com sucesso."}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/clubes/<int:id>/pedidos', methods=['GET'])
 def listar_pedidos_clube(id):
     usuario_id = request.args.get('usuario_id')
