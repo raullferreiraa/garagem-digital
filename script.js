@@ -1518,9 +1518,11 @@
             }
 
             container.innerHTML = `
-                <p class="garagem-equipe-vazio">
-                    Carregando projetos da equipe...
-                </p>
+                <div class="garagem-equipe-vazio garagem-equipe-loading">
+                    <span>🏁</span>
+                    <strong>Carregando garagem da equipe...</strong>
+                    <p>Buscando os projetos cadastrados pelos membros.</p>
+                </div>
             `;
 
             const usuario = getUsuarioLogado();
@@ -1536,18 +1538,22 @@
 
                 if (!resposta.ok) {
                     container.innerHTML = `
-                        <p class="garagem-equipe-vazio">
-                            Não foi possível carregar a garagem da equipe.
-                        </p>
+                        <div class="garagem-equipe-vazio">
+                            <span>⚠️</span>
+                            <strong>Não foi possível carregar a garagem</strong>
+                            <p>Tente abrir a equipe novamente em alguns instantes.</p>
+                        </div>
                     `;
                     return;
                 }
 
                 if (!Array.isArray(projetos) || projetos.length === 0) {
                     container.innerHTML = `
-                        <p class="garagem-equipe-vazio">
-                            Nenhum projeto cadastrado pelos membros ainda.
-                        </p>
+                        <div class="garagem-equipe-vazio">
+                            <span>🏎️</span>
+                            <strong>Nenhum projeto na garagem ainda</strong>
+                            <p>Quando os membros cadastrarem projetos, eles vão aparecer juntos aqui.</p>
+                        </div>
                     `;
                     return;
                 }
@@ -1557,18 +1563,42 @@
                         ? `${API_URL}/uploads/${projeto.foto_url}`
                         : '';
 
+                    const detalhesProjeto = [
+                        projeto.aro_roda ? `Aro ${projeto.aro_roda}` : null,
+                        projeto.cor
+                    ].filter(Boolean).join(' • ');
+
+                    const username = projeto.username_usuario || 'usuario';
+
                     return `
                         <div class="garagem-equipe-card" data-projeto-id="${projeto.id}">
-                            ${
-                                foto
-                                    ? `<img src="${foto}" alt="" class="garagem-equipe-img">`
-                                    : `<div class="garagem-equipe-sem-foto">SEM FOTO</div>`
-                            }
+                            <div class="garagem-equipe-media">
+                                ${
+                                    foto
+                                        ? `<img src="${foto}" alt="" class="garagem-equipe-img">`
+                                        : `<div class="garagem-equipe-sem-foto">SEM FOTO</div>`
+                                }
+
+                                <div class="garagem-equipe-overlay"></div>
+
+                                <span class="garagem-equipe-badge">
+                                    Equipe
+                                </span>
+                            </div>
 
                             <div class="garagem-equipe-info">
-                                <strong>${projeto.modelo}</strong>
-                                <span>${projeto.ano} • Aro ${projeto.aro_roda}</span>
-                                <small>@${projeto.username_usuario || 'usuario'}</small>
+                                <div class="garagem-equipe-titulo">
+                                    <strong>${projeto.modelo || 'Projeto sem nome'}</strong>
+                                    <span>${projeto.ano || 'Projeto'}</span>
+                                </div>
+
+                                <p class="garagem-equipe-spec">
+                                    ${detalhesProjeto || 'Detalhes do projeto'}
+                                </p>
+
+                                <div class="garagem-equipe-rodape">
+                                    <span class="garagem-equipe-dono">@${username}</span>
+                                </div>
                             </div>
                         </div>
                     `;
