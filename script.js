@@ -3,6 +3,7 @@
         let todosCarros = [];
         let modoGaragem = "todos";
         let equipeParaReabrirAposProjeto = null;
+        let garagemCompletaParaReabrirAposProjeto = null;
 
         if ('scrollRestoration' in history) {
             history.scrollRestoration = 'manual';
@@ -721,19 +722,34 @@
             setTimeout(() => carregarComentarios(carro.id), 100);
         }
 
+        function restaurarScrollBodySeNaoHouverModalAberto() {
+            const modalProjeto = document.getElementById('modal-projeto');
+            const modalEquipe = document.getElementById('modal-minha-equipe');
+            const garagemCompletaAberta = document.querySelector('.garagem-completa-overlay');
+
+            const projetoAberto = modalProjeto && modalProjeto.style.display === 'block';
+            const equipeAberta = modalEquipe && modalEquipe.style.display === 'block';
+
+            if (!projetoAberto && !equipeAberta && !garagemCompletaAberta) {
+                document.body.style.overflow = "";
+            }
+        }
+
         function fecharModalProjeto() {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
             const equipeIdParaReabrir = equipeParaReabrirAposProjeto;
+            const garagemCompletaParaReabrir = garagemCompletaParaReabrirAposProjeto;
 
             equipeParaReabrirAposProjeto = null;
+            garagemCompletaParaReabrirAposProjeto = null;
 
             resetarScrollModalProjeto();
 
             modal.style.display = "none";
 
-            if (!equipeIdParaReabrir) {
-                document.body.style.overflow = "";
+            if (!equipeIdParaReabrir && !garagemCompletaParaReabrir) {
+                restaurarScrollBodySeNaoHouverModalAberto();
             }
 
             if (modalContent) {
@@ -742,6 +758,15 @@
             }
 
             setTimeout(resetarScrollModalProjeto, 0);
+
+            if (garagemCompletaParaReabrir) {
+                abrirEquipe(garagemCompletaParaReabrir.clubeId);
+                abrirGaragemCompletaEquipe(
+                    garagemCompletaParaReabrir.clubeId,
+                    garagemCompletaParaReabrir.nomeEquipe
+                );
+                return;
+            }
 
             if (equipeIdParaReabrir) {
                 abrirEquipe(equipeIdParaReabrir);
@@ -1399,6 +1424,7 @@
             if (modal) {
                 modal.style.display = 'none';
             }
+            restaurarScrollBodySeNaoHouverModalAberto();
         }
 
         function textoSeguro(valor) {
@@ -1504,6 +1530,8 @@
                                 Carregando projetos da equipe...
                             </p>
                         </div>
+
+                        <div id="garagem-equipe-acoes" class="garagem-equipe-acoes"></div>
                     </div>
                 `;
 
@@ -1513,7 +1541,7 @@
                 carregarPedidosEquipe(equipe.id);
             }
 
-            carregarGaragemEquipe(equipe.id);
+            carregarGaragemEquipe(equipe.id, equipe.nome);
 
             } catch (erro) {
                 console.error('Erro ao abrir equipe:', erro);
@@ -1521,11 +1549,62 @@
             }
         }
 
-        async function carregarGaragemEquipe(clubeId) {
+        function montarCardGaragemEquipe(projeto) {
+            const foto = projeto.foto_url
+                ? `${API_URL}/uploads/${projeto.foto_url}`
+                : '';
+
+            const detalhesProjeto = [
+                projeto.aro_roda ? `Aro ${projeto.aro_roda}` : null,
+                projeto.cor
+            ].filter(Boolean).join(' • ');
+
+            const username = projeto.username_usuario || 'usuario';
+
+            return `
+                <div class="garagem-equipe-card" data-projeto-id="${projeto.id}">
+                    <div class="garagem-equipe-media">
+                        ${
+                            foto
+                                ? `<img src="${foto}" alt="" class="garagem-equipe-img">`
+                                : `<div class="garagem-equipe-sem-foto">SEM FOTO</div>`
+                        }
+
+                        <div class="garagem-equipe-overlay"></div>
+
+                        <span class="garagem-equipe-badge">
+                            Equipe
+                        </span>
+                    </div>
+
+                    <div class="garagem-equipe-info">
+                        <div class="garagem-equipe-titulo">
+                            <strong>${projeto.modelo || 'Projeto sem nome'}</strong>
+                            <span>${projeto.ano || 'Projeto'}</span>
+                        </div>
+
+                        <p class="garagem-equipe-spec">
+                            ${detalhesProjeto || 'Detalhes do projeto'}
+                        </p>
+
+                        <div class="garagem-equipe-rodape">
+                            <span class="garagem-equipe-dono">@${username}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function carregarGaragemEquipe(clubeId, nomeEquipe = 'Equipe') {
             const container = document.getElementById('garagem-equipe-lista');
+            const acoesContainer = document.getElementById('garagem-equipe-acoes');
 
             if (!container) {
                 return;
+            }
+
+            if (acoesContainer) {
+                acoesContainer.innerHTML = '';
             }
 
             container.innerHTML = `
@@ -1569,51 +1648,23 @@
                     return;
                 }
 
-                container.innerHTML = projetos.map((projeto) => {
-                    const foto = projeto.foto_url
-                        ? `${API_URL}/uploads/${projeto.foto_url}`
-                        : '';
+                const projetosPreview = projetos.slice(0, 3);
 
-                    const detalhesProjeto = [
-                        projeto.aro_roda ? `Aro ${projeto.aro_roda}` : null,
-                        projeto.cor
-                    ].filter(Boolean).join(' • ');
-
-                    const username = projeto.username_usuario || 'usuario';
-
-                    return `
-                        <div class="garagem-equipe-card" data-projeto-id="${projeto.id}">
-                            <div class="garagem-equipe-media">
-                                ${
-                                    foto
-                                        ? `<img src="${foto}" alt="" class="garagem-equipe-img">`
-                                        : `<div class="garagem-equipe-sem-foto">SEM FOTO</div>`
-                                }
-
-                                <div class="garagem-equipe-overlay"></div>
-
-                                <span class="garagem-equipe-badge">
-                                    Equipe
-                                </span>
-                            </div>
-
-                            <div class="garagem-equipe-info">
-                                <div class="garagem-equipe-titulo">
-                                    <strong>${projeto.modelo || 'Projeto sem nome'}</strong>
-                                    <span>${projeto.ano || 'Projeto'}</span>
-                                </div>
-
-                                <p class="garagem-equipe-spec">
-                                    ${detalhesProjeto || 'Detalhes do projeto'}
-                                </p>
-
-                                <div class="garagem-equipe-rodape">
-                                    <span class="garagem-equipe-dono">@${username}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
+                container.innerHTML = projetosPreview.map((projeto) => {
+                    return montarCardGaragemEquipe(projeto);
                 }).join('');
+
+                if (acoesContainer && projetos.length > projetosPreview.length) {
+                    acoesContainer.innerHTML = `
+                        <button
+                            type="button"
+                            class="btn-garagem-completa"
+                            onclick="abrirGaragemCompletaEquipe(${clubeId}, '${String(nomeEquipe || 'Equipe').replace(/'/g, "\\'")}')"
+                        >
+                            Ver garagem completa
+                        </button>
+                    `;
+                }
 
                 container.querySelectorAll('.garagem-equipe-card').forEach((card) => {
                     card.addEventListener('click', () => {
@@ -1637,6 +1688,119 @@
                     <p class="garagem-equipe-vazio">
                         Erro ao carregar a garagem da equipe.
                     </p>
+                `;
+            }
+        }
+
+        async function abrirGaragemCompletaEquipe(clubeId, nomeEquipe = 'Equipe') {
+            const overlayExistente = document.querySelector('.garagem-completa-overlay');
+
+            if (overlayExistente) {
+                overlayExistente.remove();
+            }
+
+            const overlay = document.createElement('div');
+            overlay.className = 'garagem-completa-overlay';
+
+            overlay.innerHTML = `
+                <div class="garagem-completa-modal">
+                    <div class="garagem-completa-header">
+                        <div>
+                            <span>Garagem coletiva</span>
+                            <h2>${textoFeedbackSeguro(nomeEquipe)}</h2>
+                            <p>Projetos cadastrados pelos membros da equipe.</p>
+                        </div>
+
+                        <button
+                            type="button"
+                            class="garagem-completa-fechar"
+                            aria-label="Fechar garagem completa"
+                        >
+                            ×
+                        </button>
+                    </div>
+
+                    <div id="garagem-completa-lista" class="garagem-completa-lista"></div>
+                </div>
+            `;
+
+            document.body.appendChild(overlay);
+            document.body.style.overflow = 'hidden';
+
+            const fecharGaragemCompleta = () => {
+                overlay.remove();
+                restaurarScrollBodySeNaoHouverModalAberto();
+            };
+
+            overlay.querySelector('.garagem-completa-fechar').addEventListener('click', fecharGaragemCompleta);
+
+            overlay.addEventListener('click', (event) => {
+                if (event.target === overlay) {
+                    fecharGaragemCompleta();
+                }
+            });
+
+            const lista = overlay.querySelector('#garagem-completa-lista');
+
+            try {
+                const resposta = await fetch(`${API_URL}/clubes/${clubeId}/carros`);
+                const projetos = await resposta.json();
+
+                if (!resposta.ok) {
+                    lista.innerHTML = `
+                        <div class="garagem-equipe-vazio">
+                            <span>⚠️</span>
+                            <strong>Não foi possível carregar a garagem</strong>
+                            <p>Tente abrir a equipe novamente em alguns instantes.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                if (!Array.isArray(projetos) || projetos.length === 0) {
+                    lista.innerHTML = `
+                        <div class="garagem-equipe-vazio">
+                            <span>🏎️</span>
+                            <strong>Nenhum projeto na garagem ainda</strong>
+                            <p>Quando os membros cadastrarem projetos, eles vão aparecer juntos aqui.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                lista.innerHTML = projetos.map((projeto) => {
+                    return montarCardGaragemEquipe(projeto);
+                }).join('');
+
+                lista.querySelectorAll('.garagem-equipe-card').forEach((card) => {
+                    card.addEventListener('click', () => {
+                        const projeto = projetos.find((item) => {
+                            return String(item.id) === String(card.dataset.projetoId);
+                        });
+
+                        if (!projeto) {
+                            return;
+                        }
+
+                        garagemCompletaParaReabrirAposProjeto = {
+                            clubeId,
+                            nomeEquipe
+                        };
+
+                        overlay.remove();
+                        fecharMinhaEquipe();
+                        abrirModalProjeto(projeto);
+                    });
+                });
+            } catch (erro) {
+                console.error('Erro ao carregar garagem completa da equipe:', erro);
+
+                lista.innerHTML = `
+                    <div class="garagem-equipe-vazio">
+                        <span>⚠️</span>
+                        <strong>Erro ao carregar garagem completa</strong>
+                        <p>Verifique a conexão e tente novamente.</p>
+                    </div>
                 `;
             }
         }
