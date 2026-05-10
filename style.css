@@ -928,7 +928,7 @@
             position: relative;
             overflow: hidden;
             margin-top: 22px;
-            padding: 22px 28px 30px;
+            padding: 26px 32px 38px;
             border-radius: 24px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             background:
@@ -990,15 +990,17 @@
             text-transform: none;
         }
 
-        .garagem-equipe-lista {
-            position: relative;
-            z-index: 1;
+        .garagem-equipe-bloco .garagem-equipe-lista {
             display: grid;
-            grid-template-columns: repeat(auto-fill, 180px);
-            justify-content: start;
-            gap: 20px;
-            margin-top: 8px;
-            padding: 6px 14px 10px;
+            grid-template-columns: repeat(3, 210px);
+            justify-content: center;
+            gap: 26px;
+            margin-top: 18px;
+            padding: 0 18px;
+        }
+
+        .garagem-equipe-bloco .garagem-equipe-card {
+            width: 210px;
         }
 
         .garagem-equipe-card {
@@ -1042,7 +1044,7 @@
         .garagem-equipe-img,
         .garagem-equipe-sem-foto {
             width: 100%;
-            height: 100%;
+            height: 124px;
             object-fit: cover;
             background: #080808;
             transition: transform 0.28s ease, filter 0.28s ease;
@@ -1177,6 +1179,7 @@
         }
 
         .garagem-equipe-vazio {
+            width: 100%;
             grid-column: 1 / -1;
             display: flex;
             flex-direction: column;
@@ -1211,6 +1214,154 @@
             color: var(--text-muted);
             font-size: 0.85rem;
             line-height: 1.45;
+        }
+
+        /* Garagem completa da equipe */
+        .garagem-equipe-acoes {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            justify-content: center;
+            margin-top: 22px;
+            margin-bottom: 12px;
+            padding: 0;
+        }
+
+        .btn-garagem-completa {
+            width: auto;
+            min-width: max-content;
+            margin: 0;
+            padding: 9px 14px;
+            border: 1px solid rgba(255, 71, 87, 0.32);
+            border-radius: var(--radius-pill);
+            background: rgba(255, 71, 87, 0.1);
+            color: #ff8a94;
+            font-size: 0.68rem;
+            font-weight: 950;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            white-space: nowrap;
+            box-shadow: 0 14px 34px rgba(255, 71, 87, 0.08);
+            transition:
+                transform 0.2s ease,
+                background 0.2s ease,
+                border-color 0.2s ease,
+                box-shadow 0.2s ease;
+        }
+
+        .btn-garagem-completa:hover {
+            transform: translateY(-1px);
+            background: rgba(255, 71, 87, 0.16);
+            border-color: rgba(255, 71, 87, 0.48);
+            box-shadow: 0 18px 40px rgba(255, 71, 87, 0.12);
+        }
+
+        .garagem-completa-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 10000;
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            padding: 38px 18px;
+            background: rgba(0, 0, 0, 0.78);
+            backdrop-filter: blur(14px);
+            overflow-y: auto;
+        }
+
+        .garagem-completa-modal {
+            width: min(1120px, 100%);
+            min-height: 430px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at top left, rgba(255, 71, 87, 0.16), transparent 32%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018)),
+                #090909;
+            box-shadow: 0 34px 90px rgba(0, 0, 0, 0.68);
+        }
+
+        .garagem-completa-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 18px;
+            padding: 28px 32px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+        }
+
+        .garagem-completa-header > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .garagem-completa-header > div span,
+        .garagem-completa-header > div h2,
+        .garagem-completa-header > div p {
+            margin-left: 0;
+            padding-left: 0;
+            text-indent: 0;
+            align-self: flex-start;
+        }
+
+        .garagem-completa-header span {
+            display: block;
+            margin-bottom: 8px;
+            color: #ff7c88;
+            font-size: 0.68rem;
+            font-weight: 950;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .garagem-completa-header h2 {
+            margin: 0;
+            color: var(--text-main);
+            font-size: 1.55rem;
+            line-height: 1.08;
+            letter-spacing: -0.03em;
+            text-transform: uppercase;
+        }
+
+        .garagem-completa-header p {
+            margin: 8px 0 0;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.4;
+            text-transform: none;
+        }
+
+        .garagem-completa-fechar {
+            width: 42px;
+            height: 42px;
+            flex: 0 0 42px;
+            margin: 0;
+            padding: 0;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.055);
+            color: var(--text-main);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .garagem-completa-fechar:hover {
+            background: rgba(255, 71, 87, 0.16);
+            border-color: rgba(255, 71, 87, 0.42);
+        }
+
+        .garagem-completa-lista {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 220px);
+            gap: 22px;
+            justify-content: start;
+            padding: 26px 32px 34px;
+        }
+
+        .garagem-completa-lista .garagem-equipe-card {
+            width: 220px;
         }
 
         .feedback-container {
@@ -3140,5 +3291,48 @@
                 .garagem-equipe-rodape {
                     align-items: flex-start;
                     flex-direction: column;
+                }
+
+                .garagem-equipe-acoes {
+                    justify-content: stretch;
+                    margin-top: 14px;
+                }
+
+                .btn-garagem-completa {
+                    width: 100%;
+                    text-align: center;
+                }
+
+                .garagem-completa-overlay {
+                    padding: 12px;
+                }
+
+                .garagem-completa-modal {
+                    min-height: calc(100vh - 24px);
+                    border-radius: 22px;
+                }
+
+                .garagem-completa-header {
+                    padding: 22px 18px 16px;
+                }
+
+                .garagem-completa-header h2 {
+                    font-size: 1.22rem;
+                }
+
+                .garagem-completa-lista {
+                    grid-template-columns: 1fr;
+                    gap: 14px;
+                    padding: 18px;
+                }
+
+                .garagem-equipe-bloco .garagem-equipe-lista {
+                    grid-template-columns: 1fr;
+                    gap: 14px;
+                }
+
+                .garagem-equipe-bloco .garagem-equipe-card,
+                .garagem-completa-lista .garagem-equipe-card {
+                    width: 100%;
                 }
             }
