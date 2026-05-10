@@ -2,6 +2,7 @@
         const API_URL = 'http://127.0.0.1:5000';
         let todosCarros = [];
         let modoGaragem = "todos";
+        let equipeParaReabrirAposProjeto = null;
 
         if ('scrollRestoration' in history) {
             history.scrollRestoration = 'manual';
@@ -723,11 +724,17 @@
         function fecharModalProjeto() {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
+            const equipeIdParaReabrir = equipeParaReabrirAposProjeto;
+
+            equipeParaReabrirAposProjeto = null;
 
             resetarScrollModalProjeto();
 
             modal.style.display = "none";
-            document.body.style.overflow = "";
+
+            if (!equipeIdParaReabrir) {
+                document.body.style.overflow = "";
+            }
 
             if (modalContent) {
                 modalContent.classList.remove("trocando-conteudo");
@@ -735,6 +742,10 @@
             }
 
             setTimeout(resetarScrollModalProjeto, 0);
+
+            if (equipeIdParaReabrir) {
+                abrirEquipe(equipeIdParaReabrir);
+            }
         }
 
         const modalProjeto = document.getElementById('modal-projeto');
@@ -1614,6 +1625,7 @@
                             return;
                         }
 
+                        equipeParaReabrirAposProjeto = clubeId;
                         fecharMinhaEquipe();
                         abrirModalProjeto(projeto);
                     });
