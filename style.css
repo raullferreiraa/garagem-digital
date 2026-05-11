@@ -907,43 +907,76 @@
         }
 
         .comentarios-container {
-            margin-top: 20px;
+            margin-top: 28px;
+            padding: 20px;
+            border: 1px solid var(--border-glass);
+            border-radius: var(--radius-xl);
+            background:
+                radial-gradient(circle at top left, rgba(255, 71, 87, 0.08), transparent 32%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent),
+                rgba(255, 255, 255, 0.022);
+            box-shadow: var(--shadow-soft);
         }
 
         #input-comentario {
-            margin-top: 10px;
+            margin-top: 16px;
+            min-height: 96px;
+            padding: 14px 15px;
             text-transform: none;
-            border-radius: var(--radius-md);
-            background: #0b0b0b;
-            min-height: 92px;
+            border-radius: var(--radius-lg);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                rgba(0, 0, 0, 0.38);
+            border: 1px solid rgba(255, 255, 255, 0.095);
+            color: var(--text-main);
+            resize: vertical;
+        }
+
+        #input-comentario:focus {
+            border-color: rgba(255, 71, 87, 0.52);
+            box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.08);
+            outline: none;
         }
 
         .comentario-item {
-            padding: 13px;
-            border: 1px solid var(--border-soft);
-            border-radius: var(--radius-md);
-            margin-bottom: 10px;
+            padding: 14px 15px;
+            border: 1px solid rgba(255, 255, 255, 0.085);
+            border-radius: var(--radius-lg);
+            margin-bottom: 0;
             background:
-                linear-gradient(145deg, rgba(255, 255, 255, 0.025), transparent),
-                #131313;
-            transition: 0.2s;
+                linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
+                rgba(10, 10, 10, 0.72);
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+            transition:
+                transform var(--transition-fast),
+                border-color var(--transition-fast),
+                background var(--transition-fast),
+                box-shadow var(--transition-fast);
             text-transform: none;
         }
 
         .comentario-item:hover {
-            border-color: rgba(255, 71, 87, 0.45);
-            background: #171717;
+            transform: translateY(-1px);
+            border-color: rgba(255, 71, 87, 0.36);
+            background:
+                linear-gradient(145deg, rgba(255, 71, 87, 0.065), rgba(255, 255, 255, 0.018)),
+                rgba(18, 18, 18, 0.86);
+            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.24);
         }
 
         .comentario-topo {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 6px;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
         }
 
         .comentario-autor {
-            color: #ff4757;
-            font-weight: bold;
+            color: var(--accent);
+            font-size: 0.86rem;
+            font-weight: 950;
+            letter-spacing: 0.015em;
             cursor: pointer;
         }
 
@@ -952,30 +985,41 @@
         }
 
         .comentario-data {
-            color: #666;
-            font-size: 0.75em;
+            color: var(--text-soft);
+            font-size: 0.72rem;
+            white-space: nowrap;
         }
 
         .btn-remover-comentario {
             width: auto;
-            padding: 4px 8px;
+            min-height: 28px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px 9px;
             margin: 0;
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
-            border-radius: 6px;
-            font-size: 0.7em;
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid rgba(255, 255, 255, 0.09);
+            color: var(--text-soft);
+            border-radius: var(--radius-pill);
+            font-size: 0.66rem;
+            font-weight: 900;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
             cursor: pointer;
         }
 
         .btn-remover-comentario:hover {
-            border-color: #ff4757;
-            color: #ff4757;
+            border-color: rgba(255, 71, 87, 0.55);
+            color: #ff8a94;
+            background: rgba(255, 71, 87, 0.09);
+            transform: translateY(-1px);
         }
 
         .comentario-texto {
-            color: #ccc;
-            line-height: 1.4;
+            color: var(--text-muted);
+            font-size: 0.92rem;
+            line-height: 1.5;
             text-transform: none;
         }
 
@@ -983,16 +1027,26 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-top: 26px;
-            margin-bottom: 12px;
-            padding-top: 18px;
-            border-top: 1px solid var(--border-soft);
+            gap: 14px;
+            margin: 0 0 16px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
 
         .comentarios-header h3 {
             margin: 0;
-            font-size: 1.2em;
-            color: #fff;
+            color: var(--text-main);
+            font-size: 1rem;
+            font-weight: 950;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        #lista-comentarios {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
         }
 
         @keyframes likePop {
@@ -2344,13 +2398,22 @@
             }
 
             .btn-comentar {
-                background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+                width: auto;
+                min-height: 42px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-top: 10px;
+                padding: 10px 18px;
+                background: var(--accent-gradient);
                 border: 1px solid rgba(255, 71, 87, 0.9);
                 color: #fff;
                 border-radius: var(--radius-pill);
-                font-weight: 850;
-                margin-top: 8px;
-                box-shadow: 0 10px 22px rgba(255, 71, 87, 0.16);
+                font-size: 0.76rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: var(--shadow-accent);
             }
 
             .btn-comentar:hover {
@@ -2361,27 +2424,40 @@
             }
 
             .comentarios-like {
-                padding: 6px 12px;
-                border-radius: 20px;
-                background: #181818;
-                border: 1px solid #333;
-                color: #aaa;
-                font-size: 0.8em;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 34px;
+                padding: 7px 13px;
+                border-radius: var(--radius-pill);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: var(--text-muted);
+                font-size: 0.78rem;
+                font-weight: 850;
                 cursor: pointer;
-                transition: 0.2s;
+                transition:
+                    transform var(--transition-fast),
+                    background var(--transition-fast),
+                    border-color var(--transition-fast),
+                    color var(--transition-fast);
             }
 
-            .comentarios-like:hover {
-                border-color: #ff4757;
-                color: #ff4757;
-                background: #1a1a1a;
-                transform: scale(1.05);
+            @media (hover: hover) and (pointer: fine) {
+                .comentarios-like:hover {
+                    border-color: rgba(255, 71, 87, 0.58);
+                    color: var(--accent);
+                    background: rgba(255, 71, 87, 0.1);
+                    transform: translateY(-1px) scale(1.04);
+                }
             }
 
             .comentarios-like.curtido {
-                background: rgba(255, 71, 87, 0.12);
-                border-color: #ff4757;
-                color: #ff4757;
+                background:
+                    linear-gradient(145deg, rgba(255, 71, 87, 0.22), rgba(255, 71, 87, 0.1));
+                border-color: rgba(255, 71, 87, 0.62);
+                color: #ff6b78;
             }
 
             .modal .dono-link {
@@ -3509,9 +3585,21 @@
                 }
 
                 .comentarios-header {
-                    align-items: flex-start;
-                    flex-direction: column;
-                    gap: 8px;
+                    flex-direction: row;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 10px;
+                }
+
+                .comentarios-header h3 {
+                    font-size: 0.86rem;
+                }
+
+                .comentarios-like {
+                    flex-shrink: 0;
+                    min-height: 30px;
+                    padding: 6px 10px;
+                    font-size: 0.68rem;
                 }
 
                 .btn-aprovar-pedido,
