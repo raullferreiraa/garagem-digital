@@ -491,6 +491,9 @@
         }
 
         .carro-card {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
             background:
                 linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
                 linear-gradient(145deg, #181818, #101010);
@@ -533,8 +536,92 @@
         }
 
         .card-info {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            gap: 0;
             padding: 16px;
             text-transform: uppercase;
+        }
+
+        .historia-projeto {
+            position: relative;
+            max-height: 150px;
+            margin: 14px 0 16px;
+            padding: 16px 18px;
+            overflow: hidden;
+            border-left: 3px solid var(--accent);
+            border-radius: 0 var(--radius-md) var(--radius-md) 0;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                rgba(255, 255, 255, 0.025);
+            color: var(--text-muted);
+            line-height: 1.45;
+            text-transform: none;
+        }
+
+        .historia-projeto::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 26px;
+            pointer-events: none;
+            background: linear-gradient(
+                to bottom,
+                rgba(18, 18, 18, 0),
+                rgba(18, 18, 18, 0.45)
+            );
+        }
+
+        .historia-projeto strong {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 950;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        }
+
+        .historia-projeto-vazia {
+            max-height: none;
+            min-height: 72px;
+            margin-bottom: 10px;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            opacity: 0.58;
+            border-left-color: rgba(255, 255, 255, 0.14);
+        }
+
+        .historia-projeto-vazia strong {
+            color: var(--text-soft);
+        }
+
+        .historia-projeto-vazia::after {
+            display: none;
+        }
+
+        .acoes-principais {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-top: auto;
+            padding-top: 16px;
+        }
+
+        .acoes-principais > div,
+        .acoes-dono {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .acoes-dono {
+            margin-top: 12px;
         }
 
         .specs {
@@ -566,39 +653,10 @@
             text-decoration: underline;
         }
 
-        .historia-projeto {
-            margin-top: 14px;
-            padding: 14px;
-            border-left: 3px solid var(--accent);
-            background: rgba(255, 255, 255, 0.025);
-            border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
-            color: #bbb;
-            font-size: 0.9em;
-            line-height: 1.5;
-            text-transform: none;
-            letter-spacing: 0.2px;
-        }
-
-        .historia-projeto strong {
-            display: block;
-            color: #ff4757;
-            margin-bottom: 6px;
-            text-transform: uppercase;
-            font-size: 0.8em;
-            letter-spacing: 1px;
-        }
-
         .destaque {
             color: #ff4757;
             font-weight: 900;
             font-size: 1.1em;
-        }
-
-        .acoes-principais {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-top: 18px;
         }
 
         .barra-social {
@@ -684,12 +742,6 @@
         .btn-ver:active {
             transform: translateY(0) scale(1);
             box-shadow: 0 8px 18px rgba(255, 71, 87, 0.16);
-        }
-
-        .acoes-dono {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
         }
 
         .btn-editar,

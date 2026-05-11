@@ -521,12 +521,10 @@
                                 </span>
                             </p>
 
-                            ${carro.historia ? `
-                                <div class="historia-projeto">
-                                    <strong>História do projeto</strong>
-                                    ${carro.historia}
-                                </div>
-                            ` : ''}
+                            <div class="historia-projeto ${carro.historia ? '' : 'historia-projeto-vazia'}">
+                                <strong>História do projeto</strong>
+                                ${carro.historia || 'Ainda não adicionada.'}
+                            </div>
 
                             <div class="acoes-principais">
                                 <div class="barra-social">
