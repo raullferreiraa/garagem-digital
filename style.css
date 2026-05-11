@@ -203,10 +203,17 @@
         }
 
         .btn-principal {
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             background: var(--accent-gradient);
             border: 1px solid rgba(255, 71, 87, 0.9);
             color: #fff;
-            font-weight: 850;
+            font-weight: 900;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
             border-radius: var(--radius-pill);
             box-shadow: var(--shadow-accent);
         }
@@ -215,7 +222,13 @@
             background: linear-gradient(135deg, var(--accent-hover), var(--accent));
             border-color: var(--accent-hover);
             opacity: 1;
-            box-shadow: 0 14px 30px rgba(255, 71, 87, 0.24);
+            transform: translateY(-1px);
+            box-shadow: 0 16px 34px rgba(255, 71, 87, 0.26);
+        }
+
+        .btn-principal:active {
+            transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(255, 71, 87, 0.18);
         }
 
         .btn-pedir-equipe.pedido-enviado {
@@ -236,19 +249,29 @@
         }
 
         .btn-pedido-pendente {
-            background:
-                linear-gradient(135deg, rgba(255, 193, 7, 0.18), rgba(255, 193, 7, 0.08));
-            border: 1px solid rgba(255, 193, 7, 0.42);
+            width: auto;
+            min-height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 17px;
+            border: 1px solid rgba(255, 193, 7, 0.38);
+            border-radius: var(--radius-pill);
+            background: rgba(255, 193, 7, 0.1);
             color: #ffd166;
-            box-shadow: 0 10px 24px rgba(255, 193, 7, 0.08);
+            font-size: 0.72rem;
+            font-weight: 950;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 10px 22px rgba(255, 193, 7, 0.08);
         }
 
         .btn-pedido-pendente:hover {
-            background:
-                linear-gradient(135deg, rgba(255, 193, 7, 0.24), rgba(255, 193, 7, 0.11));
-            border-color: rgba(255, 193, 7, 0.62);
-            color: #ffe08a;
-            box-shadow: 0 14px 30px rgba(255, 193, 7, 0.12);
+            background: rgba(255, 193, 7, 0.16);
+            border-color: rgba(255, 193, 7, 0.56);
+            transform: translateY(-1px);
+            box-shadow: 0 14px 28px rgba(255, 193, 7, 0.1);
         }
 
         .acoes-garagem {
@@ -260,20 +283,33 @@
         .btn-toggle-form {
             width: auto;
             min-width: 230px;
-            background: #ff4757;
-            color: white;
-            border: 1px solid #ff4757;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            background: var(--accent-gradient);
+            color: #fff;
+            border: 1px solid rgba(255, 71, 87, 0.9);
             padding: 12px 22px;
-            border-radius: 999px;
+            border-radius: var(--radius-pill);
             cursor: pointer;
             font-weight: 900;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.045em;
+            box-shadow: var(--shadow-accent);
         }
 
         .btn-toggle-form:hover {
             transform: translateY(-1px);
-            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.18);
+            background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+            border-color: var(--accent-hover);
+            box-shadow: 0 16px 34px rgba(255, 71, 87, 0.24);
+        }
+
+        .btn-toggle-form:active {
+            transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(255, 71, 87, 0.18);
         }
 
         .auth-container,
@@ -411,20 +447,34 @@
         .btn-buscar {
             width: auto;
             min-width: 120px;
+            min-height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             margin-bottom: 0;
             background: var(--accent-gradient);
             border: 1px solid rgba(255, 71, 87, 0.9);
             color: #fff;
             border-radius: var(--radius-pill);
             font-weight: 900;
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
             cursor: pointer;
-            box-shadow: 0 8px 20px rgba(255, 71, 87, 0.16);
+            box-shadow: var(--shadow-accent);
         }
 
         .btn-buscar:hover {
             opacity: 1;
             transform: translateY(-1px);
-            box-shadow: 0 12px 26px rgba(255, 71, 87, 0.24);
+            background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+            border-color: var(--accent-hover);
+            box-shadow: 0 14px 30px rgba(255, 71, 87, 0.24);
+        }
+
+        .btn-buscar:active {
+            transform: translateY(0);
+            box-shadow: 0 8px 18px rgba(255, 71, 87, 0.18);
         }
 
         .galeria {
@@ -559,42 +609,67 @@
         .like-btn,
         .comment-btn {
             cursor: pointer;
-            padding: 7px 11px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            min-height: 34px;
+            padding: 7px 12px;
             border-radius: var(--radius-pill);
-            background: rgba(255, 255, 255, 0.035);
-            border: 1px solid var(--border-soft);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: var(--text-muted);
             font-size: 0.85em;
-            transition: 0.2s;
+            font-weight: 850;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+            transition:
+                transform var(--transition-fast),
+                background var(--transition-fast),
+                border-color var(--transition-fast),
+                color var(--transition-fast),
+                box-shadow var(--transition-fast);
         }
 
         .like-btn:hover {
-            border-color: #ff4757;
-            color: #ff4757;
-            transform: scale(1.1);
+            border-color: rgba(255, 71, 87, 0.58);
+            color: var(--accent);
+            background: rgba(255, 71, 87, 0.1);
+            transform: translateY(-1px) scale(1.04);
+            box-shadow: 0 12px 24px rgba(255, 71, 87, 0.12);
         }
 
         .like-btn.curtido {
-            background: rgba(255, 71, 87, 0.15);
-            border-color: #ff4757;
-            color: #ff4757;
+            background:
+                linear-gradient(145deg, rgba(255, 71, 87, 0.22), rgba(255, 71, 87, 0.1));
+            border-color: rgba(255, 71, 87, 0.62);
+            color: #ff6b78;
+            box-shadow: 0 12px 26px rgba(255, 71, 87, 0.16);
         }
 
         .comment-btn:hover {
-            transform: scale(1.1);
-            background: #1a1a1a;
+            border-color: rgba(255, 255, 255, 0.2);
+            color: #fff;
+            background: rgba(255, 255, 255, 0.075);
+            transform: translateY(-1px) scale(1.04);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.26);
         }
 
         .btn-ver {
             width: auto;
-            display: inline-block;
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             border-radius: var(--radius-pill);
             background: var(--accent-gradient);
             border: 1px solid rgba(255, 71, 87, 0.9);
             color: #fff;
             cursor: pointer;
-            font-weight: 850;
-            padding: 8px 14px;
+            font-weight: 900;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 8px 15px;
             margin-bottom: 0;
             box-shadow: 0 10px 22px rgba(255, 71, 87, 0.16);
         }
@@ -606,6 +681,11 @@
             box-shadow: 0 14px 28px rgba(255, 71, 87, 0.22);
         }
 
+        .btn-ver:active {
+            transform: translateY(0) scale(1);
+            box-shadow: 0 8px 18px rgba(255, 71, 87, 0.16);
+        }
+
         .acoes-dono {
             display: flex;
             gap: 10px;
@@ -615,26 +695,37 @@
         .btn-editar,
         .btn-excluir {
             width: auto;
+            min-height: 34px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            padding: 8px 14px;
+            padding: 7px 13px;
             margin: 0;
-            background: transparent;
-            border: 1px solid #333;
-            color: #888;
-            font-size: 0.75em;
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-pill);
+            color: var(--text-muted);
+            font-size: 0.72em;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
             cursor: pointer;
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
         }
 
         .btn-editar:hover {
-            border-color: #fff;
+            border-color: rgba(255, 255, 255, 0.28);
             color: #fff;
+            background: rgba(255, 255, 255, 0.075);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.24);
         }
 
         .btn-excluir:hover {
-            border-color: #ff4757;
-            color: #ff4757;
+            border-color: rgba(255, 71, 87, 0.58);
+            color: #ff6b78;
+            background: rgba(255, 71, 87, 0.095);
+            box-shadow: 0 12px 24px rgba(255, 71, 87, 0.12);
         }
 
         .modal {
@@ -664,23 +755,32 @@
 
         .modal-fechar {
             position: absolute;
-            top: 12px;
+            top: 14px;
             right: 14px;
-            width: auto;
-            background-color: rgba(0, 0, 0, 0.72);
-            border: 1px solid #444;
+            width: 42px;
+            height: 42px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                linear-gradient(145deg, rgba(0, 0, 0, 0.82), rgba(20, 20, 20, 0.72));
+            border: 1px solid rgba(255, 255, 255, 0.14);
             color: #fff;
-            font-size: 1.2em;
-            padding: 7px 12px;
+            font-size: 1.15em;
+            font-weight: 900;
+            padding: 0;
             margin: 0;
             z-index: 2;
-            border-radius: var(--radius-pill);
-            backdrop-filter: blur(8px);
+            border-radius: 50%;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 12px 26px rgba(0, 0, 0, 0.36);
         }
 
         .modal-fechar:hover {
-            background-color: #ff4757;
-            border-color: #ff4757;
+            background: rgba(255, 71, 87, 0.92);
+            border-color: rgba(255, 71, 87, 0.95);
+            transform: translateY(-1px) scale(1.04);
+            box-shadow: 0 14px 30px rgba(255, 71, 87, 0.2);
         }
 
         .modal-img {
@@ -961,34 +1061,41 @@
         .btn-aprovar-pedido,
         .btn-recusar-pedido {
             width: auto;
-            min-height: 38px;
-            margin: 0;
-            padding: 8px 12px;
+            min-height: 36px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 13px;
             border-radius: var(--radius-pill);
-            font-size: 0.78em;
-            font-weight: 900;
+            font-size: 0.68rem;
+            font-weight: 950;
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            cursor: pointer;
         }
 
         .btn-aprovar-pedido {
-            background: rgba(46, 213, 115, 0.12);
-            border-color: rgba(46, 213, 115, 0.45);
-            color: #2ed573;
+            border: 1px solid rgba(46, 213, 115, 0.48);
+            background: rgba(46, 213, 115, 0.1);
+            color: #7bed9f;
         }
 
         .btn-aprovar-pedido:hover {
-            border-color: #2ed573;
-            box-shadow: 0 10px 22px rgba(46, 213, 115, 0.14);
+            background: rgba(46, 213, 115, 0.16);
+            border-color: rgba(46, 213, 115, 0.68);
+            transform: translateY(-1px);
         }
 
         .btn-recusar-pedido {
-            background: rgba(255, 71, 87, 0.08);
-            border-color: rgba(255, 71, 87, 0.38);
-            color: var(--accent);
+            border: 1px solid rgba(255, 71, 87, 0.48);
+            background: rgba(255, 71, 87, 0.1);
+            color: #ff8a94;
         }
 
         .btn-recusar-pedido:hover {
-            border-color: var(--accent);
-            box-shadow: 0 10px 22px rgba(255, 71, 87, 0.14);
+            background: rgba(255, 71, 87, 0.16);
+            border-color: rgba(255, 71, 87, 0.68);
+            transform: translateY(-1px);
         }
 
         .pedidos-equipe-vazio {
@@ -2157,8 +2264,15 @@
             #lista-equipes.equipes-lista .btn-pedir-equipe {
                 width: 100%;
                 min-height: 48px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
                 margin: 0;
                 border-radius: var(--radius-pill);
+                font-size: 0.72rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
             }
 
             #lista-equipes.equipes-lista .btn-pedir-equipe.pedido-enviado {
@@ -2714,39 +2828,100 @@
             }
 
             .btn-editar-perfil {
-                background: transparent;
-                color: #ff4757;
-                border: 1px solid #ff4757;
+                width: auto;
+                min-height: 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                align-self: center;
+                margin-top: 12px;
+                padding: 9px 16px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: var(--radius-pill);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+                color: var(--text-main);
+                font-size: 0.76rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
             }
 
             .btn-editar-perfil:hover {
-                background: rgba(255, 71, 87, 0.12);
+                border-color: rgba(255, 71, 87, 0.45);
+                color: #fff;
+                background: rgba(255, 71, 87, 0.1);
+                transform: translateY(-1px);
+                box-shadow: 0 14px 28px rgba(255, 71, 87, 0.12);
             }
 
             .btn-seguir-perfil {
-                background: #ff4757;
-                color: white;
-                border: 1px solid #ff4757;
-            }
-
-            .btn-seguir-perfil.seguindo {
-                background: transparent;
-                color: #ff4757;
-                border: 1px solid #ff4757;
+                width: auto;
+                min-height: 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                align-self: center;
+                margin-top: 14px;
+                padding: 10px 20px;
+                border: 1px solid rgba(255, 71, 87, 0.9);
+                border-radius: var(--radius-pill);
+                background: var(--accent-gradient);
+                color: #fff;
+                font-size: 0.78rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: var(--shadow-accent);
             }
 
             .btn-seguir-perfil:hover {
                 transform: translateY(-1px);
+                background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+                border-color: var(--accent-hover);
+                box-shadow: 0 16px 34px rgba(255, 71, 87, 0.24);
+            }
+
+            .btn-seguir-perfil.seguindo {
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+                border-color: rgba(255, 255, 255, 0.14);
+                color: var(--text-muted);
+                box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18);
+            }
+
+            .btn-seguir-perfil.seguindo:hover {
+                border-color: rgba(255, 71, 87, 0.48);
+                color: #ff8a94;
+                background: rgba(255, 71, 87, 0.09);
+                box-shadow: 0 14px 28px rgba(255, 71, 87, 0.12);
             }
 
             .btn-salvar-perfil {
-                background: #ff4757;
-                color: white;
-                border: none;
-                padding: 10px 14px;
-                border-radius: 8px;
-                cursor: pointer;
-                font-weight: 700;
+                width: auto;
+                min-height: 42px;
+                align-self: flex-start;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                padding: 10px 18px;
+                border: 1px solid rgba(255, 71, 87, 0.9);
+                border-radius: var(--radius-pill);
+                background: var(--accent-gradient);
+                color: #fff;
+                font-size: 0.78rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: var(--shadow-accent);
+            }
+
+            .btn-salvar-perfil:hover {
+                transform: translateY(-1px);
+                background: linear-gradient(135deg, var(--accent-hover), var(--accent));
+                border-color: var(--accent-hover);
+                box-shadow: 0 16px 34px rgba(255, 71, 87, 0.24);
             }
 
             .perfil-header {
