@@ -1658,7 +1658,7 @@
                     acoesContainer.innerHTML = `
                         <button
                             type="button"
-                            class="btn-garagem-completa"
+                            class="btn-garagem-completa ui-pill"
                             onclick="abrirGaragemCompletaEquipe(${clubeId}, '${String(nomeEquipe || 'Equipe').replace(/'/g, "\\'")}')"
                         >
                             Ver garagem completa
