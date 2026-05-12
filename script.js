@@ -631,6 +631,11 @@
         function abrirModalProjeto(carro, scrollManter = null) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
+            const modalJaAberto = modal.style.display === "block";
+
+            if (modalJaAberto && modalContent) {
+                modalContent.classList.add("trocando-conteudo");
+            }
 
             modal.style.display = "block";
             document.body.style.overflow = "hidden";
@@ -713,10 +718,15 @@
                 </div>
             `;
 
-            setTimeout(() => {
+            requestAnimationFrame(() => {
+                if (modalContent) {
+                    modalContent.classList.remove("trocando-conteudo");
+                    modalContent.style.visibility = "visible";
+                }
+
                 modal.scrollTop = 0;
                 modalContent.scrollTop = 0;
-            }, 0);
+            });
 
             setTimeout(() => carregarComentarios(carro.id), 100);
         }
@@ -745,6 +755,38 @@
             garagemCompletaParaReabrirAposProjeto = null;
             perfilParaReabrirAposProjeto = null;
 
+            if (perfilIdParaReabrir) {
+                if (modalContent) {
+                    modalContent.classList.add("trocando-conteudo");
+                    modalContent.style.visibility = "visible";
+                }
+
+                abrirPerfil(perfilIdParaReabrir);
+                return;
+            }
+
+            if (equipeIdParaReabrir) {
+                if (modalContent) {
+                    modalContent.classList.add("trocando-conteudo");
+                    modalContent.style.visibility = "visible";
+                }
+
+                setTimeout(() => {
+                    resetarScrollModalProjeto();
+
+                    modal.style.display = "none";
+
+                    if (modalContent) {
+                        modalContent.classList.remove("trocando-conteudo");
+                        modalContent.style.visibility = "visible";
+                    }
+
+                    abrirEquipe(equipeIdParaReabrir);
+                }, 120);
+
+                return;
+            }
+
             resetarScrollModalProjeto();
 
             modal.style.display = "none";
@@ -766,11 +808,6 @@
                     garagemCompletaParaReabrir.clubeId,
                     garagemCompletaParaReabrir.nomeEquipe
                 );
-                return;
-            }
-
-            if (equipeIdParaReabrir) {
-                abrirEquipe(equipeIdParaReabrir);
                 return;
             }
 

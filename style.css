@@ -2495,11 +2495,14 @@
             }
 
             .modal-content {
-                transition: opacity 0.12s ease;
+                transition:
+                    opacity 0.16s ease,
+                    transform 0.16s ease;
             }
 
             .modal-content.trocando-conteudo {
                 opacity: 0;
+                transform: translateY(6px) scale(0.99);
             }
 
             .equipe-modal-info {
