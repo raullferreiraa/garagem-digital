@@ -3,6 +3,7 @@
         let todosCarros = [];
         let modoGaragem = "todos";
         let equipeParaReabrirAposProjeto = null;
+        let perfilParaReabrirAposProjeto = null;
         let garagemCompletaParaReabrirAposProjeto = null;
 
         if ('scrollRestoration' in history) {
@@ -702,7 +703,7 @@
                             </span>
                         </div>
 
-                        <div id="lista-comentarios" style="margin-top:10px;"></div>
+                        <div id="lista-comentarios"></div>
 
                         <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
                         <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
@@ -738,15 +739,17 @@
             const modalContent = document.getElementById('modal-content');
             const equipeIdParaReabrir = equipeParaReabrirAposProjeto;
             const garagemCompletaParaReabrir = garagemCompletaParaReabrirAposProjeto;
+            const perfilIdParaReabrir = perfilParaReabrirAposProjeto;
 
             equipeParaReabrirAposProjeto = null;
             garagemCompletaParaReabrirAposProjeto = null;
+            perfilParaReabrirAposProjeto = null;
 
             resetarScrollModalProjeto();
 
             modal.style.display = "none";
 
-            if (!equipeIdParaReabrir && !garagemCompletaParaReabrir) {
+            if (!equipeIdParaReabrir && !garagemCompletaParaReabrir && !perfilIdParaReabrir) {
                 restaurarScrollBodySeNaoHouverModalAberto();
             }
 
@@ -768,6 +771,11 @@
 
             if (equipeIdParaReabrir) {
                 abrirEquipe(equipeIdParaReabrir);
+                return;
+            }
+
+            if (perfilIdParaReabrir) {
+                abrirPerfil(perfilIdParaReabrir);
             }
         }
 
@@ -2338,18 +2346,18 @@
 
                             ${botaoEditarPerfil}
 
+                            ${botaoSeguirPerfil}
+
                             ${formularioEdicaoPerfil}
 
-                            <div id="perfil-equipe" class="perfil-equipe-placeholder"></div>
-
-                            ${botaoSeguirPerfil}
+                            <div id="perfil-equipe"></div>
                         </div>
 
                         <div class="perfil-grid">
                             ${carros.length === 0
                                 ? '<p style="color:#666;">Nenhum projeto cadastrado.</p>'
                                 : carros.map(c => `
-                                    <div class="perfil-card" onclick="abrirProjetoPorId(${c.id})">
+                                    <div class="perfil-card" onclick="abrirProjetoDoPerfil(${c.id}, ${usuario.id})">
 
                                         ${c.foto_url
                                             ? `<img src="${API_URL}/uploads/${c.foto_url}">`
@@ -2560,6 +2568,11 @@
                 console.error(error);
                 mostrarMensagem("Erro de conexão.", "erro");
             }
+        }
+
+        function abrirProjetoDoPerfil(projetoId, usuarioId) {
+            perfilParaReabrirAposProjeto = usuarioId;
+            abrirProjetoPorId(projetoId);
         }
 
         async function abrirProjetoPorId(id) {
