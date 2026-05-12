@@ -3516,7 +3516,8 @@
                 }
 
                 .carro-card {
-                    border-radius: 16px;
+                    border-radius: 20px;
+                    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.34);
                 }
 
                 .carro-card:hover {
@@ -3524,11 +3525,11 @@
                 }
 
                 .foto-carro {
-                    height: 210px;
+                    height: clamp(210px, 58vw, 260px);
                 }
 
                 .card-info {
-                    padding: 15px;
+                    padding: 16px;
                 }
 
                 .carro-card h2 {
@@ -3541,24 +3542,34 @@
                 }
 
                 .historia-projeto {
+                    max-height: 132px;
+                    margin: 12px 0 14px;
+                    padding: 12px 13px;
                     font-size: 0.86em;
-                    padding: 12px;
+                }
+
+                .historia-projeto-vazia {
+                    min-height: 62px;
+                    margin-bottom: 8px;
                 }
 
                 .acoes-principais {
                     align-items: stretch;
                     flex-direction: column;
                     gap: 12px;
+                    padding-top: 14px;
                 }
 
                 .barra-social {
                     justify-content: space-between;
+                    gap: 10px;
                 }
 
                 .like-btn,
                 .comment-btn,
                 .btn-ver {
                     text-align: center;
+                    justify-content: center;
                 }
 
                 .btn-ver {
@@ -3576,33 +3587,63 @@
                 }
 
                 .modal {
-                    padding: 14px 10px;
+                    padding: 12px 8px;
+                    overflow-x: hidden;
                 }
 
                 .modal-content {
-                    border-radius: 18px;
+                    width: 100%;
+                    max-width: 100%;
+                    max-height: calc(100dvh - 24px);
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    border-radius: 22px;
+                }
+
+                .modal-content *,
+                .modal-content *::before,
+                .modal-content *::after {
+                    box-sizing: border-box;
                 }
 
                 .modal-img {
-                    height: 260px;
+                    height: clamp(230px, 62vw, 310px);
                 }
 
                 .modal-sem-foto {
-                    height: 230px;
+                    height: clamp(210px, 56vw, 280px);
                 }
 
                 .modal-info {
-                    padding: 20px 16px;
+                    padding: 22px 16px 18px;
                 }
 
                 .modal-info h2 {
-                    font-size: 1.55em;
-                    line-height: 1.1;
+                    margin-bottom: 18px;
+                    padding-left: 12px;
+                    font-size: clamp(1.35rem, 8vw, 1.85rem);
+                    line-height: 1.04;
+                    letter-spacing: -0.045em;
                 }
 
                 .modal-grid {
                     grid-template-columns: 1fr;
-                    gap: 10px;
+                    gap: 9px;
+                    margin-top: 18px;
+                }
+
+                .modal-item {
+                    padding: 13px;
+                    border-radius: 16px;
+                }
+
+                .modal-item span {
+                    margin-bottom: 6px;
+                    font-size: 0.64rem;
+                }
+
+                .modal-item strong {
+                    font-size: 0.92rem;
                 }
 
                 .comentarios-header {
@@ -3610,6 +3651,8 @@
                     align-items: center;
                     justify-content: space-between;
                     gap: 10px;
+                    margin: 0 0 9px;
+                    padding: 0 0 9px;
                 }
 
                 .comentarios-header h3 {
@@ -3621,6 +3664,48 @@
                     min-height: 30px;
                     padding: 6px 10px;
                     font-size: 0.68rem;
+                }
+
+                .comentarios-container {
+                    margin-top: 14px;
+                    padding: 10px 12px 12px;
+                    border-radius: 20px;
+                }
+
+                #lista-comentarios {
+                    gap: 9px;
+                }
+
+                .comentario-item {
+                    padding: 12px;
+                    border-radius: 16px;
+                }
+
+                .comentario-topo {
+                    gap: 8px;
+                }
+
+                .comentario-autor {
+                    font-size: 0.82rem;
+                }
+
+                .comentario-data {
+                    font-size: 0.66rem;
+                }
+
+                .comentario-texto {
+                    font-size: 0.88rem;
+                }
+
+                #input-comentario {
+                    min-height: 88px;
+                    padding: 12px;
+                    border-radius: 16px;
+                }
+
+                .btn-comentar {
+                    width: 100%;
+                    justify-content: center;
                 }
 
                 .btn-aprovar-pedido,
