@@ -110,6 +110,85 @@
                     <input type="number" id="input-aro" placeholder="Aro" required>
                 </div>
 
+                <label class="perfil-label">Detalhes técnicos</label>
+
+                <div class="linha-inputs">
+                    <input type="text" id="input-motor" placeholder="Motor">
+
+                    <select id="input-cambio" required>
+                        <option value="">Câmbio</option>
+                        <option value="Manual">Manual</option>
+                        <option value="Automático">Automático</option>
+                    </select>
+                </div>
+
+                <div class="opcoes-checkbox">
+                    <span class="opcoes-checkbox-titulo">Combustível</span>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Gasolina">
+                        <span>Gasolina</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Álcool">
+                        <span>Álcool</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Flex">
+                        <span>Flex</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Diesel">
+                        <span>Diesel</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="GNV">
+                        <span>GNV</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Elétrico">
+                        <span>Elétrico</span>
+                    </label>
+
+                    <label class="opcao-checkbox">
+                        <input type="checkbox" name="input-combustivel" value="Híbrido">
+                        <span>Híbrido</span>
+                    </label>
+                </div>
+
+                <div class="linha-inputs">
+                    <input type="number" id="input-potencia-estimada" placeholder="Potência estimada (cv)" min="0">
+
+                    <select id="input-preparacao">
+                        <option value="">Preparação</option>
+                        <option value="Original">Original</option>
+                        <option value="Aspirado">Aspirado</option>
+                        <option value="Turbo">Turbo</option>
+                        <option value="Supercharger">Supercharger</option>
+                        <option value="Swap">Swap</option>
+                        <option value="Stage 1">Stage 1</option>
+                        <option value="Stage 2">Stage 2</option>
+                        <option value="Stage 3">Stage 3</option>
+                        <option value="Projeto em montagem">Projeto em montagem</option>
+                    </select>
+                </div>
+
+                <select id="input-status-projeto">
+                    <option value="">Status do projeto</option>
+                    <option value="Original">Original</option>
+                    <option value="Em evolução">Em evolução</option>
+                    <option value="Projeto de rua">Projeto de rua</option>
+                    <option value="Projeto de pista">Projeto de pista</option>
+                    <option value="Em reforma">Em reforma</option>
+                    <option value="Parado temporariamente">Parado temporariamente</option>
+                    <option value="Finalizado">Finalizado</option>
+                </select>
+
                 <label class="perfil-label">Foto da máquina</label>
 
                 <label class="upload-container">

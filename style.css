@@ -326,6 +326,59 @@
             box-shadow: var(--shadow-soft);
         }
 
+        .opcoes-checkbox {
+            width: 100%;
+            box-sizing: border-box;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+            padding: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-md);
+            background: rgba(0, 0, 0, 0.18);
+        }
+
+        .opcoes-checkbox-titulo {
+            width: 100%;
+            color: var(--text-soft);
+            font-size: 0.72rem;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .opcao-checkbox {
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .opcao-checkbox input {
+            display: none;
+        }
+
+        .opcao-checkbox span {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 34px;
+            padding: 7px 11px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: var(--radius-pill);
+            background: rgba(255, 255, 255, 0.035);
+            color: var(--text-muted);
+            font-size: 0.74rem;
+            font-weight: 850;
+            transition: 0.2s ease;
+        }
+
+        .opcao-checkbox input:checked + span {
+            border-color: rgba(255, 71, 87, 0.5);
+            background: rgba(255, 71, 87, 0.14);
+            color: #ff7a84;
+        }
+
         .auth-tabs {
             display: flex;
             gap: 10px;

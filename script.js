@@ -510,7 +510,7 @@
                             </p>
 
                             <p class="specs">Cor: ${carro.cor}</p>
-                            <p class="specs">Placa: ${carro.placa || '---'}</p>
+                            <p class="specs">Câmbio: ${carro.cambio || '---'}</p>
 
                             <p class="specs">
                                 <span style="display:block; margin-top:12px; color:#666; font-size:0.75em; font-weight:bold;">
@@ -628,6 +628,21 @@
             }
         }
 
+        function criarItemFichaOpcional(rotulo, valor) {
+            const valorLimpo = String(valor || '').trim();
+
+            if (!valorLimpo) {
+                return '';
+            }
+
+            return `
+                <div class="modal-item">
+                    <span>${textoFeedbackSeguro(rotulo)}</span>
+                    <strong>${textoFeedbackSeguro(valorLimpo)}</strong>
+                </div>
+            `;
+        }
+
         function abrirModalProjeto(carro, scrollManter = null) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
@@ -690,6 +705,16 @@
                             <span>Ano</span>
                             <strong>${carro.ano}</strong>
                         </div>
+
+                        ${criarItemFichaOpcional('Motor', carro.motor)}
+                        ${criarItemFichaOpcional('Câmbio', carro.cambio)}
+                        ${criarItemFichaOpcional('Combustível', carro.combustivel)}
+                        ${criarItemFichaOpcional(
+                            'Potência estimada',
+                            carro.potencia_estimada ? `${carro.potencia_estimada} cv` : ''
+                        )}
+                        ${criarItemFichaOpcional('Preparação', carro.preparacao)}
+                        ${criarItemFichaOpcional('Status do projeto', carro.status_projeto)}
                     </div>
 
                     ${carro.historia ? `
@@ -891,6 +916,19 @@
             document.getElementById('input-historia').value = carro.historia || '';
             document.getElementById('input-suspensao').value = carro.tipo_suspensao;
             document.getElementById('input-aro').value = carro.aro_roda;
+            document.getElementById('input-motor').value = carro.motor || '';
+            document.getElementById('input-cambio').value = carro.cambio || '';
+            const combustiveisSelecionados = String(carro.combustivel || '')
+                .split(',')
+                .map(combustivel => combustivel.trim())
+                .filter(Boolean);
+
+            document.querySelectorAll('input[name="input-combustivel"]').forEach(input => {
+                input.checked = combustiveisSelecionados.includes(input.value);
+            });
+            document.getElementById('input-potencia-estimada').value = carro.potencia_estimada || '';
+            document.getElementById('input-preparacao').value = carro.preparacao || '';
+            document.getElementById('input-status-projeto').value = carro.status_projeto || '';
 
             document.getElementById('btn-submit').innerText = "Confirmar Alterações";
             document.getElementById('btn-cancelar-edicao').style.display = "block";
@@ -929,6 +967,16 @@
             formData.append('historia', document.getElementById('input-historia').value.trim());
             formData.append('tipo_suspensao', document.getElementById('input-suspensao').value);
             formData.append('aro_roda', document.getElementById('input-aro').value);
+            formData.append('motor', document.getElementById('input-motor').value.trim());
+            formData.append('cambio', document.getElementById('input-cambio').value.trim());
+            const combustiveis = Array.from(document.querySelectorAll('input[name="input-combustivel"]:checked'))
+                .map(input => input.value)
+                .join(', ');
+
+            formData.append('combustivel', combustiveis);
+            formData.append('potencia_estimada', document.getElementById('input-potencia-estimada').value.trim());
+            formData.append('preparacao', document.getElementById('input-preparacao').value.trim());
+            formData.append('status_projeto', document.getElementById('input-status-projeto').value);
 
             const foto = document.getElementById('input-foto').files[0];
 
