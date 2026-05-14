@@ -4006,4 +4006,122 @@
                 .galeria {
                     gap: 18px;
                 }
+
+                .formulario-container {
+                    max-width: none;
+                    margin: 0 auto 22px;
+                    padding: 18px 14px 16px;
+                    border-radius: var(--radius-xl);
+                    background:
+                        radial-gradient(circle at top left, rgba(255, 71, 87, 0.1), transparent 34%),
+                        linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                        rgba(15, 15, 15, 0.96);
+                    border-color: rgba(255, 255, 255, 0.09);
+                    box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+                }
+
+                .formulario-container h2 {
+                    margin: 0 0 16px;
+                    padding-left: 12px;
+                    color: var(--text-main);
+                    font-size: 1rem;
+                    font-weight: 950;
+                    text-align: left;
+                    letter-spacing: -0.02em;
+                    border-left: 3px solid var(--accent);
+                }
+
+                #form-carro {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                #form-carro input,
+                #form-carro select,
+                #form-carro textarea {
+                    min-height: 46px;
+                    margin-bottom: 0;
+                    border-radius: var(--radius-md);
+                    background: rgba(0, 0, 0, 0.24);
+                    border-color: rgba(255, 255, 255, 0.1);
+                    font-size: 0.82rem;
+                }
+
+                #form-carro textarea {
+                    min-height: 118px;
+                }
+
+                #form-carro input:focus,
+                #form-carro select:focus,
+                #form-carro textarea:focus {
+                    background: rgba(0, 0, 0, 0.34);
+                    border-color: var(--accent);
+                    box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.13);
+                }
+
+                #form-carro .linha-inputs {
+                    flex-direction: column;
+                    gap: 10px;
+                }
+
+                .perfil-label {
+                    margin-top: 4px;
+                    color: var(--text-soft);
+                    font-size: 0.68rem;
+                    font-weight: 950;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                }
+
+                .upload-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                    margin-bottom: 2px;
+                    padding: 13px;
+                    border: 1px dashed rgba(255, 255, 255, 0.14);
+                    border-radius: var(--radius-lg);
+                    background:
+                        linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                        rgba(0, 0, 0, 0.22);
+                }
+
+                .upload-btn {
+                    width: 100%;
+                    min-height: 42px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: var(--radius-pill);
+                    background: rgba(255, 255, 255, 0.045);
+                    border: 1px solid rgba(255, 71, 87, 0.32);
+                    color: #ff7a84;
+                    font-size: 0.76rem;
+                    font-weight: 950;
+                    letter-spacing: 0.055em;
+                    text-transform: uppercase;
+                }
+
+                .upload-nome {
+                    color: var(--text-soft);
+                    font-size: 0.74rem;
+                    text-align: center;
+                    text-transform: none;
+                }
+
+                #btn-submit {
+                    min-height: 48px;
+                    margin-top: 4px;
+                    margin-bottom: 0;
+                    border-radius: var(--radius-xl);
+                }
+
+                #btn-cancelar-edicao {
+                    min-height: 44px;
+                    margin-bottom: 0;
+                    border-radius: var(--radius-pill);
+                    background: rgba(255, 255, 255, 0.035);
+                    border-color: rgba(255, 255, 255, 0.12);
+                }
             }
