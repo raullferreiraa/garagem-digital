@@ -3900,3 +3900,110 @@
                     width: 100%;
                 }
             }
+
+            @media (max-width: 768px) {
+                body {
+                    padding: 26px 12px 34px;
+                    font-size: 16px;
+                }
+
+                h1 {
+                    margin-bottom: 26px;
+                    padding-bottom: 16px;
+                    letter-spacing: -1px;
+                }
+
+                h1::after {
+                    width: 92px;
+                    margin-top: 14px;
+                }
+
+                .conteudo-app {
+                    max-width: 520px;
+                    margin: 0 auto;
+                }
+
+                .acoes-garagem {
+                    margin: 18px 0 14px;
+                }
+
+                .btn-toggle-form {
+                    width: 100%;
+                    min-width: 0;
+                    min-height: 48px;
+                    justify-content: center;
+                    padding: 13px 18px;
+                    border-radius: var(--radius-xl);
+                    box-shadow:
+                        0 14px 30px rgba(255, 71, 87, 0.2),
+                        0 10px 26px rgba(0, 0, 0, 0.28);
+                }
+
+                .abas-garagem {
+                    max-width: none;
+                    margin-bottom: 14px;
+                    padding: 5px;
+                    gap: 5px;
+                    border-radius: var(--radius-xl);
+                    background:
+                        linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                        rgba(18, 18, 18, 0.86);
+                    backdrop-filter: blur(10px);
+                }
+
+                .abas-garagem button {
+                    min-height: 42px;
+                    padding: 10px 8px;
+                    font-size: 0.76rem;
+                    letter-spacing: 0.025em;
+                }
+
+                .filtros-container {
+                    position: relative;
+                    max-width: none;
+                    margin-bottom: 20px;
+                    padding: 14px;
+                    gap: 9px;
+                    border-radius: var(--radius-xl);
+                    background:
+                        radial-gradient(circle at top left, rgba(255, 71, 87, 0.08), transparent 34%),
+                        linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent),
+                        rgba(15, 15, 15, 0.94);
+                    border-color: rgba(255, 255, 255, 0.09);
+                    box-shadow: 0 16px 38px rgba(0, 0, 0, 0.36);
+                }
+
+                .filtros-container::before {
+                    content: "Buscar na garagem";
+                    width: 100%;
+                    margin-bottom: 2px;
+                    color: var(--text-soft);
+                    font-size: 0.68rem;
+                    font-weight: 950;
+                    letter-spacing: 0.1em;
+                    text-transform: uppercase;
+                }
+
+                .filtros-container input,
+                .filtros-container select,
+                .filtros-container #filtro-aro {
+                    width: 100%;
+                    min-height: 44px;
+                    flex: 1 1 100%;
+                    border-radius: var(--radius-md);
+                    background: rgba(0, 0, 0, 0.22);
+                    border-color: rgba(255, 255, 255, 0.1);
+                }
+
+                .btn-buscar {
+                    width: 100%;
+                    min-width: 0;
+                    min-height: 46px;
+                    margin-top: 2px;
+                    border-radius: var(--radius-pill);
+                }
+
+                .galeria {
+                    gap: 18px;
+                }
+            }
