@@ -206,6 +206,12 @@ def listar_carros():
                 c.aro_roda,
                 c.foto_url,
                 c.historia,
+                c.motor,
+                c.cambio,
+                c.combustivel,
+                c.potencia_estimada,
+                c.preparacao,
+                c.status_projeto,
                 COUNT(DISTINCT cur.id) AS total_curtidas,
                 COUNT(DISTINCT com.id) AS total_comentarios,
                 CASE 
@@ -245,7 +251,13 @@ def listar_carros():
                 c.tipo_suspensao,
                 c.aro_roda,
                 c.foto_url,
-                c.historia
+                c.historia,
+                c.motor,
+                c.cambio,
+                c.combustivel,
+                c.potencia_estimada,
+                c.preparacao,
+                c.status_projeto
             ORDER BY c.id DESC
         """
 
@@ -285,9 +297,10 @@ def cadastrar_carro():
         sql = """
             INSERT INTO carros (
                 usuario_id, nome_dono, modelo, ano, cor, placa,
-                tipo_suspensao, aro_roda, foto_url, historia
+                tipo_suspensao, aro_roda, foto_url, historia,
+                motor, cambio, combustivel, potencia_estimada, preparacao, status_projeto
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
 
         cursor.execute(sql, (
@@ -300,7 +313,13 @@ def cadastrar_carro():
             dados['tipo_suspensao'],
             dados['aro_roda'],
             nome_foto,
-            historia
+            historia,
+            dados.get('motor', ''),
+            dados.get('cambio', ''),
+            dados.get('combustivel', ''),
+            dados.get('potencia_estimada', ''),
+            dados.get('preparacao', ''),
+            dados.get('status_projeto', '')
         ))
 
         conexao.commit()
@@ -359,7 +378,13 @@ def editar_carro(id):
                 tipo_suspensao=%s,
                 aro_roda=%s,
                 foto_url=%s,
-                historia=%s
+                historia=%s,
+                motor=%s,
+                cambio=%s,
+                combustivel=%s,
+                potencia_estimada=%s,
+                preparacao=%s,
+                status_projeto=%s
             WHERE id=%s
         """
 
@@ -373,6 +398,12 @@ def editar_carro(id):
             dados['aro_roda'],
             nome_foto,
             historia,
+            dados.get('motor', ''),
+            dados.get('cambio', ''),
+            dados.get('combustivel', ''),
+            dados.get('potencia_estimada', ''),
+            dados.get('preparacao', ''),
+            dados.get('status_projeto', ''),
             id
         ))
 
@@ -917,12 +948,22 @@ def listar_carros_usuario(id):
         cursor.execute("""
             SELECT 
                 id,
+                usuario_id,
+                nome_dono,
                 modelo,
                 ano,
                 cor,
+                placa,
                 aro_roda,
                 tipo_suspensao,
-                foto_url
+                foto_url,
+                historia,
+                motor,
+                cambio,
+                combustivel,
+                potencia_estimada,
+                preparacao,
+                status_projeto
             FROM carros
             WHERE usuario_id = %s
             ORDER BY id DESC
@@ -1337,6 +1378,12 @@ def listar_carros_clube(id):
                 c.aro_roda,
                 c.foto_url,
                 c.historia,
+                c.motor,
+                c.cambio,
+                c.combustivel,
+                c.potencia_estimada,
+                c.preparacao,
+                c.status_projeto,
                 u.nome AS nome_usuario,
                 u.username AS username_usuario,
                 COUNT(DISTINCT cur.id) AS total_curtidas,
@@ -1364,6 +1411,12 @@ def listar_carros_clube(id):
                 c.aro_roda,
                 c.foto_url,
                 c.historia,
+                c.motor,
+                c.cambio,
+                c.combustivel,
+                c.potencia_estimada,
+                c.preparacao,
+                c.status_projeto,
                 u.nome,
                 u.username
             ORDER BY c.id DESC
