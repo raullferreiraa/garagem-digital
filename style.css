@@ -949,6 +949,65 @@
             margin-top: 22px;
         }
 
+        .modal-ficha {
+            display: grid;
+            gap: 14px;
+            margin: 22px 0 20px;
+        }
+
+        .modal-ficha-grupo {
+            padding: 14px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: var(--radius-lg);
+            background:
+                linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                rgba(0, 0, 0, 0.18);
+        }
+
+        .modal-ficha-grupo h3 {
+            margin: 0 0 12px;
+            color: var(--accent);
+            font-size: 0.72rem;
+            font-weight: 950;
+            letter-spacing: 0.12em;
+            text-align: left;
+            text-transform: uppercase;
+        }
+
+        .modal-ficha-lista {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .modal-ficha-item {
+            min-width: 0;
+            padding: 10px 12px;
+            border: 1px solid rgba(255, 255, 255, 0.075);
+            border-radius: var(--radius-md);
+            background: rgba(255, 255, 255, 0.035);
+        }
+
+        .modal-ficha-item span {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--text-soft);
+            font-size: 0.64rem;
+            font-weight: 950;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .modal-ficha-item strong {
+            display: block;
+            color: var(--text-main);
+            font-size: 0.9rem;
+            font-weight: 900;
+            line-height: 1.25;
+            overflow-wrap: anywhere;
+            text-transform: uppercase;
+        }
+
         .modal-item {
             background:
                 linear-gradient(145deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012)),
@@ -4235,5 +4294,28 @@
                     border-radius: var(--radius-pill);
                     background: rgba(255, 255, 255, 0.035);
                     border-color: rgba(255, 255, 255, 0.12);
+                }
+
+                .modal-ficha {
+                    gap: 12px;
+                    margin: 18px 0 18px;
+                }
+
+                .modal-ficha-grupo {
+                    padding: 13px;
+                    border-radius: var(--radius-md);
+                }
+
+                .modal-ficha-lista {
+                    grid-template-columns: 1fr;
+                    gap: 8px;
+                }
+
+                .modal-ficha-item {
+                    padding: 10px 11px;
+                }
+
+                .modal-ficha-item strong {
+                    font-size: 0.86rem;
                 }
             }

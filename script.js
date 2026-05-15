@@ -628,6 +628,17 @@
             }
         }
 
+        function criarItemFicha(rotulo, valor) {
+            const valorLimpo = String(valor || '').trim();
+
+            return `
+                <div class="modal-ficha-item">
+                    <span>${textoFeedbackSeguro(rotulo)}</span>
+                    <strong>${textoFeedbackSeguro(valorLimpo || '---')}</strong>
+                </div>
+            `;
+        }
+
         function criarItemFichaOpcional(rotulo, valor) {
             const valorLimpo = String(valor || '').trim();
 
@@ -635,11 +646,24 @@
                 return '';
             }
 
+            return criarItemFicha(rotulo, valorLimpo);
+        }
+
+        function criarGrupoFichaTecnica(titulo, itens) {
+            const itensValidos = itens.filter(Boolean).join('');
+
+            if (!itensValidos) {
+                return '';
+            }
+
             return `
-                <div class="modal-item">
-                    <span>${textoFeedbackSeguro(rotulo)}</span>
-                    <strong>${textoFeedbackSeguro(valorLimpo)}</strong>
-                </div>
+                <section class="modal-ficha-grupo">
+                    <h3>${textoFeedbackSeguro(titulo)}</h3>
+
+                    <div class="modal-ficha-lista">
+                        ${itensValidos}
+                    </div>
+                </section>
             `;
         }
 
@@ -670,51 +694,40 @@
                 <div class="modal-info">
                     <h2>${carro.modelo} (${carro.ano})</h2>
 
-                    <div class="modal-grid">
-                        <div class="modal-item">
-                            <span>Proprietário</span>
-                            ${carro.usuario_id
-                                ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
-                                    ${carro.nome_dono}
-                                </strong>`
-                                : `<strong>${carro.nome_dono || '---'}</strong>`
-                            }
-                        </div>
+                    <div class="modal-ficha">
+                        ${criarGrupoFichaTecnica('Identificação', [
+                            `
+                                <div class="modal-ficha-item">
+                                    <span>Proprietário</span>
+                                    ${carro.usuario_id
+                                        ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
+                                            ${textoFeedbackSeguro(carro.nome_dono || '---')}
+                                        </strong>`
+                                        : `<strong>${textoFeedbackSeguro(carro.nome_dono || '---')}</strong>`
+                                    }
+                                </div>
+                            `,
+                            criarItemFicha('Ano', carro.ano),
+                            criarItemFicha('Cor', carro.cor),
+                            criarItemFichaOpcional('Placa', carro.placa)
+                        ])}
 
-                        <div class="modal-item">
-                            <span>Cor</span>
-                            <strong>${carro.cor}</strong>
-                        </div>
+                        ${criarGrupoFichaTecnica('Setup', [
+                            criarItemFichaOpcional('Motor', carro.motor),
+                            criarItemFichaOpcional('Câmbio', carro.cambio),
+                            criarItemFichaOpcional('Combustível', carro.combustivel)
+                        ])}
 
-                        <div class="modal-item">
-                            <span>Placa</span>
-                            <strong>${carro.placa || '---'}</strong>
-                        </div>
-
-                        <div class="modal-item">
-                            <span>Aro</span>
-                            <strong>${carro.aro_roda}</strong>
-                        </div>
-
-                        <div class="modal-item">
-                            <span>Suspensão</span>
-                            <strong>${carro.tipo_suspensao}</strong>
-                        </div>
-
-                        <div class="modal-item">
-                            <span>Ano</span>
-                            <strong>${carro.ano}</strong>
-                        </div>
-
-                        ${criarItemFichaOpcional('Motor', carro.motor)}
-                        ${criarItemFichaOpcional('Câmbio', carro.cambio)}
-                        ${criarItemFichaOpcional('Combustível', carro.combustivel)}
-                        ${criarItemFichaOpcional(
-                            'Potência estimada',
-                            carro.potencia_estimada ? `${carro.potencia_estimada} cv` : ''
-                        )}
-                        ${criarItemFichaOpcional('Preparação', carro.preparacao)}
-                        ${criarItemFichaOpcional('Status do projeto', carro.status_projeto)}
+                        ${criarGrupoFichaTecnica('Projeto', [
+                            criarItemFicha('Aro', carro.aro_roda),
+                            criarItemFicha('Suspensão', carro.tipo_suspensao),
+                            criarItemFichaOpcional(
+                                'Potência estimada',
+                                carro.potencia_estimada ? `${carro.potencia_estimada} cv` : ''
+                            ),
+                            criarItemFichaOpcional('Preparação', carro.preparacao),
+                            criarItemFichaOpcional('Status do projeto', carro.status_projeto)
+                        ])}
                     </div>
 
                     ${carro.historia ? `
