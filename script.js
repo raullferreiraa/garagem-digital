@@ -305,18 +305,65 @@
             }
         }
 
+        function mostrarFeedbackAuth(mensagem, tipo = 'aviso') {
+            const feedback = document.getElementById('auth-feedback');
+
+            if (!feedback) {
+                mostrarMensagem(mensagem, tipo);
+                return;
+            }
+
+            const tiposPermitidos = ['sucesso', 'erro', 'aviso'];
+            const tipoFinal = tiposPermitidos.includes(tipo) ? tipo : 'aviso';
+
+            feedback.className = `auth-feedback auth-feedback-${tipoFinal}`;
+            feedback.innerText = mensagem;
+            feedback.style.display = 'block';
+        }
+
+        function limparFeedbackAuth() {
+            const feedback = document.getElementById('auth-feedback');
+
+            if (!feedback) {
+                return;
+            }
+
+            feedback.innerText = '';
+            feedback.style.display = 'none';
+        }
+
         function mostrarLogin() {
-            document.getElementById('area-login').style.display = "block";
+            document.getElementById('area-login').style.display = "grid";
             document.getElementById('area-cadastro').style.display = "none";
-            document.getElementById('tab-login').classList.add('ativo');
-            document.getElementById('tab-cadastro').classList.remove('ativo');
+
+            const modo = document.getElementById('auth-modo');
+            const titulo = document.getElementById('auth-titulo');
+            const subtitulo = document.getElementById('auth-subtitulo');
+
+            if (modo) modo.innerText = "Login";
+            if (titulo) titulo.innerText = "Entrar na garagem";
+            if (subtitulo) {
+                subtitulo.innerText = "Acesse sua conta para continuar acompanhando seus projetos.";
+            }
+
+            limparFeedbackAuth();
         }
 
         function mostrarCadastro() {
             document.getElementById('area-login').style.display = "none";
-            document.getElementById('area-cadastro').style.display = "block";
-            document.getElementById('tab-login').classList.remove('ativo');
-            document.getElementById('tab-cadastro').classList.add('ativo');
+            document.getElementById('area-cadastro').style.display = "grid";
+
+            const modo = document.getElementById('auth-modo');
+            const titulo = document.getElementById('auth-titulo');
+            const subtitulo = document.getElementById('auth-subtitulo');
+
+            if (modo) modo.innerText = "Cadastro";
+            if (titulo) titulo.innerText = "Criar sua garagem";
+            if (subtitulo) {
+                subtitulo.innerText = "Monte seu perfil e comece a registrar seus projetos automotivos.";
+            }
+
+            limparFeedbackAuth();
         }
 
         async function cadastrarUsuario() {
@@ -326,7 +373,7 @@
             const senha = document.getElementById('cadastro-senha').value.trim();
 
             if (!nome || !email || !senha) {
-                mostrarMensagem("Preencha nome, email e senha.", "aviso");
+                mostrarFeedbackAuth("Preencha nome, email e senha.", "aviso");
                 return;
             }
 
@@ -342,16 +389,16 @@
                 const resposta = await res.json();
 
                 if (res.ok) {
-                    mostrarMensagem("Conta criada com sucesso! Agora faça login.", "sucesso");
                     mostrarLogin();
                     document.getElementById('login-email').value = email;
                     document.getElementById('login-senha').value = "";
+                    mostrarFeedbackAuth("Conta criada com sucesso. Agora é só entrar na garagem.", "sucesso");
                 } else {
-                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível criar a conta."), "erro");
+                    mostrarFeedbackAuth("Erro: " + (resposta.erro || "Não foi possível criar a conta."), "erro");
                 }
 
             } catch (error) {
-                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                mostrarFeedbackAuth("Erro de conexão com o servidor.", "erro");
                 console.error(error);
             }
         }
@@ -361,7 +408,7 @@
             const senha = document.getElementById('login-senha').value.trim();
 
             if (!email || !senha) {
-                mostrarMensagem("Preencha email e senha.", "aviso");
+                mostrarFeedbackAuth("Preencha email e senha.", "aviso");
                 return;
             }
 
@@ -381,11 +428,11 @@
                     mostrarMensagem("Login realizado com sucesso!", "sucesso");
                     atualizarTelaUsuario();
                 } else {
-                    mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível fazer login."), "erro");
+                    mostrarFeedbackAuth("Erro: " + (resposta.erro || "Não foi possível fazer login."), "erro");
                 }
 
             } catch (error) {
-                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                mostrarFeedbackAuth("Erro de conexão com o servidor.", "erro");
                 console.error(error);
             }
         }

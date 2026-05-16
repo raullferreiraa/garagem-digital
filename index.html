@@ -14,29 +14,69 @@
 
     <!-- Área de autenticação -->
     <div class="auth-container" id="auth-container">
-        <div class="auth-tabs">
-            <button type="button" id="tab-login" class="ativo" onclick="mostrarLogin()">Login</button>
-            <button type="button" id="tab-cadastro" onclick="mostrarCadastro()">Cadastro</button>
-        </div>
+        <div class="auth-shell">
+            <section class="auth-intro">
+                <span class="auth-kicker">Projetos automotivos</span>
 
-        <div id="area-login">
-            <h2>Entrar na Garagem</h2>
+                <h2>Sua garagem começa aqui</h2>
 
-            <input type="email" id="login-email" placeholder="Email">
-            <input type="password" id="login-senha" placeholder="Senha">
+                <p>
+                    Registre seus carros, conte a história de cada projeto
+                    e acompanhe a evolução da sua máquina.
+                </p>
+            </section>
 
-            <button type="button" class="btn-principal" onclick="loginUsuario()">Entrar</button>
-        </div>
+            <section class="auth-painel">
+                <span class="auth-modo" id="auth-modo">Login</span>
 
-        <div id="area-cadastro" style="display: none;">
-            <h2>Criar Conta</h2>
+                <h2 id="auth-titulo">Entrar na garagem</h2>
 
-            <input type="text" id="cadastro-nome" placeholder="Nome">
-            <input type="text" id="cadastro-username" placeholder="Nome de usuário" autocomplete="off">
-            <input type="email" id="cadastro-email" placeholder="Email">
-            <input type="password" id="cadastro-senha" placeholder="Senha">
+                <p class="auth-subtitulo" id="auth-subtitulo">
+                    Acesse sua conta para continuar acompanhando seus projetos.
+                </p>
 
-            <button type="button" class="btn-principal" onclick="cadastrarUsuario()">Cadastrar</button>
+                <div id="auth-feedback" class="auth-feedback" style="display: none;"></div>
+
+                <div id="area-login" class="auth-area">
+                    <label class="auth-label" for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="seuemail@exemplo.com">
+
+                    <label class="auth-label" for="login-senha">Senha</label>
+                    <input type="password" id="login-senha" placeholder="Sua senha">
+
+                    <button type="button" class="btn-principal auth-submit" onclick="loginUsuario()">
+                        Entrar na garagem
+                    </button>
+
+                    <p class="auth-alternar">
+                        Ainda não tem uma conta?
+                        <button type="button" onclick="mostrarCadastro()">Cadastre-se</button>
+                    </p>
+                </div>
+
+                <div id="area-cadastro" class="auth-area" style="display: none;">
+                    <label class="auth-label" for="cadastro-nome">Nome</label>
+                    <input type="text" id="cadastro-nome" placeholder="Seu nome">
+
+                    <label class="auth-label" for="cadastro-username">Nome de usuário</label>
+                    <input type="text" id="cadastro-username" placeholder="ex: raul027" autocomplete="off">
+
+                    <label class="auth-label" for="cadastro-email">Email</label>
+                    <input type="email" id="cadastro-email" placeholder="seuemail@exemplo.com">
+
+                    <label class="auth-label" for="cadastro-senha">Senha</label>
+                    <input type="password" id="cadastro-senha" placeholder="Crie uma senha">
+
+                    <button type="button" class="btn-principal auth-submit" onclick="cadastrarUsuario()">
+                        Criar minha garagem
+                    </button>
+
+                    <p class="auth-alternar">
+                        Já tem uma conta?
+                        <button type="button" onclick="mostrarLogin()">Entrar</button>
+                    </p>
+                </div>
+            </section>
         </div>
     </div>
 
