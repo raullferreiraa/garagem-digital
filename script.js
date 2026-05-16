@@ -556,7 +556,7 @@
                         donoLink.onclick = () => abrirPerfil(donoLink.dataset.id);
                     }
 
-                    card.querySelector('.btn-ver').onclick = () => abrirModalProjeto(carro);
+                    card.querySelector('.btn-ver').onclick = () => abrirTelaProjeto(carro);
 
                     const likeBtn = card.querySelector('.like-btn');
 
@@ -667,6 +667,46 @@
             `;
         }
 
+        function criarHtmlFichaProjeto(carro) {
+            return `
+                <div class="modal-ficha">
+                    ${criarGrupoFichaTecnica('Identificação', [
+                        `
+                            <div class="modal-ficha-item">
+                                <span>Proprietário</span>
+                                ${carro.usuario_id
+                                    ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
+                                        ${textoFeedbackSeguro(carro.nome_dono || '---')}
+                                    </strong>`
+                                    : `<strong>${textoFeedbackSeguro(carro.nome_dono || '---')}</strong>`
+                                }
+                            </div>
+                        `,
+                        criarItemFicha('Ano', carro.ano),
+                        criarItemFicha('Cor', carro.cor),
+                        criarItemFichaOpcional('Placa', carro.placa)
+                    ])}
+
+                    ${criarGrupoFichaTecnica('Setup', [
+                        criarItemFichaOpcional('Motor', carro.motor),
+                        criarItemFichaOpcional('Câmbio', carro.cambio),
+                        criarItemFichaOpcional('Combustível', carro.combustivel)
+                    ])}
+
+                    ${criarGrupoFichaTecnica('Projeto', [
+                        criarItemFicha('Aro', carro.aro_roda),
+                        criarItemFicha('Suspensão', carro.tipo_suspensao),
+                        criarItemFichaOpcional(
+                            'Potência estimada',
+                            carro.potencia_estimada ? `${carro.potencia_estimada} cv` : ''
+                        ),
+                        criarItemFichaOpcional('Preparação', carro.preparacao),
+                        criarItemFichaOpcional('Status do projeto', carro.status_projeto)
+                    ])}
+                </div>
+            `;
+        }
+
         function criarTextoToggleComentarios(aberto, total) {
             const totalNormalizado = Number(total) || 0;
 
@@ -715,6 +755,48 @@
             botao.innerText = criarTextoToggleComentarios(abrir, total);
         }
 
+        function criarBlocoComentariosProjeto(carro) {
+            const totalCurtidas = carro.total_curtidas || 0;
+            const curtido = estaCurtido(carro.curtido_pelo_usuario);
+            const totalComentarios = carro.total_comentarios || 0;
+
+            return `
+                <div class="comentarios-container comentarios-recolhidos" id="comentarios-container">
+                    <div class="comentarios-header comentarios-header-recolhido">
+                        <div>
+                            <h3>Comentários</h3>
+                            <span class="comentarios-subtitulo">
+                                Interações da comunidade sobre este projeto
+                            </span>
+                        </div>
+
+                        <span class="comentarios-like ${curtido ? 'curtido' : ''}" onclick="curtirPeloModal(${carro.id})">
+                            👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        id="btn-toggle-comentarios"
+                        class="btn-toggle-comentarios"
+                        data-total-comentarios="${totalComentarios}"
+                        onclick="alternarComentariosProjeto(this)"
+                    >
+                        ${criarTextoToggleComentarios(false, totalComentarios)}
+                    </button>
+
+                    <div class="comentarios-corpo" id="comentarios-corpo">
+                        <div id="lista-comentarios"></div>
+
+                        <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
+                        <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
+                            Comentar
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
         function abrirModalProjeto(carro, scrollManter = null) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
@@ -743,41 +825,7 @@
                 <div class="modal-info">
                     <h2>${carro.modelo} (${carro.ano})</h2>
 
-                    <div class="modal-ficha">
-                        ${criarGrupoFichaTecnica('Identificação', [
-                            `
-                                <div class="modal-ficha-item">
-                                    <span>Proprietário</span>
-                                    ${carro.usuario_id
-                                        ? `<strong class="dono-link" onclick="abrirPerfil(${carro.usuario_id})">
-                                            ${textoFeedbackSeguro(carro.nome_dono || '---')}
-                                        </strong>`
-                                        : `<strong>${textoFeedbackSeguro(carro.nome_dono || '---')}</strong>`
-                                    }
-                                </div>
-                            `,
-                            criarItemFicha('Ano', carro.ano),
-                            criarItemFicha('Cor', carro.cor),
-                            criarItemFichaOpcional('Placa', carro.placa)
-                        ])}
-
-                        ${criarGrupoFichaTecnica('Setup', [
-                            criarItemFichaOpcional('Motor', carro.motor),
-                            criarItemFichaOpcional('Câmbio', carro.cambio),
-                            criarItemFichaOpcional('Combustível', carro.combustivel)
-                        ])}
-
-                        ${criarGrupoFichaTecnica('Projeto', [
-                            criarItemFicha('Aro', carro.aro_roda),
-                            criarItemFicha('Suspensão', carro.tipo_suspensao),
-                            criarItemFichaOpcional(
-                                'Potência estimada',
-                                carro.potencia_estimada ? `${carro.potencia_estimada} cv` : ''
-                            ),
-                            criarItemFichaOpcional('Preparação', carro.preparacao),
-                            criarItemFichaOpcional('Status do projeto', carro.status_projeto)
-                        ])}
-                    </div>
+                    ${criarHtmlFichaProjeto(carro)}
 
                     ${carro.historia ? `
                         <div class="historia-projeto">
@@ -819,7 +867,7 @@
                         </div>
                     </div>
 
-                    <div class="comentarios-container comentarios-recolhidos" id="comentarios-container">
+                    ${criarBlocoComentariosProjeto(carro)}
                         <div class="comentarios-header comentarios-header-recolhido">
                             <div>
                                 <h3>Comentários</h3>
@@ -871,8 +919,111 @@
             }, 100);
         }
 
-        async function carregarEvolucoes(carroId) {
-            const lista = document.getElementById('lista-evolucoes');
+        function abrirTelaProjeto(carro) {
+            const tela = document.getElementById('tela-projeto');
+            const conteudoApp = document.getElementById('conteudo-app');
+
+            if (!tela) {
+                abrirModalProjeto(carro);
+                return;
+            }
+
+            const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
+            const dono = usuarioEDono(carro);
+            const historia = String(carro.historia || '').trim();
+
+            tela.innerHTML = `
+                <div class="pagina-projeto">
+                    <div class="pagina-projeto-topbar">
+                        <button type="button" class="btn-voltar-projeto" onclick="fecharTelaProjeto()">
+                            ← Voltar para garagem
+                        </button>
+
+                        ${dono ? '<span class="pagina-projeto-badge">Seu projeto</span>' : ''}
+                    </div>
+
+                    <section class="pagina-projeto-hero">
+                        ${img
+                            ? `<img src="${img}" class="pagina-projeto-img">`
+                            : '<div class="pagina-projeto-sem-foto">Sem foto</div>'
+                        }
+
+                        <div class="pagina-projeto-hero-info">
+                            <span class="pagina-projeto-kicker">Projeto automotivo</span>
+                            <h2>${textoFeedbackSeguro(carro.modelo)} (${textoFeedbackSeguro(carro.ano)})</h2>
+                        </div>
+                    </section>
+
+                    <div class="pagina-projeto-conteudo">
+                        ${criarHtmlFichaProjeto(carro)}
+
+                        <section class="pagina-projeto-bloco">
+                            <h3>História do projeto</h3>
+                            <p>${historia ? textoFeedbackSeguro(historia) : 'Ainda não adicionada.'}</p>
+                        </section>
+
+                        <section class="pagina-projeto-bloco">
+                            <div class="evolucao-header">
+                                <div>
+                                    <h3>Diário de evolução</h3>
+                                    <span>Últimas atualizações, mudanças e fases do projeto</span>
+                                </div>
+                            </div>
+
+                            <div id="lista-evolucoes-tela" class="evolucao-lista">
+                                <div class="evolucao-vazio">Carregando evolução do projeto...</div>
+                            </div>
+                        </section>
+
+                        ${criarBlocoComentariosProjeto(carro)}
+
+                    </div>
+                </div>
+            `;
+
+            if (conteudoApp) {
+                conteudoApp.style.display = 'none';
+            }
+
+            tela.style.display = 'block';
+            document.body.classList.add('tela-projeto-aberta');
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'auto'
+            });
+
+            setTimeout(() => {
+                carregarEvolucoes(carro.id, 'lista-evolucoes-tela');
+                carregarComentarios(carro.id);
+            }, 100);
+        }
+
+        function fecharTelaProjeto() {
+            const tela = document.getElementById('tela-projeto');
+            const conteudoApp = document.getElementById('conteudo-app');
+
+            if (tela) {
+                tela.style.display = 'none';
+                tela.innerHTML = '';
+            }
+
+            if (conteudoApp) {
+                conteudoApp.style.display = 'block';
+            }
+
+            document.body.classList.remove('tela-projeto-aberta');
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'auto'
+            });
+        }
+
+        async function carregarEvolucoes(carroId, listaId = 'lista-evolucoes') {
+            const lista = document.getElementById(listaId);
 
             if (!lista) {
                 return;
