@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS pedidos_clube;
 DROP TABLE IF EXISTS membros_clube;
 DROP TABLE IF EXISTS clubes;
 DROP TABLE IF EXISTS seguidores;
+DROP TABLE IF EXISTS evolucoes_projeto;
 DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS curtidas;
 DROP TABLE IF EXISTS carros;
@@ -81,6 +82,24 @@ CREATE TABLE comentarios (
         ON DELETE CASCADE,
     CONSTRAINT fk_comentarios_carros
         FOREIGN KEY (carro_id) REFERENCES carros(id)
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE evolucoes_projeto (
+    id INT NOT NULL AUTO_INCREMENT,
+    carro_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    titulo VARCHAR(120) NOT NULL,
+    descricao TEXT NOT NULL,
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_evolucoes_carro (carro_id),
+    KEY idx_evolucoes_usuario (usuario_id),
+    CONSTRAINT fk_evolucoes_carros
+        FOREIGN KEY (carro_id) REFERENCES carros(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_evolucoes_usuarios
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
