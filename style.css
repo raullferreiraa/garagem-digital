@@ -2038,6 +2038,18 @@
             }
         }
 
+        @keyframes paginaProjetoEntrando {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         @media (max-width: 600px) {
             .linha-inputs {
                 flex-direction: column;
@@ -2732,13 +2744,14 @@
             }
 
             .tela-projeto {
-                max-width: 980px;
+                max-width: 1080px;
                 margin: 0 auto;
             }
 
             .pagina-projeto {
                 display: grid;
-                gap: 18px;
+                gap: 22px;
+                animation: paginaProjetoEntrando 0.22s ease;
             }
 
             .pagina-projeto-topbar {
@@ -2746,7 +2759,7 @@
                 align-items: center;
                 justify-content: space-between;
                 gap: 12px;
-                margin-bottom: 4px;
+                margin-bottom: 2px;
             }
 
             .btn-voltar-projeto {
@@ -2755,14 +2768,21 @@
                 margin: 0;
                 padding: 10px 16px;
                 border-radius: var(--radius-pill);
-                background: rgba(255, 255, 255, 0.045);
-                border: 1px solid rgba(255, 255, 255, 0.1);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.018));
+                border: 1px solid rgba(255, 255, 255, 0.11);
                 color: var(--text-main);
-                font-size: 0.76rem;
+                font-size: 0.74rem;
                 font-weight: 950;
-                letter-spacing: 0.055em;
+                letter-spacing: 0.065em;
                 text-transform: uppercase;
                 box-shadow: none;
+            }
+
+            .btn-voltar-projeto:hover {
+                border-color: rgba(255, 71, 87, 0.42);
+                color: #ff7a84;
+                transform: translateY(-1px);
             }
 
             .pagina-projeto-badge {
@@ -2782,26 +2802,45 @@
             }
 
             .pagina-projeto-hero {
+                position: relative;
                 overflow: hidden;
-                border: 1px solid var(--border-glass);
-                border-radius: var(--radius-xl);
+                min-height: 560px;
+                display: flex;
+                align-items: flex-end;
+                border: 1px solid rgba(255, 255, 255, 0.09);
+                border-radius: 34px;
                 background:
-                    radial-gradient(circle at top left, rgba(255, 71, 87, 0.13), transparent 34%),
+                    radial-gradient(circle at top left, rgba(255, 71, 87, 0.18), transparent 34%),
                     linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
-                    rgba(15, 15, 15, 0.96);
-                box-shadow: var(--shadow-premium);
+                    rgba(8, 8, 8, 0.98);
+                box-shadow:
+                    0 28px 70px rgba(0, 0, 0, 0.5),
+                    0 0 0 1px rgba(255, 255, 255, 0.025);
+            }
+
+            .pagina-projeto-hero::after {
+                content: "";
+                position: absolute;
+                inset: 0;
+                background:
+                    linear-gradient(180deg, transparent 28%, rgba(0, 0, 0, 0.24) 52%, rgba(0, 0, 0, 0.86) 100%),
+                    radial-gradient(circle at bottom left, rgba(255, 71, 87, 0.18), transparent 34%);
+                pointer-events: none;
             }
 
             .pagina-projeto-img,
             .pagina-projeto-sem-foto {
+                position: absolute;
+                inset: 0;
                 width: 100%;
-                height: 430px;
+                height: 100%;
             }
 
             .pagina-projeto-img {
                 display: block;
                 object-fit: cover;
-                filter: brightness(0.94) contrast(1.1) saturate(1.08);
+                filter: brightness(0.88) contrast(1.12) saturate(1.08);
+                transform: scale(1.01);
             }
 
             .pagina-projeto-sem-foto {
@@ -2819,43 +2858,37 @@
             }
 
             .pagina-projeto-hero-info {
-                padding: 24px;
+                position: relative;
+                z-index: 1;
+                width: min(720px, 100%);
+                padding: 34px;
             }
 
             .pagina-projeto-kicker {
-                display: block;
-                margin-bottom: 8px;
-                color: var(--accent);
-                font-size: 0.7rem;
+                display: inline-flex;
+                margin-bottom: 10px;
+                padding: 7px 11px;
+                border: 1px solid rgba(255, 71, 87, 0.32);
+                border-radius: var(--radius-pill);
+                background: rgba(255, 71, 87, 0.11);
+                color: #ff7a84;
+                font-size: 0.68rem;
                 font-weight: 950;
                 letter-spacing: 0.12em;
                 text-transform: uppercase;
             }
 
             .pagina-projeto-hero-info h2 {
-                margin: 0 0 12px;
-                color: var(--text-main);
-                font-size: clamp(1.8rem, 5vw, 3rem);
+                max-width: 760px;
+                margin: 0;
+                color: #fff;
+                font-size: clamp(2.2rem, 7vw, 4.6rem);
                 font-weight: 950;
-                line-height: 1;
-                letter-spacing: -0.06em;
+                line-height: 0.92;
+                letter-spacing: -0.08em;
                 text-align: left;
                 text-transform: uppercase;
-            }
-
-            .pagina-projeto-dono {
-                width: auto;
-                min-height: auto;
-                margin: 0;
-                padding: 0;
-                background: transparent;
-                border: 0;
-                color: var(--text-muted);
-                font-size: 0.9rem;
-                font-weight: 850;
-                text-align: left;
-                text-transform: none;
-                box-shadow: none;
+                text-shadow: 0 18px 42px rgba(0, 0, 0, 0.62);
             }
 
             .pagina-projeto-conteudo {
@@ -2867,21 +2900,29 @@
                 margin: 0;
             }
 
+            .pagina-projeto .modal-ficha-grupo,
+            .pagina-projeto-bloco,
+            .pagina-projeto .comentarios-container {
+                border-color: rgba(255, 255, 255, 0.085);
+                background:
+                    radial-gradient(circle at top left, rgba(255, 71, 87, 0.055), transparent 32%),
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent),
+                    rgba(12, 12, 12, 0.92);
+                box-shadow: 0 18px 46px rgba(0, 0, 0, 0.34);
+            }
+
             .pagina-projeto-bloco {
-                padding: 18px;
+                padding: 20px;
                 border: 1px solid rgba(255, 255, 255, 0.08);
                 border-radius: var(--radius-lg);
-                background:
-                    linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
-                    rgba(0, 0, 0, 0.18);
             }
 
             .pagina-projeto-bloco h3 {
                 margin: 0 0 10px;
                 color: var(--text-main);
-                font-size: 1rem;
+                font-size: 1.02rem;
                 font-weight: 950;
-                letter-spacing: -0.02em;
+                letter-spacing: -0.025em;
                 text-align: left;
                 text-transform: none;
             }
@@ -2889,8 +2930,8 @@
             .pagina-projeto-bloco p {
                 margin: 0;
                 color: var(--text-muted);
-                font-size: 0.92rem;
-                line-height: 1.55;
+                font-size: 0.94rem;
+                line-height: 1.6;
                 text-transform: none;
             }
 
@@ -4756,7 +4797,7 @@
                 .btn-voltar-projeto {
                     min-height: 40px;
                     padding: 9px 13px;
-                    font-size: 0.68rem;
+                    font-size: 0.66rem;
                 }
 
                 .pagina-projeto-badge {
@@ -4766,24 +4807,35 @@
                 }
 
                 .pagina-projeto-hero {
-                    border-radius: var(--radius-xl);
-                }
-
-                .pagina-projeto-img,
-                .pagina-projeto-sem-foto {
-                    height: 300px;
+                    min-height: 430px;
+                    border-radius: 26px;
                 }
 
                 .pagina-projeto-hero-info {
-                    padding: 18px;
+                    padding: 22px 18px;
+                }
+
+                .pagina-projeto-kicker {
+                    margin-bottom: 9px;
+                    padding: 6px 10px;
+                    font-size: 0.6rem;
                 }
 
                 .pagina-projeto-hero-info h2 {
-                    font-size: 2rem;
+                    font-size: clamp(2.15rem, 14vw, 3.15rem);
+                    line-height: 0.94;
+                }
+
+                .pagina-projeto-conteudo {
+                    gap: 14px;
                 }
 
                 .pagina-projeto-bloco {
                     padding: 14px;
                     border-radius: var(--radius-md);
+                }
+
+                .pagina-projeto-bloco p {
+                    font-size: 0.86rem;
                 }
             }
