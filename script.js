@@ -667,6 +667,54 @@
             `;
         }
 
+        function criarTextoToggleComentarios(aberto, total) {
+            const totalNormalizado = Number(total) || 0;
+
+            if (aberto) {
+                return 'Ocultar comentários';
+            }
+
+            if (totalNormalizado === 0) {
+                return 'Ver comentários';
+            }
+
+            if (totalNormalizado === 1) {
+                return 'Ver 1 comentário';
+            }
+
+            return `Ver ${totalNormalizado} comentários`;
+        }
+
+        function atualizarBotaoComentarios(total) {
+            const botao = document.getElementById('btn-toggle-comentarios');
+            const container = document.getElementById('comentarios-container');
+
+            if (!botao || !container) {
+                return;
+            }
+
+            const aberto = !container.classList.contains('comentarios-recolhidos');
+
+            botao.dataset.totalComentarios = total;
+            botao.innerText = criarTextoToggleComentarios(aberto, total);
+        }
+
+        function alternarComentariosProjeto(botao) {
+            const container = document.getElementById('comentarios-container');
+
+            if (!container || !botao) {
+                return;
+            }
+
+            const abrir = container.classList.contains('comentarios-recolhidos');
+
+            container.classList.toggle('comentarios-recolhidos', !abrir);
+            container.classList.toggle('comentarios-abertos', abrir);
+
+            const total = botao.dataset.totalComentarios || 0;
+            botao.innerText = criarTextoToggleComentarios(abrir, total);
+        }
+
         function abrirModalProjeto(carro, scrollManter = null) {
             const modal = document.getElementById('modal-projeto');
             const modalContent = document.getElementById('modal-content');
@@ -771,21 +819,38 @@
                         </div>
                     </div>
 
-                    <div class="comentarios-container" id="comentarios-container">
-                        <div class="comentarios-header">
-                            <h3>Comentários</h3>
+                    <div class="comentarios-container comentarios-recolhidos" id="comentarios-container">
+                        <div class="comentarios-header comentarios-header-recolhido">
+                            <div>
+                                <h3>Comentários</h3>
+                                <span class="comentarios-subtitulo">
+                                    Interações da comunidade sobre este projeto
+                                </span>
+                            </div>
 
                             <span class="comentarios-like ${curtido ? 'curtido' : ''}" onclick="curtirPeloModal(${carro.id})">
                                 👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
                             </span>
                         </div>
 
-                        <div id="lista-comentarios"></div>
-
-                        <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
-                        <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
-                            Comentar
+                        <button
+                            type="button"
+                            id="btn-toggle-comentarios"
+                            class="btn-toggle-comentarios"
+                            data-total-comentarios="${carro.total_comentarios || 0}"
+                            onclick="alternarComentariosProjeto(this)"
+                        >
+                            ${criarTextoToggleComentarios(false, carro.total_comentarios || 0)}
                         </button>
+
+                        <div class="comentarios-corpo" id="comentarios-corpo">
+                            <div id="lista-comentarios"></div>
+
+                            <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
+                            <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
+                                Comentar
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -1289,6 +1354,8 @@
                 const lista = document.getElementById('lista-comentarios');
                 lista.innerHTML = '';
 
+                atualizarBotaoComentarios(comentarios.length);
+
                 if (!comentarios.length) {
                     lista.innerHTML = `<div style="color:#666;">Nenhum comentário ainda.</div>`;
                     return;
@@ -1296,16 +1363,19 @@
 
                 comentarios.forEach(c => {
                     const div = document.createElement('div');
+                    const autorComentario = c.username_usuario
+                        ? `@${c.username_usuario}`
+                        : c.nome_usuario;
 
                     div.innerHTML = `
                         <div class="comentario-item">
                             <div class="comentario-topo">
                                 ${c.usuario_id
                                     ? `<span class="comentario-autor" onclick="abrirPerfil(${c.usuario_id})">
-                                        ${c.nome_usuario}
+                                        ${textoFeedbackSeguro(autorComentario)}
                                     </span>`
                                     : `<span class="comentario-autor">
-                                        ${c.nome_usuario}
+                                        ${textoFeedbackSeguro(autorComentario)}
                                     </span>`
                                 }
 

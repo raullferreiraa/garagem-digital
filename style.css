@@ -2660,6 +2660,73 @@
                 color: #ff6b78;
             }
 
+            .comentarios-header-recolhido {
+                align-items: flex-start;
+                margin-bottom: 12px;
+                padding-bottom: 12px;
+            }
+
+            .comentarios-header-recolhido h3 {
+                margin: 0 0 4px;
+                font-size: 1rem;
+                letter-spacing: -0.02em;
+                text-transform: none;
+            }
+
+            .comentarios-subtitulo {
+                display: block;
+                color: var(--text-muted);
+                font-size: 0.78rem;
+                line-height: 1.35;
+                text-transform: none;
+            }
+
+            .btn-toggle-comentarios {
+                width: 100%;
+                min-height: 44px;
+                margin: 0;
+                border-radius: var(--radius-pill);
+                background: rgba(255, 255, 255, 0.045);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: var(--text-main);
+                font-size: 0.76rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: none;
+            }
+
+            .btn-toggle-comentarios:hover {
+                background: rgba(255, 71, 87, 0.1);
+                border-color: rgba(255, 71, 87, 0.38);
+                color: #ff7a84;
+                transform: translateY(-1px);
+            }
+
+            .comentarios-corpo {
+                display: grid;
+                gap: 10px;
+                margin-top: 14px;
+            }
+
+            .comentarios-corpo #lista-comentarios {
+                margin-top: 0;
+            }
+
+            .comentarios-corpo #input-comentario {
+                margin-top: 0;
+            }
+
+            .comentarios-recolhidos .comentarios-corpo {
+                display: none;
+            }
+
+            .comentarios-abertos .btn-toggle-comentarios {
+                background: rgba(255, 71, 87, 0.12);
+                border-color: rgba(255, 71, 87, 0.42);
+                color: #ff7a84;
+            }
+
             .evolucao-container {
                 margin: 22px 0;
                 padding: 16px;
@@ -4483,5 +4550,26 @@
 
                 .evolucao-conteudo {
                     padding: 11px;
+                }
+
+                .comentarios-header-recolhido {
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 10px;
+                    margin-bottom: 10px;
+                    padding-bottom: 10px;
+                }
+
+                .comentarios-header-recolhido .comentarios-like {
+                    align-self: flex-start;
+                }
+
+                .btn-toggle-comentarios {
+                    min-height: 42px;
+                }
+
+                .comentarios-corpo {
+                    gap: 9px;
+                    margin-top: 12px;
                 }
             }
