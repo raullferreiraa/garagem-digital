@@ -810,8 +810,6 @@
             document.body.style.overflow = "hidden";
 
             const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
-            const totalCurtidas = carro.total_curtidas || 0;
-            const curtido = estaCurtido(carro.curtido_pelo_usuario);
             const dono = usuarioEDono(carro);
 
             modalContent.innerHTML = `
@@ -868,38 +866,7 @@
                     </div>
 
                     ${criarBlocoComentariosProjeto(carro)}
-                        <div class="comentarios-header comentarios-header-recolhido">
-                            <div>
-                                <h3>Comentários</h3>
-                                <span class="comentarios-subtitulo">
-                                    Interações da comunidade sobre este projeto
-                                </span>
-                            </div>
 
-                            <span class="comentarios-like ${curtido ? 'curtido' : ''}" onclick="curtirPeloModal(${carro.id})">
-                                👍 ${totalCurtidas} ${totalCurtidas === 1 ? 'curtida' : 'curtidas'}
-                            </span>
-                        </div>
-
-                        <button
-                            type="button"
-                            id="btn-toggle-comentarios"
-                            class="btn-toggle-comentarios"
-                            data-total-comentarios="${carro.total_comentarios || 0}"
-                            onclick="alternarComentariosProjeto(this)"
-                        >
-                            ${criarTextoToggleComentarios(false, carro.total_comentarios || 0)}
-                        </button>
-
-                        <div class="comentarios-corpo" id="comentarios-corpo">
-                            <div id="lista-comentarios"></div>
-
-                            <textarea id="input-comentario" placeholder="Escreva um comentário..."></textarea>
-                            <button type="button" class="btn-comentar" onclick="enviarComentario(${carro.id})">
-                                Comentar
-                            </button>
-                        </div>
-                    </div>
                 </div>
             `;
 
