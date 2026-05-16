@@ -682,6 +682,7 @@
             const img = carro.foto_url ? `${API_URL}/uploads/${carro.foto_url}` : '';
             const totalCurtidas = carro.total_curtidas || 0;
             const curtido = estaCurtido(carro.curtido_pelo_usuario);
+            const dono = usuarioEDono(carro);
 
             modalContent.innerHTML = `
                 <button type="button" class="modal-fechar" onclick="fecharModalProjeto()">X</button>
@@ -737,6 +738,39 @@
                         </div>
                     ` : ''}
 
+                    <div class="evolucao-container">
+                        <div class="evolucao-header">
+                            <div>
+                                <h3>Diário de evolução</h3>
+                                <span>Últimas atualizações, mudanças e fases do projeto</span>
+                            </div>
+                        </div>
+
+                        ${dono ? `
+                            <form class="evolucao-form" onsubmit="enviarEvolucao(event, ${carro.id})">
+                                <input
+                                    type="text"
+                                    id="input-evolucao-titulo"
+                                    placeholder="Título da atualização"
+                                    maxlength="120"
+                                >
+
+                                <textarea
+                                    id="input-evolucao-descricao"
+                                    placeholder="Conte o que mudou no projeto..."
+                                ></textarea>
+
+                                <button type="submit" class="btn-evolucao">
+                                    Registrar evolução
+                                </button>
+                            </form>
+                        ` : ''}
+
+                        <div id="lista-evolucoes" class="evolucao-lista">
+                            <div class="evolucao-vazio">Carregando evolução do projeto...</div>
+                        </div>
+                    </div>
+
                     <div class="comentarios-container" id="comentarios-container">
                         <div class="comentarios-header">
                             <h3>Comentários</h3>
@@ -766,7 +800,115 @@
                 modalContent.scrollTop = 0;
             });
 
-            setTimeout(() => carregarComentarios(carro.id), 100);
+            setTimeout(() => {
+                carregarEvolucoes(carro.id);
+                carregarComentarios(carro.id);
+            }, 100);
+        }
+
+        async function carregarEvolucoes(carroId) {
+            const lista = document.getElementById('lista-evolucoes');
+
+            if (!lista) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/evolucoes`);
+                const evolucoes = await res.json();
+
+                if (!res.ok) {
+                    lista.innerHTML = '<div class="evolucao-vazio">Não foi possível carregar o diário.</div>';
+                    return;
+                }
+
+                if (!Array.isArray(evolucoes) || evolucoes.length === 0) {
+                    lista.innerHTML = '<div class="evolucao-vazio">Ainda não há atualizações neste projeto.</div>';
+                    return;
+                }
+
+                lista.innerHTML = evolucoes.map(evolucao => {
+                    const descricao = textoFeedbackSeguro(evolucao.descricao).replace(/\n/g, '<br>');
+
+                    return `
+                        <article class="evolucao-item">
+                            <div class="evolucao-ponto"></div>
+
+                            <div class="evolucao-conteudo">
+                                <div class="evolucao-meta">
+                                    <strong>${textoFeedbackSeguro(evolucao.titulo)}</strong>
+                                    <span>${formatarTempoRelativo(evolucao.criado_em)}</span>
+                                </div>
+
+                                <p>${descricao}</p>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                lista.innerHTML = '<div class="evolucao-vazio">Erro ao carregar o diário.</div>';
+                console.error(error);
+            }
+        }
+
+        async function enviarEvolucao(event, carroId) {
+            event.preventDefault();
+
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                mostrarMensagem("Faça login para registrar uma evolução.", "aviso");
+                return;
+            }
+
+            const inputTitulo = document.getElementById('input-evolucao-titulo');
+            const inputDescricao = document.getElementById('input-evolucao-descricao');
+
+            const titulo = inputTitulo.value.trim();
+            const descricao = inputDescricao.value.trim();
+
+            if (!titulo) {
+                mostrarMensagem("Digite um título para a evolução.", "aviso");
+                return;
+            }
+
+            if (!descricao) {
+                mostrarMensagem("Digite uma descrição para a evolução.", "aviso");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/evolucoes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        titulo,
+                        descricao
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    mostrarMensagem(resposta.mensagem || "Evolução registrada com sucesso!", "sucesso");
+
+                    inputTitulo.value = '';
+                    inputDescricao.value = '';
+
+                    carregarEvolucoes(carroId);
+                    return;
+                }
+
+                mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível registrar a evolução."), "erro");
+
+            } catch (error) {
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                console.error(error);
+            }
         }
 
         function restaurarScrollBodySeNaoHouverModalAberto() {
