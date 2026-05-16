@@ -2727,6 +2727,173 @@
                 color: #ff7a84;
             }
 
+            body.tela-projeto-aberta > h1 {
+                display: none;
+            }
+
+            .tela-projeto {
+                max-width: 980px;
+                margin: 0 auto;
+            }
+
+            .pagina-projeto {
+                display: grid;
+                gap: 18px;
+            }
+
+            .pagina-projeto-topbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 4px;
+            }
+
+            .btn-voltar-projeto {
+                width: auto;
+                min-height: 42px;
+                margin: 0;
+                padding: 10px 16px;
+                border-radius: var(--radius-pill);
+                background: rgba(255, 255, 255, 0.045);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+                color: var(--text-main);
+                font-size: 0.76rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: none;
+            }
+
+            .pagina-projeto-badge {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 34px;
+                padding: 7px 12px;
+                border-radius: var(--radius-pill);
+                background: rgba(255, 71, 87, 0.13);
+                border: 1px solid rgba(255, 71, 87, 0.28);
+                color: #ff7a84;
+                font-size: 0.68rem;
+                font-weight: 950;
+                letter-spacing: 0.075em;
+                text-transform: uppercase;
+            }
+
+            .pagina-projeto-hero {
+                overflow: hidden;
+                border: 1px solid var(--border-glass);
+                border-radius: var(--radius-xl);
+                background:
+                    radial-gradient(circle at top left, rgba(255, 71, 87, 0.13), transparent 34%),
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                    rgba(15, 15, 15, 0.96);
+                box-shadow: var(--shadow-premium);
+            }
+
+            .pagina-projeto-img,
+            .pagina-projeto-sem-foto {
+                width: 100%;
+                height: 430px;
+            }
+
+            .pagina-projeto-img {
+                display: block;
+                object-fit: cover;
+                filter: brightness(0.94) contrast(1.1) saturate(1.08);
+            }
+
+            .pagina-projeto-sem-foto {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                color: rgba(255, 255, 255, 0.28);
+                background:
+                    radial-gradient(circle at center, rgba(255, 71, 87, 0.12), transparent 38%),
+                    #050505;
+                font-size: 0.82rem;
+                font-weight: 950;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+            }
+
+            .pagina-projeto-hero-info {
+                padding: 24px;
+            }
+
+            .pagina-projeto-kicker {
+                display: block;
+                margin-bottom: 8px;
+                color: var(--accent);
+                font-size: 0.7rem;
+                font-weight: 950;
+                letter-spacing: 0.12em;
+                text-transform: uppercase;
+            }
+
+            .pagina-projeto-hero-info h2 {
+                margin: 0 0 12px;
+                color: var(--text-main);
+                font-size: clamp(1.8rem, 5vw, 3rem);
+                font-weight: 950;
+                line-height: 1;
+                letter-spacing: -0.06em;
+                text-align: left;
+                text-transform: uppercase;
+            }
+
+            .pagina-projeto-dono {
+                width: auto;
+                min-height: auto;
+                margin: 0;
+                padding: 0;
+                background: transparent;
+                border: 0;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                font-weight: 850;
+                text-align: left;
+                text-transform: none;
+                box-shadow: none;
+            }
+
+            .pagina-projeto-conteudo {
+                display: grid;
+                gap: 18px;
+            }
+
+            .pagina-projeto .modal-ficha {
+                margin: 0;
+            }
+
+            .pagina-projeto-bloco {
+                padding: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: var(--radius-lg);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.035), transparent),
+                    rgba(0, 0, 0, 0.18);
+            }
+
+            .pagina-projeto-bloco h3 {
+                margin: 0 0 10px;
+                color: var(--text-main);
+                font-size: 1rem;
+                font-weight: 950;
+                letter-spacing: -0.02em;
+                text-align: left;
+                text-transform: none;
+            }
+
+            .pagina-projeto-bloco p {
+                margin: 0;
+                color: var(--text-muted);
+                font-size: 0.92rem;
+                line-height: 1.55;
+                text-transform: none;
+            }
+
             .evolucao-container {
                 margin: 22px 0;
                 padding: 16px;
@@ -4571,5 +4738,52 @@
                 .comentarios-corpo {
                     gap: 9px;
                     margin-top: 12px;
+                }
+
+                .tela-projeto {
+                    max-width: 520px;
+                    margin: 0 auto;
+                }
+
+                .pagina-projeto {
+                    gap: 14px;
+                }
+
+                .pagina-projeto-topbar {
+                    align-items: flex-start;
+                }
+
+                .btn-voltar-projeto {
+                    min-height: 40px;
+                    padding: 9px 13px;
+                    font-size: 0.68rem;
+                }
+
+                .pagina-projeto-badge {
+                    min-height: 30px;
+                    padding: 6px 10px;
+                    font-size: 0.6rem;
+                }
+
+                .pagina-projeto-hero {
+                    border-radius: var(--radius-xl);
+                }
+
+                .pagina-projeto-img,
+                .pagina-projeto-sem-foto {
+                    height: 300px;
+                }
+
+                .pagina-projeto-hero-info {
+                    padding: 18px;
+                }
+
+                .pagina-projeto-hero-info h2 {
+                    font-size: 2rem;
+                }
+
+                .pagina-projeto-bloco {
+                    padding: 14px;
+                    border-radius: var(--radius-md);
                 }
             }
