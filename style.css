@@ -4315,7 +4315,7 @@
 
                 .auth-container {
                     width: 100%;
-                    max-width: 390px;
+                    max-width: 380px;
                     margin: 0 auto 30px;
                     box-sizing: border-box;
                 }
@@ -4324,13 +4324,13 @@
                     width: 100%;
                     min-height: auto;
                     grid-template-columns: 1fr;
-                    border-radius: 26px;
+                    border-radius: 24px;
                     box-sizing: border-box;
                 }
 
                 .auth-intro {
                     min-height: auto;
-                    padding: 30px 24px 28px;
+                    padding: 26px 22px 24px;
                     justify-content: flex-start;
                 }
 
@@ -4338,21 +4338,21 @@
                 .auth-modo {
                     margin-bottom: 14px;
                     padding: 7px 11px;
-                    font-size: 0.62rem;
+                    font-size: 0.6rem;
                 }
 
                 .auth-intro h2 {
-                    max-width: 285px;
-                    font-size: clamp(2.35rem, 14vw, 3.15rem);
-                    line-height: 0.9;
-                    letter-spacing: -0.075em;
+                    max-width: 270px;
+                    font-size: clamp(2rem, 11vw, 2.65rem);
+                    line-height: 0.96;
+                    letter-spacing: -0.06em;
                 }
 
                 .auth-intro p {
-                    max-width: 290px;
+                    max-width: 280px;
                     margin-top: 16px;
-                    font-size: 0.88rem;
-                    line-height: 1.5;
+                    font-size: 0.86rem;
+                    line-height: 1.55;
                 }
 
                 .auth-destaques {
@@ -4362,9 +4362,9 @@
                 .auth-painel {
                     width: 100%;
                     margin: 0;
-                    padding: 26px 24px 28px;
+                    padding: 24px 22px 26px;
                     border-width: 1px 0 0;
-                    border-radius: 24px 24px 0 0;
+                    border-radius: 22px 22px 0 0;
                     box-sizing: border-box;
                     background:
                         radial-gradient(circle at top left, rgba(255, 71, 87, 0.08), transparent 34%),
@@ -4373,14 +4373,16 @@
                 }
 
                 .auth-painel h2 {
-                    font-size: 1.42rem;
-                    line-height: 1.05;
+                    max-width: 100%;
+                    font-size: 1.25rem;
+                    line-height: 1.15;
+                    letter-spacing: -0.035em;
                 }
 
                 .auth-subtitulo {
                     margin: 10px 0 20px;
-                    font-size: 0.86rem;
-                    line-height: 1.45;
+                    font-size: 0.84rem;
+                    line-height: 1.5;
                 }
 
                 .auth-area {
@@ -4389,27 +4391,27 @@
 
                 .auth-label {
                     margin-top: 4px;
-                    font-size: 0.66rem;
+                    font-size: 0.64rem;
                 }
 
                 .auth-painel input {
                     width: 100%;
-                    min-height: 50px;
+                    min-height: 48px;
                     margin-bottom: 10px;
                     box-sizing: border-box;
-                    font-size: 0.9rem;
+                    font-size: 0.88rem;
                 }
 
                 .auth-submit {
                     width: 100%;
-                    min-height: 52px;
+                    min-height: 50px;
                     margin-top: 8px;
-                    font-size: 0.78rem;
+                    font-size: 0.76rem;
                 }
 
                 .auth-alternar {
                     margin-top: 18px;
-                    font-size: 0.84rem;
+                    font-size: 0.82rem;
                 }
 
                 .abas-garagem {
@@ -4776,6 +4778,41 @@
                 .garagem-equipe-bloco .garagem-equipe-card,
                 .garagem-completa-lista .garagem-equipe-card {
                     width: 100%;
+                }
+            }
+
+            @media (max-width: 380px) {
+                .auth-container {
+                    width: 100%;
+                }
+
+                .auth-shell {
+                    border-radius: 24px;
+                }
+
+                .auth-intro {
+                    padding: 28px 22px 32px;
+                }
+
+                .auth-intro h2 {
+                    font-size: clamp(2rem, 12.5vw, 2.75rem);
+                }
+
+                .auth-intro p {
+                    font-size: 0.88rem;
+                }
+
+                .auth-painel {
+                    padding: 24px 22px 26px;
+                    border-radius: 24px 24px 0 0;
+                }
+
+                .auth-painel h2 {
+                    font-size: 1.35rem;
+                }
+
+                .auth-submit {
+                    font-size: 0.74rem;
                 }
             }
 
