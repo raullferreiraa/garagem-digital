@@ -5287,6 +5287,31 @@
                     line-height: 1.22;
                 }
 
+                .pagina-projeto .modal-ficha-grupo h3 {
+                    margin-bottom: 12px;
+                    font-size: 0.7rem;
+                    letter-spacing: 0.14em;
+                }
+
+                .pagina-projeto .modal-ficha-lista {
+                    gap: 8px;
+                }
+
+                .pagina-projeto .modal-ficha-item {
+                    background:
+                        linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                        rgba(255, 255, 255, 0.018);
+                }
+
+                .pagina-projeto .modal-ficha-item span {
+                    margin-bottom: 5px;
+                    letter-spacing: 0.1em;
+                }
+
+                .pagina-projeto .modal-ficha-item strong {
+                    font-size: 0.84rem;
+                }
+
                 .pagina-projeto-bloco {
                     padding: 14px;
                     border-radius: 20px;
