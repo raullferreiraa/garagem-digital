@@ -778,6 +778,132 @@ def cadastrar_evolucao_projeto(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/carros/<int:id>/fotos', methods=['GET'])
+def listar_fotos_projeto(id):
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute("SELECT id FROM carros WHERE id = %s", (id,))
+        carro = cursor.fetchone()
+
+        if not carro:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Projeto não encontrado."}), 404
+
+        cursor.execute(
+            """
+            SELECT
+                id,
+                carro_id,
+                usuario_id,
+                imagem_url,
+                legenda,
+                criado_em
+            FROM fotos_projeto
+            WHERE carro_id = %s
+            ORDER BY criado_em DESC, id DESC
+            """,
+            (id,)
+        )
+
+        fotos = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(fotos), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/carros/<int:id>/fotos', methods=['POST'])
+def cadastrar_foto_projeto(id):
+    usuario_id = str(request.form.get('usuario_id', '')).strip()
+    legenda = str(request.form.get('legenda', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if len(legenda) > 120:
+        return jsonify({"erro": "A legenda deve ter no máximo 120 caracteres."}), 400
+
+    foto = request.files.get('foto')
+
+    if not foto or foto.filename == "":
+        return jsonify({"erro": "Escolha uma imagem para adicionar à galeria."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            SELECT id, usuario_id
+            FROM carros
+            WHERE id = %s
+            """,
+            (id,)
+        )
+
+        carro = cursor.fetchone()
+
+        if not carro:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Projeto não encontrado."}), 404
+
+        if str(carro['usuario_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para adicionar fotos neste projeto."}), 403
+
+        nome_foto = salvar_imagem(foto)
+
+        cursor.execute(
+            """
+            INSERT INTO fotos_projeto (carro_id, usuario_id, imagem_url, legenda)
+            VALUES (%s, %s, %s, %s)
+            """,
+            (
+                id,
+                usuario_id,
+                nome_foto,
+                legenda if legenda else None
+            )
+        )
+
+        conexao.commit()
+
+        foto_id = cursor.lastrowid
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({
+            "mensagem": "Foto adicionada à galeria!",
+            "foto": {
+                "id": foto_id,
+                "carro_id": id,
+                "usuario_id": usuario_id,
+                "imagem_url": nome_foto,
+                "legenda": legenda
+            }
+        }), 201
+
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def buscar_usuario(id):
     usuario_logado_id = request.args.get('usuario_logado_id')

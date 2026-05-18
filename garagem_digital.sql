@@ -14,6 +14,7 @@ DROP TABLE IF EXISTS seguidores;
 DROP TABLE IF EXISTS evolucoes_projeto;
 DROP TABLE IF EXISTS comentarios;
 DROP TABLE IF EXISTS curtidas;
+DROP TABLE IF EXISTS fotos_projeto;
 DROP TABLE IF EXISTS carros;
 DROP TABLE IF EXISTS usuarios;
 
@@ -53,6 +54,24 @@ CREATE TABLE carros (
     CONSTRAINT fk_carros_usuarios
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
         ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE fotos_projeto (
+    id INT NOT NULL AUTO_INCREMENT,
+    carro_id INT NOT NULL,
+    usuario_id INT NOT NULL,
+    imagem_url VARCHAR(255) NOT NULL,
+    legenda VARCHAR(120),
+    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_fotos_projeto_carro (carro_id),
+    KEY idx_fotos_projeto_usuario (usuario_id),
+    CONSTRAINT fk_fotos_projeto_carros
+        FOREIGN KEY (carro_id) REFERENCES carros(id)
+        ON DELETE CASCADE,
+    CONSTRAINT fk_fotos_projeto_usuarios
+        FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+        ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 CREATE TABLE curtidas (
