@@ -2965,7 +2965,7 @@
                 align-items: center;
                 justify-content: space-between;
                 gap: 12px;
-                margin-bottom: 2px;
+                width: 100%;
             }
 
             .btn-voltar-projeto {
@@ -3005,6 +3005,9 @@
                 font-weight: 950;
                 letter-spacing: 0.075em;
                 text-transform: uppercase;
+                white-space: nowrap;
+                flex-shrink: 0;
+                margin-right: 140px;
             }
 
             .pagina-projeto-hero {
@@ -3098,6 +3101,60 @@
             }
 
             .pagina-projeto-conteudo {
+                display: grid;
+                gap: 18px;
+            }
+
+            .pagina-projeto-tabs {
+                position: sticky;
+                top: 12px;
+                z-index: 5;
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
+                padding: 6px;
+                border: 1px solid rgba(255, 255, 255, 0.085);
+                border-radius: var(--radius-xl);
+                background:
+                    linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
+                    rgba(12, 12, 12, 0.92);
+                box-shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
+                backdrop-filter: blur(14px);
+            }
+
+            .pagina-projeto-tab {
+                min-height: 42px;
+                margin: 0;
+                padding: 10px 8px;
+                border-radius: var(--radius-pill);
+                background: transparent;
+                border: 1px solid transparent;
+                color: var(--text-muted);
+                font-size: 0.72rem;
+                font-weight: 950;
+                letter-spacing: 0.055em;
+                text-transform: uppercase;
+                box-shadow: none;
+            }
+
+            .pagina-projeto-tab:hover {
+                background: rgba(255, 255, 255, 0.045);
+                border-color: rgba(255, 255, 255, 0.1);
+                color: var(--text-main);
+                transform: none;
+            }
+
+            .pagina-projeto-tab.ativo {
+                background: rgba(255, 71, 87, 0.14);
+                border-color: rgba(255, 71, 87, 0.42);
+                color: #ff7a84;
+            }
+
+            .pagina-projeto-painel {
+                display: none;
+            }
+
+            .pagina-projeto-painel.ativo {
                 display: grid;
                 gap: 18px;
             }
@@ -5158,6 +5215,24 @@
                 }
 
                 .pagina-projeto-conteudo {
+                    gap: 14px;
+                }
+
+                .pagina-projeto-tabs {
+                    top: 10px;
+                    gap: 5px;
+                    padding: 5px;
+                    border-radius: var(--radius-lg);
+                }
+
+                .pagina-projeto-tab {
+                    min-height: 40px;
+                    padding: 9px 6px;
+                    font-size: 0.62rem;
+                    letter-spacing: 0.04em;
+                }
+
+                .pagina-projeto-painel.ativo {
                     gap: 14px;
                 }
 

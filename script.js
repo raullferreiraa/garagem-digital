@@ -842,13 +842,33 @@
             botao.innerText = criarTextoToggleComentarios(abrir, total);
         }
 
-        function criarBlocoComentariosProjeto(carro) {
+        function alternarAbaProjeto(aba) {
+            const tela = document.getElementById('tela-projeto');
+
+            if (!tela) {
+                return;
+            }
+
+            tela.querySelectorAll('.pagina-projeto-tab').forEach(botao => {
+                const ativo = botao.dataset.aba === aba;
+
+                botao.classList.toggle('ativo', ativo);
+                botao.setAttribute('aria-selected', ativo ? 'true' : 'false');
+            });
+
+            tela.querySelectorAll('.pagina-projeto-painel').forEach(painel => {
+                painel.classList.toggle('ativo', painel.dataset.painel === aba);
+            });
+        }
+
+        function criarBlocoComentariosProjeto(carro, aberto = false) {
             const totalCurtidas = carro.total_curtidas || 0;
             const curtido = estaCurtido(carro.curtido_pelo_usuario);
             const totalComentarios = carro.total_comentarios || 0;
+            const classeEstado = aberto ? 'comentarios-abertos' : 'comentarios-recolhidos';
 
             return `
-                <div class="comentarios-container comentarios-recolhidos" id="comentarios-container">
+                <div class="comentarios-container ${classeEstado}" id="comentarios-container">
                     <div class="comentarios-header comentarios-header-recolhido">
                         <div>
                             <h3>Comentários</h3>
@@ -869,7 +889,7 @@
                         data-total-comentarios="${totalComentarios}"
                         onclick="alternarComentariosProjeto(this)"
                     >
-                        ${criarTextoToggleComentarios(false, totalComentarios)}
+                        ${criarTextoToggleComentarios(aberto, totalComentarios)}
                     </button>
 
                     <div class="comentarios-corpo" id="comentarios-corpo">
@@ -1009,28 +1029,65 @@
                     </section>
 
                     <div class="pagina-projeto-conteudo">
-                        ${criarHtmlFichaProjeto(carro)}
+                        <nav class="pagina-projeto-tabs" aria-label="Navegação do projeto">
+                            <button
+                                type="button"
+                                class="pagina-projeto-tab ativo"
+                                data-aba="visao-geral"
+                                aria-selected="true"
+                                onclick="alternarAbaProjeto('visao-geral')"
+                            >
+                                Visão geral
+                            </button>
 
-                        <section class="pagina-projeto-bloco">
-                            <h3>História do projeto</h3>
-                            <p>${historia ? textoFeedbackSeguro(historia) : 'Ainda não adicionada.'}</p>
+                            <button
+                                type="button"
+                                class="pagina-projeto-tab"
+                                data-aba="diario"
+                                aria-selected="false"
+                                onclick="alternarAbaProjeto('diario')"
+                            >
+                                Diário
+                            </button>
+
+                            <button
+                                type="button"
+                                class="pagina-projeto-tab"
+                                data-aba="comentarios"
+                                aria-selected="false"
+                                onclick="alternarAbaProjeto('comentarios')"
+                            >
+                                Comentários
+                            </button>
+                        </nav>
+
+                        <section class="pagina-projeto-painel ativo" data-painel="visao-geral">
+                            ${criarHtmlFichaProjeto(carro)}
+
+                            <section class="pagina-projeto-bloco">
+                                <h3>História do projeto</h3>
+                                <p>${historia ? textoFeedbackSeguro(historia) : 'Ainda não adicionada.'}</p>
+                            </section>
                         </section>
 
-                        <section class="pagina-projeto-bloco">
-                            <div class="evolucao-header">
-                                <div>
-                                    <h3>Diário de evolução</h3>
-                                    <span>Últimas atualizações, mudanças e fases do projeto</span>
+                        <section class="pagina-projeto-painel" data-painel="diario">
+                            <section class="pagina-projeto-bloco">
+                                <div class="evolucao-header">
+                                    <div>
+                                        <h3>Diário de evolução</h3>
+                                        <span>Últimas atualizações, mudanças e fases do projeto</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div id="lista-evolucoes-tela" class="evolucao-lista">
-                                <div class="evolucao-vazio">Carregando evolução do projeto...</div>
-                            </div>
+                                <div id="lista-evolucoes-tela" class="evolucao-lista">
+                                    <div class="evolucao-vazio">Carregando evolução do projeto...</div>
+                                </div>
+                            </section>
                         </section>
 
-                        ${criarBlocoComentariosProjeto(carro)}
-
+                        <section class="pagina-projeto-painel" data-painel="comentarios">
+                            ${criarBlocoComentariosProjeto(carro, true)}
+                        </section>
                     </div>
                 </div>
             `;
