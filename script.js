@@ -1043,6 +1043,16 @@
                             <button
                                 type="button"
                                 class="pagina-projeto-tab"
+                                data-aba="galeria"
+                                aria-selected="false"
+                                onclick="alternarAbaProjeto('galeria')"
+                            >
+                                Galeria
+                            </button>
+
+                            <button
+                                type="button"
+                                class="pagina-projeto-tab"
                                 data-aba="diario"
                                 aria-selected="false"
                                 onclick="alternarAbaProjeto('diario')"
@@ -1067,6 +1077,47 @@
                             <section class="pagina-projeto-bloco">
                                 <h3>História do projeto</h3>
                                 <p>${historia ? textoFeedbackSeguro(historia) : 'Ainda não adicionada.'}</p>
+                            </section>
+                        </section>
+
+                        <section class="pagina-projeto-painel" data-painel="galeria">
+                            <section class="pagina-projeto-bloco galeria-projeto-bloco">
+                                <div class="galeria-projeto-header">
+                                    <div>
+                                        <h3>Galeria do projeto</h3>
+                                        <span>Fotos extras, detalhes e registros visuais da garagem</span>
+                                    </div>
+                                </div>
+
+                                ${dono ? `
+                                    <form class="galeria-projeto-form" onsubmit="enviarFotoGaleria(event, ${carro.id})">
+                                        <label class="upload-container">
+                                            <span class="upload-btn">Escolher foto</span>
+                                            <span class="upload-nome" id="galeria-foto-nome">Nenhum arquivo</span>
+
+                                            <input
+                                                type="file"
+                                                id="galeria-foto-input"
+                                                accept="image/png, image/jpeg, image/webp"
+                                            >
+                                        </label>
+
+                                        <input
+                                            type="text"
+                                            id="galeria-legenda-input"
+                                            placeholder="Legenda opcional"
+                                            maxlength="120"
+                                        >
+
+                                        <button type="submit" class="btn-galeria-projeto">
+                                            Adicionar à galeria
+                                        </button>
+                                    </form>
+                                ` : ''}
+
+                                <div id="galeria-projeto-lista" class="galeria-projeto-lista">
+                                    <div class="galeria-projeto-vazio">Carregando galeria...</div>
+                                </div>
                             </section>
                         </section>
 
@@ -1106,6 +1157,7 @@
             });
 
             setTimeout(() => {
+                carregarGaleriaProjeto(carro.id, dono);
                 carregarEvolucoes(carro.id, 'lista-evolucoes-tela');
                 carregarComentarios(carro.id);
             }, 100);
@@ -1131,6 +1183,148 @@
                 left: 0,
                 behavior: 'auto'
             });
+        }
+
+        async function carregarGaleriaProjeto(carroId, dono = false) {
+            const lista = document.getElementById('galeria-projeto-lista');
+
+            if (!lista) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/fotos`);
+                const fotos = await res.json();
+
+                if (!res.ok) {
+                    console.error("Erro ao carregar galeria:", fotos);
+                    lista.innerHTML = '<div class="galeria-projeto-vazio">Não foi possível carregar a galeria.</div>';
+                    return;
+                }
+
+                if (!Array.isArray(fotos) || fotos.length === 0) {
+                    lista.innerHTML = dono
+                        ? '<div class="galeria-projeto-vazio">Sua galeria ainda está vazia. Adicione fotos extras do projeto.</div>'
+                        : '<div class="galeria-projeto-vazio">Este projeto ainda não tem fotos na galeria.</div>';
+
+                    return;
+                }
+
+                lista.innerHTML = fotos.map(foto => {
+                    const src = foto.imagem_url ? `${API_URL}/uploads/${foto.imagem_url}` : '';
+                    const legenda = String(foto.legenda || '').trim();
+
+                    return `
+                        <article class="galeria-projeto-card">
+                            ${src
+                                ? `<img src="${src}" alt="Foto da galeria do projeto">`
+                                : '<div class="galeria-projeto-sem-foto">Sem foto</div>'
+                            }
+
+                            <div class="galeria-projeto-info">
+                                <strong>${legenda ? textoFeedbackSeguro(legenda) : 'Registro do projeto'}</strong>
+                                <span>${formatarTempoRelativo(foto.criado_em)}</span>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                lista.innerHTML = '<div class="galeria-projeto-vazio">Erro ao carregar a galeria.</div>';
+                console.error("Falha inesperada ao carregar galeria:", error);
+            }
+        }
+
+
+        async function enviarFotoGaleria(event, carroId) {
+            event.preventDefault();
+
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                mostrarMensagem("Faça login para adicionar fotos à galeria.", "aviso");
+                return;
+            }
+
+            const inputFoto = document.getElementById('galeria-foto-input');
+            const inputLegenda = document.getElementById('galeria-legenda-input');
+            const botao = event.target.querySelector('button[type="submit"]');
+
+            const foto = inputFoto && inputFoto.files.length > 0
+                ? inputFoto.files[0]
+                : null;
+
+            const legenda = inputLegenda ? inputLegenda.value.trim() : '';
+
+            if (!foto) {
+                mostrarMensagem("Escolha uma foto para adicionar à galeria.", "aviso");
+                return;
+            }
+
+            const tamanhoMaximoImagem = 5 * 1024 * 1024;
+            const formatosPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
+            const extensoesPermitidas = ['png', 'jpg', 'jpeg', 'webp'];
+            const extensao = foto.name.split('.').pop().toLowerCase();
+
+            if (
+                !formatosPermitidos.includes(foto.type) ||
+                !extensoesPermitidas.includes(extensao)
+            ) {
+                mostrarMensagem("Formato de imagem inválido. Use PNG, JPG, JPEG ou WEBP.", "aviso");
+                return;
+            }
+
+            if (foto.size > tamanhoMaximoImagem) {
+                mostrarMensagem("Imagem muito pesada. Envie uma imagem com no máximo 5 MB.", "aviso");
+                return;
+            }
+
+            const formData = new FormData();
+
+            formData.append('usuario_id', usuario.id);
+            formData.append('foto', foto);
+            formData.append('legenda', legenda);
+
+            try {
+                if (botao) {
+                    botao.disabled = true;
+                    botao.innerText = "Adicionando...";
+                }
+
+                const res = await fetch(`${API_URL}/carros/${carroId}/fotos`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    mostrarMensagem(resposta.mensagem || "Foto adicionada à galeria!", "sucesso");
+
+                    event.target.reset();
+
+                    const nomeArquivo = document.getElementById('galeria-foto-nome');
+
+                    if (nomeArquivo) {
+                        nomeArquivo.textContent = "Nenhum arquivo";
+                    }
+
+                    carregarGaleriaProjeto(carroId, true);
+                    return;
+                }
+
+                mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível adicionar a foto."), "erro");
+
+            } catch (error) {
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                console.error(error);
+
+            } finally {
+                if (botao) {
+                    botao.disabled = false;
+                    botao.innerText = "Adicionar à galeria";
+                }
+            }
         }
 
         async function carregarEvolucoes(carroId, listaId = 'lista-evolucoes') {
@@ -3077,6 +3271,18 @@
 
             if (e.target.id === 'input-foto') {
                 const nome = document.getElementById('carro-foto-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+
+            if (e.target.id === 'galeria-foto-input') {
+                const nome = document.getElementById('galeria-foto-nome');
 
                 if (!nome) {
                     return;
