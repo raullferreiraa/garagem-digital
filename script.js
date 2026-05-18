@@ -332,6 +332,46 @@
             feedback.style.display = 'none';
         }
 
+        function configurarInteracoesAuth() {
+            const camposLogin = [
+                document.getElementById('login-email'),
+                document.getElementById('login-senha')
+            ].filter(Boolean);
+
+            const camposCadastro = [
+                document.getElementById('cadastro-nome'),
+                document.getElementById('cadastro-username'),
+                document.getElementById('cadastro-email'),
+                document.getElementById('cadastro-senha')
+            ].filter(Boolean);
+
+            [...camposLogin, ...camposCadastro].forEach(campo => {
+                campo.addEventListener('input', limparFeedbackAuth);
+            });
+
+            camposLogin.forEach(campo => {
+                campo.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter') {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    loginUsuario();
+                });
+            });
+
+            camposCadastro.forEach(campo => {
+                campo.addEventListener('keydown', event => {
+                    if (event.key !== 'Enter') {
+                        return;
+                    }
+
+                    event.preventDefault();
+                    cadastrarUsuario();
+                });
+            });
+        }
+
         function mostrarLogin() {
             document.getElementById('area-login').style.display = "grid";
             document.getElementById('area-cadastro').style.display = "none";
@@ -3244,4 +3284,5 @@
             }
         }
 
+        configurarInteracoesAuth();
         atualizarTelaUsuario();
