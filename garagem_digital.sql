@@ -110,6 +110,7 @@ CREATE TABLE evolucoes_projeto (
     usuario_id INT NOT NULL,
     titulo VARCHAR(120) NOT NULL,
     descricao TEXT NOT NULL,
+    imagem_url VARCHAR(255),
     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_evolucoes_carro (carro_id),
