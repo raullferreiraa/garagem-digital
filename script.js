@@ -1224,6 +1224,16 @@
                             <div class="galeria-projeto-info">
                                 <strong>${legenda ? textoFeedbackSeguro(legenda) : 'Registro do projeto'}</strong>
                                 <span>${formatarTempoRelativo(foto.criado_em)}</span>
+
+                                ${dono ? `
+                                    <button
+                                        type="button"
+                                        class="btn-remover-foto-galeria"
+                                        onclick="removerFotoGaleria(${carroId}, ${foto.id})"
+                                    >
+                                        Remover foto
+                                    </button>
+                                ` : ''}
                             </div>
                         </article>
                     `;
@@ -1324,6 +1334,41 @@
                     botao.disabled = false;
                     botao.innerText = "Adicionar à galeria";
                 }
+            }
+        }
+
+        async function removerFotoGaleria(carroId, fotoId) {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                mostrarMensagem("Faça login para remover fotos da galeria.", "aviso");
+                return;
+            }
+
+            const confirmar = confirm("Remover esta foto da galeria?");
+
+            if (!confirmar) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/fotos/${fotoId}?usuario_id=${usuario.id}`, {
+                    method: 'DELETE'
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    mostrarMensagem(resposta.mensagem || "Foto removida da galeria.", "sucesso");
+                    carregarGaleriaProjeto(carroId, true);
+                    return;
+                }
+
+                mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível remover a foto."), "erro");
+
+            } catch (error) {
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                console.error(error);
             }
         }
 
