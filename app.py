@@ -904,6 +904,71 @@ def cadastrar_foto_projeto(id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/carros/<int:id>/fotos/<int:foto_id>', methods=['DELETE'])
+def remover_foto_projeto(id, foto_id):
+    usuario_id = str(request.args.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            SELECT
+                fp.id,
+                fp.imagem_url,
+                c.usuario_id AS dono_id
+            FROM fotos_projeto fp
+            INNER JOIN carros c ON c.id = fp.carro_id
+            WHERE fp.id = %s AND fp.carro_id = %s
+            """,
+            (foto_id, id)
+        )
+
+        foto = cursor.fetchone()
+
+        if not foto:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Foto não encontrada."}), 404
+
+        if str(foto['dono_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para remover esta foto."}), 403
+
+        cursor.execute(
+            "DELETE FROM fotos_projeto WHERE id = %s AND carro_id = %s",
+            (foto_id, id)
+        )
+
+        conexao.commit()
+
+        imagem_url = foto.get('imagem_url')
+
+        cursor.close()
+        conexao.close()
+
+        if imagem_url:
+            pasta_uploads = os.path.abspath(app.config['UPLOAD_FOLDER'])
+            caminho_arquivo = os.path.abspath(os.path.join(pasta_uploads, imagem_url))
+
+            if caminho_arquivo.startswith(pasta_uploads + os.sep) and os.path.exists(caminho_arquivo):
+                os.remove(caminho_arquivo)
+
+        return jsonify({"mensagem": "Foto removida da galeria."}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/usuarios/<int:id>', methods=['GET'])
 def buscar_usuario(id):
     usuario_logado_id = request.args.get('usuario_logado_id')

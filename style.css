@@ -3307,6 +3307,28 @@
                 text-transform: uppercase;
             }
 
+            .btn-remover-foto-galeria {
+                width: fit-content;
+                min-height: auto;
+                margin: 6px 0 0;
+                padding: 7px 10px;
+                border: 1px solid rgba(255, 71, 87, 0.28);
+                border-radius: var(--radius-pill);
+                background: rgba(255, 71, 87, 0.08);
+                color: #ff7a84;
+                font-size: 0.62rem;
+                font-weight: 950;
+                letter-spacing: 0.075em;
+                text-transform: uppercase;
+                box-shadow: none;
+            }
+
+            .btn-remover-foto-galeria:hover {
+                transform: none;
+                border-color: rgba(255, 71, 87, 0.48);
+                background: rgba(255, 71, 87, 0.14);
+            }
+
             .galeria-projeto-vazio {
                 padding: 13px;
                 border: 1px dashed rgba(255, 255, 255, 0.11);
