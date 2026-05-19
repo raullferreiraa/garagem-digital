@@ -963,6 +963,17 @@
                                     placeholder="Conte o que mudou no projeto..."
                                 ></textarea>
 
+                                <label class="upload-container evolucao-upload-container">
+                                    <span class="upload-btn">Escolher imagem</span>
+                                    <span class="upload-nome" id="evolucao-imagem-nome">Nenhum arquivo</span>
+
+                                    <input
+                                        type="file"
+                                        id="input-evolucao-imagem"
+                                        accept="image/png, image/jpeg, image/webp"
+                                    >
+                                </label>
+
                                 <button type="submit" class="btn-evolucao">
                                     Registrar evolução
                                 </button>
@@ -1131,6 +1142,37 @@
                                         <span>Últimas atualizações, mudanças e fases do projeto</span>
                                     </div>
                                 </div>
+
+                                ${dono ? `
+                                    <form class="evolucao-form" onsubmit="enviarEvolucao(event, ${carro.id}, 'lista-evolucoes-tela')">
+                                        <input
+                                            type="text"
+                                            id="input-evolucao-titulo"
+                                            placeholder="Título da atualização"
+                                            maxlength="120"
+                                        >
+
+                                        <textarea
+                                            id="input-evolucao-descricao"
+                                            placeholder="Conte o que mudou no projeto..."
+                                        ></textarea>
+
+                                        <label class="upload-container evolucao-upload-container">
+                                            <span class="upload-btn">Escolher imagem</span>
+                                            <span class="upload-nome" id="evolucao-imagem-nome">Nenhum arquivo</span>
+
+                                            <input
+                                                type="file"
+                                                id="input-evolucao-imagem"
+                                                accept="image/png, image/jpeg, image/webp"
+                                            >
+                                        </label>
+
+                                        <button type="submit" class="btn-evolucao">
+                                            Registrar evolução
+                                        </button>
+                                    </form>
+                                ` : ''}
 
                                 <div id="lista-evolucoes-tela" class="evolucao-lista">
                                     <div class="evolucao-vazio">Carregando evolução do projeto...</div>
@@ -1397,6 +1439,7 @@
 
                 lista.innerHTML = evolucoes.map(evolucao => {
                     const descricao = textoFeedbackSeguro(evolucao.descricao).replace(/\n/g, '<br>');
+                    const imagem = evolucao.imagem_url ? `${API_URL}/uploads/${evolucao.imagem_url}` : '';
 
                     return `
                         <article class="evolucao-item">
@@ -1407,6 +1450,14 @@
                                     <strong>${textoFeedbackSeguro(evolucao.titulo)}</strong>
                                     <span>${formatarTempoRelativo(evolucao.criado_em)}</span>
                                 </div>
+
+                                ${imagem ? `
+                                    <img
+                                        src="${imagem}"
+                                        alt="Imagem da evolução do projeto"
+                                        class="evolucao-imagem"
+                                    >
+                                ` : ''}
 
                                 <p>${descricao}</p>
                             </div>
@@ -1420,7 +1471,7 @@
             }
         }
 
-        async function enviarEvolucao(event, carroId) {
+        async function enviarEvolucao(event, carroId, listaId = 'lista-evolucoes') {
             event.preventDefault();
 
             const usuario = getUsuarioLogado();
@@ -1432,9 +1483,13 @@
 
             const inputTitulo = document.getElementById('input-evolucao-titulo');
             const inputDescricao = document.getElementById('input-evolucao-descricao');
+            const inputImagem = document.getElementById('input-evolucao-imagem');
 
             const titulo = inputTitulo.value.trim();
             const descricao = inputDescricao.value.trim();
+            const imagem = inputImagem && inputImagem.files.length > 0
+                ? inputImagem.files[0]
+                : null;
 
             if (!titulo) {
                 mostrarMensagem("Digite um título para a evolução.", "aviso");
@@ -1446,17 +1501,40 @@
                 return;
             }
 
+            if (imagem) {
+                const tamanhoMaximoImagem = 5 * 1024 * 1024;
+                const formatosPermitidos = ['image/png', 'image/jpeg', 'image/webp'];
+                const extensoesPermitidas = ['png', 'jpg', 'jpeg', 'webp'];
+                const extensao = imagem.name.split('.').pop().toLowerCase();
+
+                if (
+                    !formatosPermitidos.includes(imagem.type) ||
+                    !extensoesPermitidas.includes(extensao)
+                ) {
+                    mostrarMensagem("Formato de imagem inválido. Use PNG, JPG, JPEG ou WEBP.", "aviso");
+                    return;
+                }
+
+                if (imagem.size > tamanhoMaximoImagem) {
+                    mostrarMensagem("Imagem muito pesada. Envie uma imagem com no máximo 5 MB.", "aviso");
+                    return;
+                }
+            }
+
+            const formData = new FormData();
+
+            formData.append('usuario_id', usuario.id);
+            formData.append('titulo', titulo);
+            formData.append('descricao', descricao);
+
+            if (imagem) {
+                formData.append('imagem', imagem);
+            }
+
             try {
                 const res = await fetch(`${API_URL}/carros/${carroId}/evolucoes`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        usuario_id: usuario.id,
-                        titulo,
-                        descricao
-                    })
+                    body: formData
                 });
 
                 const resposta = await res.json();
@@ -1467,7 +1545,17 @@
                     inputTitulo.value = '';
                     inputDescricao.value = '';
 
-                    carregarEvolucoes(carroId);
+                    if (inputImagem) {
+                        inputImagem.value = '';
+                    }
+
+                    const nomeImagem = document.getElementById('evolucao-imagem-nome');
+
+                    if (nomeImagem) {
+                        nomeImagem.textContent = 'Nenhum arquivo';
+                    }
+
+                    carregarEvolucoes(carroId, listaId);
                     return;
                 }
 
@@ -3330,6 +3418,18 @@
 
             if (e.target.id === 'galeria-foto-input') {
                 const nome = document.getElementById('galeria-foto-nome');
+
+                if (!nome) {
+                    return;
+                }
+
+                nome.textContent = e.target.files.length > 0
+                    ? e.target.files[0].name
+                    : "Nenhum arquivo";
+            }
+
+            if (e.target.id === 'input-evolucao-imagem') {
+                const nome = document.getElementById('evolucao-imagem-nome');
 
                 if (!nome) {
                     return;

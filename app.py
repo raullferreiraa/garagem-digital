@@ -687,6 +687,7 @@ def listar_evolucoes_projeto(id):
                 e.usuario_id,
                 e.titulo,
                 e.descricao,
+                e.imagem_url,
                 e.criado_em,
                 u.nome AS nome_usuario,
                 u.username AS username_usuario
@@ -712,7 +713,12 @@ def listar_evolucoes_projeto(id):
 
 @app.route('/carros/<int:id>/evolucoes', methods=['POST'])
 def cadastrar_evolucao_projeto(id):
-    dados = request.get_json(silent=True) or {}
+    if request.content_type and request.content_type.startswith('multipart/form-data'):
+        dados = request.form
+        imagem = request.files.get('imagem')
+    else:
+        dados = request.get_json(silent=True) or {}
+        imagem = None
 
     usuario_id = str(dados.get('usuario_id', '')).strip()
     titulo = str(dados.get('titulo', '')).strip()
@@ -760,12 +766,17 @@ def cadastrar_evolucao_projeto(id):
             conexao.close()
             return jsonify({"erro": "Você não tem permissão para atualizar este projeto."}), 403
 
+        imagem_url = None
+
+        if imagem and imagem.filename != "":
+            imagem_url = salvar_imagem(imagem)
+
         cursor.execute(
             """
-            INSERT INTO evolucoes_projeto (carro_id, usuario_id, titulo, descricao)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO evolucoes_projeto (carro_id, usuario_id, titulo, descricao, imagem_url)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (id, usuario_id, titulo, descricao)
+            (id, usuario_id, titulo, descricao, imagem_url)
         )
 
         conexao.commit()

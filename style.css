@@ -3392,6 +3392,12 @@
                 background: rgba(0, 0, 0, 0.24);
                 border-color: rgba(255, 255, 255, 0.1);
                 font-size: 0.82rem;
+                text-transform: none;
+            }
+
+            .evolucao-form input::placeholder,
+            .evolucao-form textarea::placeholder {
+                text-transform: none;
             }
 
             .evolucao-form textarea {
@@ -3457,6 +3463,16 @@
                 font-weight: 850;
                 white-space: nowrap;
                 text-transform: uppercase;
+            }
+
+            .evolucao-imagem {
+                display: block;
+                width: min(100%, 620px);
+                max-height: 260px;
+                margin-bottom: 10px;
+                border-radius: 14px;
+                object-fit: cover;
+                border: 1px solid rgba(255, 255, 255, 0.075);
             }
 
             .evolucao-conteudo p {
@@ -5527,5 +5543,10 @@
 
                 .pagina-projeto .galeria-projeto-info {
                     padding: 10px;
+                }
+
+                .pagina-projeto .evolucao-imagem {
+                    width: 100%;
+                    max-height: 230px;
                 }
             }
