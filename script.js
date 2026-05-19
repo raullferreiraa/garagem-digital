@@ -478,6 +478,8 @@
         }
 
         function sair() {
+            fecharTelaProjeto();
+
             localStorage.removeItem('usuarioLogado');
             resetarFormulario();
             atualizarTelaUsuario();
