@@ -786,6 +786,147 @@ def cadastrar_evolucao_projeto(id):
 
         return jsonify({"mensagem": "Evolução registrada com sucesso!"}), 201
 
+    except ValueError as e:
+        return jsonify({"erro": str(e)}), 400
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+@app.route('/carros/<int:id>/evolucoes/<int:evolucao_id>', methods=['PUT'])
+def editar_evolucao_projeto(id, evolucao_id):
+    dados = request.get_json(silent=True) or {}
+
+    usuario_id = str(dados.get('usuario_id', '')).strip()
+    titulo = str(dados.get('titulo', '')).strip()
+    descricao = str(dados.get('descricao', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    if not titulo:
+        return jsonify({"erro": "Digite um título para a evolução."}), 400
+
+    if not descricao:
+        return jsonify({"erro": "Digite uma descrição para a evolução."}), 400
+
+    if len(titulo) > 120:
+        return jsonify({"erro": "O título deve ter no máximo 120 caracteres."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            SELECT
+                e.id,
+                c.usuario_id AS dono_id
+            FROM evolucoes_projeto e
+            INNER JOIN carros c ON c.id = e.carro_id
+            WHERE e.id = %s AND e.carro_id = %s
+            """,
+            (evolucao_id, id)
+        )
+
+        evolucao = cursor.fetchone()
+
+        if not evolucao:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Evolução não encontrada."}), 404
+
+        if str(evolucao['dono_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para editar esta evolução."}), 403
+
+        cursor.execute(
+            """
+            UPDATE evolucoes_projeto
+            SET titulo = %s, descricao = %s
+            WHERE id = %s AND carro_id = %s
+            """,
+            (titulo, descricao, evolucao_id, id)
+        )
+
+        conexao.commit()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify({"mensagem": "Evolução atualizada com sucesso!"}), 200
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
+
+@app.route('/carros/<int:id>/evolucoes/<int:evolucao_id>', methods=['DELETE'])
+def remover_evolucao_projeto(id, evolucao_id):
+    usuario_id = str(request.args.get('usuario_id', '')).strip()
+
+    if not usuario_id:
+        return jsonify({"erro": "Usuário não informado."}), 400
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        if not usuario_existe(cursor, usuario_id):
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Usuário inválido."}), 403
+
+        cursor.execute(
+            """
+            SELECT
+                e.id,
+                e.imagem_url,
+                c.usuario_id AS dono_id
+            FROM evolucoes_projeto e
+            INNER JOIN carros c ON c.id = e.carro_id
+            WHERE e.id = %s AND e.carro_id = %s
+            """,
+            (evolucao_id, id)
+        )
+
+        evolucao = cursor.fetchone()
+
+        if not evolucao:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Evolução não encontrada."}), 404
+
+        if str(evolucao['dono_id']) != usuario_id:
+            cursor.close()
+            conexao.close()
+            return jsonify({"erro": "Você não tem permissão para remover esta evolução."}), 403
+
+        cursor.execute(
+            "DELETE FROM evolucoes_projeto WHERE id = %s AND carro_id = %s",
+            (evolucao_id, id)
+        )
+
+        conexao.commit()
+
+        imagem_url = evolucao.get('imagem_url')
+
+        cursor.close()
+        conexao.close()
+
+        if imagem_url:
+            pasta_uploads = os.path.abspath(app.config['UPLOAD_FOLDER'])
+            caminho_arquivo = os.path.abspath(os.path.join(pasta_uploads, imagem_url))
+
+            if caminho_arquivo.startswith(pasta_uploads + os.sep) and os.path.exists(caminho_arquivo):
+                os.remove(caminho_arquivo)
+
+        return jsonify({"mensagem": "Evolução removida do diário."}), 200
+
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 

@@ -1416,6 +1416,8 @@
             }
         }
 
+        const evolucoesDiarioCache = {};
+
         async function carregarEvolucoes(carroId, listaId = 'lista-evolucoes') {
             const lista = document.getElementById(listaId);
 
@@ -1437,9 +1439,14 @@
                     return;
                 }
 
+                const usuario = getUsuarioLogado();
+
                 lista.innerHTML = evolucoes.map(evolucao => {
+                    evolucoesDiarioCache[evolucao.id] = evolucao;
+
                     const descricao = textoFeedbackSeguro(evolucao.descricao).replace(/\n/g, '<br>');
                     const imagem = evolucao.imagem_url ? `${API_URL}/uploads/${evolucao.imagem_url}` : '';
+                    const podeGerenciar = usuario && String(usuario.id) === String(evolucao.usuario_id);
 
                     return `
                         <article class="evolucao-item">
@@ -1460,6 +1467,26 @@
                                 ` : ''}
 
                                 <p>${descricao}</p>
+
+                                ${podeGerenciar ? `
+                                    <div class="evolucao-acoes">
+                                        <button
+                                            type="button"
+                                            class="btn-editar-evolucao"
+                                            onclick="editarEvolucao(${carroId}, ${evolucao.id}, '${listaId}')"
+                                        >
+                                            Editar
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            class="btn-remover-evolucao"
+                                            onclick="removerEvolucao(${carroId}, ${evolucao.id}, '${listaId}')"
+                                        >
+                                            Remover
+                                        </button>
+                                    </div>
+                                ` : ''}
                             </div>
                         </article>
                     `;
@@ -1560,6 +1587,116 @@
                 }
 
                 mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível registrar a evolução."), "erro");
+
+            } catch (error) {
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                console.error(error);
+            }
+        }
+
+        async function editarEvolucao(carroId, evolucaoId, listaId = 'lista-evolucoes') {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                mostrarMensagem("Faça login para editar evoluções.", "aviso");
+                return;
+            }
+
+            const evolucao = evolucoesDiarioCache[evolucaoId];
+
+            if (!evolucao) {
+                mostrarMensagem("Não foi possível encontrar esta evolução.", "erro");
+                return;
+            }
+
+            const novoTitulo = prompt("1/2 - Edite o título da evolução:", evolucao.titulo || "");
+
+            if (novoTitulo === null) {
+                return;
+            }
+
+            const novaDescricao = prompt("2/2 - Edite a descrição da evolução:", evolucao.descricao || "");
+
+            if (novaDescricao === null) {
+                return;
+            }
+
+            const titulo = novoTitulo.trim();
+            const descricao = novaDescricao.trim();
+
+            if (!titulo) {
+                mostrarMensagem("Digite um título para a evolução.", "aviso");
+                return;
+            }
+
+            if (!descricao) {
+                mostrarMensagem("Digite uma descrição para a evolução.", "aviso");
+                return;
+            }
+
+            if (titulo.length > 120) {
+                mostrarMensagem("O título deve ter no máximo 120 caracteres.", "aviso");
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/evolucoes/${evolucaoId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: usuario.id,
+                        titulo,
+                        descricao
+                    })
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    mostrarMensagem(resposta.mensagem || "Evolução atualizada com sucesso!", "sucesso");
+                    carregarEvolucoes(carroId, listaId);
+                    return;
+                }
+
+                mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível editar a evolução."), "erro");
+
+            } catch (error) {
+                mostrarMensagem("Erro de conexão com o servidor.", "erro");
+                console.error(error);
+            }
+        }
+
+
+        async function removerEvolucao(carroId, evolucaoId, listaId = 'lista-evolucoes') {
+            const usuario = getUsuarioLogado();
+
+            if (!usuario) {
+                mostrarMensagem("Faça login para remover evoluções.", "aviso");
+                return;
+            }
+
+            const confirmar = confirm("Remover esta evolução do diário?");
+
+            if (!confirmar) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/carros/${carroId}/evolucoes/${evolucaoId}?usuario_id=${encodeURIComponent(usuario.id)}`, {
+                    method: 'DELETE'
+                });
+
+                const resposta = await res.json();
+
+                if (res.ok) {
+                    mostrarMensagem(resposta.mensagem || "Evolução removida do diário.", "sucesso");
+                    carregarEvolucoes(carroId, listaId);
+                    return;
+                }
+
+                mostrarMensagem("Erro: " + (resposta.erro || "Não foi possível remover a evolução."), "erro");
 
             } catch (error) {
                 mostrarMensagem("Erro de conexão com o servidor.", "erro");
