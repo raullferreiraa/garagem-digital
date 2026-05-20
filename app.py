@@ -930,6 +930,87 @@ def remover_evolucao_projeto(id, evolucao_id):
     except Exception as e:
         return jsonify({"erro": str(e)}), 500
 
+@app.route('/evolucoes/feed', methods=['GET'])
+def listar_feed_evolucoes():
+    usuario_id = request.args.get('usuario_id', '')
+
+    try:
+        conexao = mysql.connector.connect(**db_config)
+        cursor = conexao.cursor(dictionary=True)
+
+        cursor.execute(
+            """
+            SELECT
+                e.id,
+                e.carro_id,
+                e.usuario_id,
+                e.titulo,
+                e.descricao,
+                e.imagem_url,
+                e.criado_em,
+
+                u.nome AS nome_usuario,
+                u.username AS username_usuario,
+                u.avatar_url AS avatar_usuario,
+
+                c.usuario_id AS carro_usuario_id,
+                c.nome_dono,
+                c.modelo,
+                c.ano,
+                c.cor,
+                c.placa,
+                c.tipo_suspensao,
+                c.aro_roda,
+                c.foto_url,
+                c.historia,
+                c.motor,
+                c.cambio,
+                c.combustivel,
+                c.potencia_estimada,
+                c.preparacao,
+                c.status_projeto,
+
+                (
+                    SELECT COUNT(*)
+                    FROM curtidas cur
+                    WHERE cur.carro_id = c.id
+                ) AS total_curtidas,
+
+                (
+                    SELECT COUNT(*)
+                    FROM comentarios com
+                    WHERE com.carro_id = c.id
+                ) AS total_comentarios,
+
+                CASE
+                    WHEN EXISTS (
+                        SELECT 1
+                        FROM curtidas cur_usuario
+                        WHERE cur_usuario.carro_id = c.id
+                        AND cur_usuario.usuario_id = %s
+                    )
+                    THEN 1
+                    ELSE 0
+                END AS curtido_pelo_usuario
+            FROM evolucoes_projeto e
+            INNER JOIN carros c ON c.id = e.carro_id
+            INNER JOIN usuarios u ON u.id = e.usuario_id
+            ORDER BY e.criado_em DESC, e.id DESC
+            LIMIT 8
+            """,
+            (usuario_id if usuario_id else 0,)
+        )
+
+        evolucoes = cursor.fetchall()
+
+        cursor.close()
+        conexao.close()
+
+        return jsonify(evolucoes)
+
+    except Exception as e:
+        return jsonify({"erro": str(e)}), 500
+
 @app.route('/carros/<int:id>/fotos', methods=['GET'])
 def listar_fotos_projeto(id):
     try:

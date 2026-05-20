@@ -1,6 +1,7 @@
 // Configuração global e estado da aplicação
         const API_URL = 'http://127.0.0.1:5000';
         let todosCarros = [];
+        let feedEvolucoesCache = {};
         let modoGaragem = "todos";
         let equipeParaReabrirAposProjeto = null;
         let perfilParaReabrirAposProjeto = null;
@@ -514,6 +515,173 @@
             if (botao) {
                 botao.innerText = '+ Estacionar novo projeto';
             }
+        }
+
+        function mostrarSecaoPrincipal(secao) {
+            const secoes = {
+                garagem: document.getElementById('secao-garagem'),
+                diario: document.getElementById('feed-evolucoes'),
+                encontros: document.getElementById('secao-encontros')
+            };
+
+            const botoes = {
+                garagem: document.getElementById('nav-garagem'),
+                diario: document.getElementById('nav-diario'),
+                encontros: document.getElementById('nav-encontros')
+            };
+
+            Object.values(secoes).forEach(secaoEl => {
+                if (secaoEl) {
+                    secaoEl.classList.remove('secao-principal-ativa');
+                }
+            });
+
+            Object.values(botoes).forEach(botao => {
+                if (botao) {
+                    botao.classList.remove('ativo');
+                }
+            });
+
+            if (secoes[secao]) {
+                secoes[secao].classList.add('secao-principal-ativa');
+            }
+
+            if (botoes[secao]) {
+                botoes[secao].classList.add('ativo');
+            }
+
+            if (secao === 'diario') {
+                carregarFeedEvolucoes();
+            }
+        }
+
+        async function carregarFeedEvolucoes() {
+            const container = document.getElementById('feed-evolucoes');
+            const lista = document.getElementById('lista-feed-evolucoes');
+
+            if (!container || !lista) {
+                return;
+            }
+
+            lista.innerHTML = '<div class="feed-evolucoes-vazio">Carregando atualizações...</div>';
+
+            const params = new URLSearchParams();
+            const usuario = getUsuarioLogado();
+
+            if (usuario) {
+                params.append('usuario_id', usuario.id);
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/evolucoes/feed?${params.toString()}`);
+                const evolucoes = await res.json();
+
+                if (!Array.isArray(evolucoes) || evolucoes.length === 0) {
+                    lista.innerHTML = '<div class="feed-evolucoes-vazio">Nenhuma atualização recente ainda.</div>';
+                    return;
+                }
+
+                feedEvolucoesCache = {};
+
+                lista.innerHTML = evolucoes.map(evolucao => {
+                    feedEvolucoesCache[evolucao.id] = evolucao;
+
+                    const descricaoOriginal = String(evolucao.descricao || '').trim();
+                    const descricaoCurta = descricaoOriginal.length > 150
+                        ? `${descricaoOriginal.slice(0, 150).trim()}...`
+                        : descricaoOriginal;
+
+                    const imagem = evolucao.imagem_url
+                        ? `${API_URL}/uploads/${evolucao.imagem_url}`
+                        : (evolucao.foto_url ? `${API_URL}/uploads/${evolucao.foto_url}` : '');
+
+                    const avatar = evolucao.avatar_usuario
+                        ? (evolucao.avatar_usuario.startsWith('http')
+                            ? evolucao.avatar_usuario
+                            : `${API_URL}/uploads/${evolucao.avatar_usuario}`)
+                        : '';
+
+                    const nomeAutor = evolucao.username_usuario
+                        ? `@${evolucao.username_usuario}`
+                        : (evolucao.nome_usuario || 'Usuário');
+
+                    const inicial = String(evolucao.nome_usuario || evolucao.username_usuario || 'G')
+                        .charAt(0)
+                        .toUpperCase();
+
+                    return `
+                        <article class="feed-evolucao-card" onclick="abrirProjetoPeloFeed(${evolucao.id})">
+                            <div class="feed-evolucao-topo">
+                                ${avatar
+                                    ? `<img src="${avatar}" class="feed-evolucao-avatar" alt="">`
+                                    : `<div class="feed-evolucao-avatar-fallback">${textoFeedbackSeguro(inicial)}</div>`
+                                }
+
+                                <div>
+                                    <strong>${textoFeedbackSeguro(nomeAutor)}</strong>
+                                    <span>atualizou ${textoFeedbackSeguro(evolucao.modelo)} (${textoFeedbackSeguro(evolucao.ano)})</span>
+                                </div>
+
+                                <time>${formatarTempoRelativo(evolucao.criado_em)}</time>
+                            </div>
+
+                            ${imagem
+                                ? `<img src="${imagem}" class="feed-evolucao-img" alt="Imagem da evolução">`
+                                : `<div class="feed-evolucao-sem-img">Sem imagem</div>`
+                            }
+
+                            <div class="feed-evolucao-corpo">
+                                <span class="feed-evolucao-tag">Diário de evolução</span>
+                                <h3>${textoFeedbackSeguro(evolucao.titulo)}</h3>
+                                <p>${textoFeedbackSeguro(descricaoCurta)}</p>
+
+                                <button type="button" class="feed-evolucao-abrir">
+                                    Abrir projeto
+                                </button>
+                            </div>
+                        </article>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                console.error(error);
+                lista.innerHTML = '<div class="feed-evolucoes-vazio">Erro ao carregar atualizações.</div>';
+            }
+        }
+
+
+        function abrirProjetoPeloFeed(evolucaoId) {
+            const evolucao = feedEvolucoesCache[evolucaoId];
+
+            if (!evolucao) {
+                mostrarMensagem("Não foi possível abrir este projeto.", "erro");
+                return;
+            }
+
+            const carro = {
+                id: evolucao.carro_id,
+                usuario_id: evolucao.carro_usuario_id,
+                nome_dono: evolucao.nome_dono,
+                modelo: evolucao.modelo,
+                ano: evolucao.ano,
+                cor: evolucao.cor,
+                placa: evolucao.placa,
+                tipo_suspensao: evolucao.tipo_suspensao,
+                aro_roda: evolucao.aro_roda,
+                foto_url: evolucao.foto_url,
+                historia: evolucao.historia,
+                motor: evolucao.motor,
+                cambio: evolucao.cambio,
+                combustivel: evolucao.combustivel,
+                potencia_estimada: evolucao.potencia_estimada,
+                preparacao: evolucao.preparacao,
+                status_projeto: evolucao.status_projeto,
+                total_curtidas: evolucao.total_curtidas || 0,
+                total_comentarios: evolucao.total_comentarios || 0,
+                curtido_pelo_usuario: evolucao.curtido_pelo_usuario
+            };
+
+            abrirTelaProjeto(carro);
         }
 
         async function carregarGaragem() {
