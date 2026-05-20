@@ -563,13 +563,6 @@
                 return;
             }
 
-            if (modoGaragem !== "todos") {
-                container.style.display = 'none';
-                lista.innerHTML = '';
-                return;
-            }
-
-            container.style.display = 'block';
             lista.innerHTML = '<div class="feed-evolucoes-vazio">Carregando atualizações...</div>';
 
             const params = new URLSearchParams();
@@ -584,8 +577,7 @@
                 const evolucoes = await res.json();
 
                 if (!Array.isArray(evolucoes) || evolucoes.length === 0) {
-                    container.style.display = 'none';
-                    lista.innerHTML = '';
+                    lista.innerHTML = '<div class="feed-evolucoes-vazio">Nenhuma atualização recente ainda.</div>';
                     return;
                 }
 
@@ -653,7 +645,7 @@
 
             } catch (error) {
                 console.error(error);
-                container.style.display = 'none';
+                lista.innerHTML = '<div class="feed-evolucoes-vazio">Erro ao carregar atualizações.</div>';
             }
         }
 
