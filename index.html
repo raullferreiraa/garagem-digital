@@ -248,34 +248,71 @@
             </form>
         </div>
 
-        <div class="abas-garagem">
-            <button type="button" id="aba-todos" class="ativo" onclick="mostrarTodosProjetos()">
-                Todos os projetos
+        <div class="app-nav">
+            <button type="button" id="nav-garagem" class="ativo" onclick="mostrarSecaoPrincipal('garagem')">
+                Garagem
             </button>
 
-            <button type="button" id="aba-meus" onclick="mostrarMeusProjetos()">
-                Meus projetos
+            <button type="button" id="nav-diario" onclick="mostrarSecaoPrincipal('diario')">
+                Diário
             </button>
-        </div>
 
-        <div class="filtros-container">
-            <input type="text" id="filtro-modelo" placeholder="Modelo">
-
-            <select id="filtro-suspensao">
-                <option value="">TODAS AS SUSPENSÕES</option>
-                <option value="Fixa">Fixa</option>
-                <option value="Ar">Ar</option>
-                <option value="Rosca">Rosca</option>
-            </select>
-
-            <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
-
-            <button type="button" class="btn-buscar" onclick="carregarGaragem()">
-                Buscar
+            <button type="button" id="nav-encontros" onclick="mostrarSecaoPrincipal('encontros')">
+                Encontros
             </button>
         </div>
 
-        <div class="galeria" id="lista-carros"></div>
+        <section class="secao-principal secao-principal-ativa" id="secao-garagem">
+            <div class="abas-garagem">
+                <button type="button" id="aba-todos" class="ativo" onclick="mostrarTodosProjetos()">
+                    Todos os projetos
+                </button>
+
+                <button type="button" id="aba-meus" onclick="mostrarMeusProjetos()">
+                    Meus projetos
+                </button>
+            </div>
+
+            <div class="filtros-container">
+                <input type="text" id="filtro-modelo" placeholder="Modelo">
+
+                <select id="filtro-suspensao">
+                    <option value="">TODAS AS SUSPENSÕES</option>
+                    <option value="Fixa">Fixa</option>
+                    <option value="Ar">Ar</option>
+                    <option value="Rosca">Rosca</option>
+                </select>
+
+                <input type="number" id="filtro-aro" placeholder="Aro" style="width: 70px;">
+
+                <button type="button" class="btn-buscar" onclick="carregarGaragem()">
+                    Buscar
+                </button>
+            </div>
+
+            <div class="galeria" id="lista-carros"></div>
+        </section>
+
+        <section class="secao-principal feed-evolucoes" id="feed-evolucoes">
+            <div class="feed-evolucoes-header">
+                <div>
+                    <span>Atualizações recentes</span>
+                    <h2>Diário da Garagem</h2>
+                </div>
+
+                <p>Novas fases, peças, ajustes e registros dos projetos da comunidade.</p>
+            </div>
+
+            <div class="feed-evolucoes-lista" id="lista-feed-evolucoes"></div>
+        </section>
+
+        <section class="secao-principal secao-encontros" id="secao-encontros">
+            <div class="secao-encontros-card">
+                <span>Em breve</span>
+                <h2>Central de encontros</h2>
+                <p>Um espaço futuro para rolês, eventos, clubes e encontros automotivos.</p>
+            </div>
+        </section>
     </div>
 
     <!-- Tela dedicada de projeto -->
