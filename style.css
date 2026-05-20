@@ -3606,6 +3606,56 @@
                 border: 1px solid rgba(255, 255, 255, 0.075);
             }
 
+            .evolucao-acoes {
+                display: flex;
+                align-items: center;
+                justify-content: flex-end;
+                gap: 8px;
+                margin-top: 12px;
+            }
+
+            .btn-editar-evolucao,
+            .btn-remover-evolucao {
+                width: fit-content;
+                min-height: auto;
+                margin: 0;
+                padding: 7px 10px;
+                border-radius: var(--radius-pill);
+                font-size: 0.62rem;
+                font-weight: 950;
+                letter-spacing: 0.075em;
+                text-transform: uppercase;
+                box-shadow: none;
+            }
+
+            .btn-editar-evolucao {
+                border: 1px solid rgba(255, 255, 255, 0.14);
+                background: rgba(255, 255, 255, 0.045);
+                color: var(--text-muted);
+            }
+
+            .btn-remover-evolucao {
+                border: 1px solid rgba(255, 71, 87, 0.28);
+                background: rgba(255, 71, 87, 0.08);
+                color: #ff7a84;
+            }
+
+            .btn-editar-evolucao:hover,
+            .btn-remover-evolucao:hover {
+                transform: none;
+            }
+
+            .btn-editar-evolucao:hover {
+                border-color: rgba(255, 255, 255, 0.22);
+                background: rgba(255, 255, 255, 0.07);
+                color: var(--text-main);
+            }
+
+            .btn-remover-evolucao:hover {
+                border-color: rgba(255, 71, 87, 0.48);
+                background: rgba(255, 71, 87, 0.14);
+            }
+
             .evolucao-conteudo p {
                 margin: 0;
                 color: var(--text-muted);
