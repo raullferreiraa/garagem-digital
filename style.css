@@ -632,48 +632,107 @@
         }
 
         .app-nav {
-            width: min(860px, calc(100% - 32px));
-            margin: 0 auto 18px;
+            position: relative;
+            isolation: isolate;
+            width: min(940px, calc(100% - 32px));
+            margin: 0 auto 22px;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 6px;
-            padding: 6px;
-            border: 1px solid rgba(255, 255, 255, 0.09);
-            border-radius: var(--radius-pill);
+            gap: 7px;
+            padding: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.095);
+            border-radius: 28px;
             background:
-                linear-gradient(145deg, rgba(255, 255, 255, 0.045), transparent),
-                rgba(12, 12, 12, 0.9);
-            box-shadow: 0 18px 42px rgba(0, 0, 0, 0.34);
+                radial-gradient(circle at top left, rgba(255, 71, 87, 0.13), transparent 32%),
+                linear-gradient(145deg, rgba(255, 255, 255, 0.055), transparent),
+                rgba(10, 10, 10, 0.88);
+            box-shadow:
+                0 20px 48px rgba(0, 0, 0, 0.42),
+                inset 0 1px 0 rgba(255, 255, 255, 0.055);
+            backdrop-filter: blur(16px);
         }
 
         .app-nav button {
-            min-height: 44px;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 52px;
             margin: 0;
-            border-radius: var(--radius-pill);
+            padding: 0 18px;
+            overflow: hidden;
+            border-radius: 22px;
             border: 1px solid transparent;
             background: transparent;
             color: var(--text-muted);
             font-size: 0.74rem;
             font-weight: 950;
-            letter-spacing: 0.07em;
+            letter-spacing: 0.075em;
             text-transform: uppercase;
+            white-space: nowrap;
             box-shadow: none;
+            transition:
+                background 0.18s ease,
+                border-color 0.18s ease,
+                color 0.18s ease,
+                box-shadow 0.18s ease;
+        }
+
+        .app-nav button::before {
+            content: "";
+            width: 7px;
+            height: 7px;
+            flex: 0 0 auto;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.18);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.025);
+        }
+
+        .app-nav button::after {
+            content: "";
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 7px;
+            height: 2px;
+            border-radius: 999px;
+            background: transparent;
         }
 
         .app-nav button:hover {
-            background: rgba(255, 255, 255, 0.045);
-            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.055);
+            border-color: rgba(255, 255, 255, 0.13);
             color: var(--text-main);
             transform: none;
         }
 
+        .app-nav button:hover::before {
+            background: rgba(255, 255, 255, 0.34);
+        }
+
         .app-nav button.ativo {
             background:
-                linear-gradient(135deg, rgba(255, 71, 87, 0.3), rgba(255, 71, 87, 0.12)),
-                rgba(255, 71, 87, 0.08);
-            border-color: rgba(255, 71, 87, 0.5);
+                radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 38%),
+                linear-gradient(135deg, rgba(255, 71, 87, 0.28), rgba(255, 71, 87, 0.11)),
+                rgba(255, 71, 87, 0.075);
+            border-color: rgba(255, 71, 87, 0.52);
             color: #ff9aa2;
-            box-shadow: 0 12px 28px rgba(255, 71, 87, 0.16);
+            box-shadow:
+                0 14px 30px rgba(255, 71, 87, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.09);
+        }
+
+        .app-nav button.ativo::before {
+            width: 18px;
+            border-radius: 999px;
+            background: #ff5f70;
+            box-shadow: 0 0 18px rgba(255, 71, 87, 0.45);
+        }
+
+        .app-nav button.ativo::after {
+            background: linear-gradient(90deg, transparent, rgba(255, 95, 112, 0.8), transparent);
         }
 
         .secao-principal {
@@ -6109,17 +6168,37 @@
 
                 .app-nav {
                     width: calc(100% - 24px);
-                    margin-bottom: 14px;
-                    gap: 4px;
+                    max-width: none;
+                    margin: 0 auto 16px;
+                    gap: 5px;
                     padding: 5px;
-                    border-radius: 20px;
+                    border-radius: 22px;
+                    box-sizing: border-box;
                 }
 
                 .app-nav button {
-                    min-height: 40px;
-                    padding: 8px 9px;
+                    min-height: 42px;
+                    padding: 0 9px;
+                    border-radius: 17px;
                     font-size: 0.58rem;
                     letter-spacing: 0.045em;
+                    gap: 5px;
+                }
+
+                .app-nav button::before {
+                    width: 5px;
+                    height: 5px;
+                    box-shadow: none;
+                }
+
+                .app-nav button.ativo::before {
+                    width: 12px;
+                }
+
+                .app-nav button::after {
+                    left: 12px;
+                    right: 12px;
+                    bottom: 5px;
                 }
 
                 .secao-encontros {
