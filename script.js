@@ -277,7 +277,19 @@
             const usuario = getUsuarioLogado();
 
             if (usuario) {
+                const appShellTopo = document.getElementById('app-shell-topo');
+                const tituloPrincipal = document.getElementById('titulo-principal');
+
                 document.getElementById('auth-container').style.display = "none";
+
+                if (appShellTopo) {
+                    appShellTopo.style.display = "grid";
+                }
+
+                if (tituloPrincipal) {
+                    tituloPrincipal.style.display = "none";
+                }
+
                 document.getElementById('usuario-barra').style.display = "block";
                 document.getElementById('conteudo-app').style.display = "block";
                 const nomeEl = document.getElementById('usuario-nome');
@@ -300,7 +312,19 @@
 
                 carregarGaragem();
             } else {
+                const appShellTopo = document.getElementById('app-shell-topo');
+                const tituloPrincipal = document.getElementById('titulo-principal');
+
                 document.getElementById('auth-container').style.display = "block";
+
+                if (appShellTopo) {
+                    appShellTopo.style.display = "none";
+                }
+
+                if (tituloPrincipal) {
+                    tituloPrincipal.style.display = "block";
+                }
+
                 document.getElementById('usuario-barra').style.display = "none";
                 document.getElementById('conteudo-app').style.display = "none";
             }
@@ -486,6 +510,39 @@
             atualizarTelaUsuario();
         }
 
+        function obterOffsetHeaderApp() {
+            const header =
+                document.querySelector('.app-header') ||
+                document.querySelector('.header-app') ||
+                document.querySelector('.app-nav');
+
+            if (!header) {
+                return 110;
+            }
+
+            return header.getBoundingClientRect().height + 28;
+        }
+
+        function rolarParaElementoComHeader(elemento) {
+            if (!elemento) {
+                return;
+            }
+
+            const topo = elemento.getBoundingClientRect().top + window.scrollY - obterOffsetHeaderApp();
+
+            window.scrollTo({
+                top: Math.max(topo, 0),
+                behavior: 'smooth'
+            });
+        }
+
+        function rolarParaTopoApp() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
         function alternarFormularioProjeto() {
             const container = document.getElementById('container-form');
             const botao = document.querySelector('.btn-toggle-form');
@@ -496,11 +553,17 @@
 
             const estaAberto = container.style.display === 'block';
 
+            if (!estaAberto) {
+                mostrarSecaoPrincipal('garagem');
+            }
+
             container.style.display = estaAberto ? 'none' : 'block';
-            botao.innerText = estaAberto ? '+ Estacionar novo projeto' : 'Fechar formulário';
+            botao.innerText = estaAberto ? '+ Novo projeto' : 'Fechar';
 
             if (!estaAberto) {
-                container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                requestAnimationFrame(() => {
+                    rolarParaElementoComHeader(container);
+                });
             }
         }
 
@@ -513,7 +576,7 @@
             }
 
             if (botao) {
-                botao.innerText = '+ Estacionar novo projeto';
+                botao.innerText = '+ Novo projeto';
             }
         }
 
@@ -553,6 +616,12 @@
             if (secao === 'diario') {
                 carregarFeedEvolucoes();
             }
+
+            window.scrollTo({
+                top: 0,
+                left: 0,
+                behavior: 'smooth'
+            });
         }
 
         async function carregarFeedEvolucoes() {
