@@ -10,7 +10,7 @@
     <!-- Feedback visual global -->
     <div id="feedback-container" class="feedback-container"></div>
 
-    <h1>Garagem Digital</h1>
+    <h1 id="titulo-principal">Garagem Digital</h1>
 
     <!-- Área de autenticação -->
     <div class="auth-container" id="auth-container">
@@ -80,46 +80,64 @@
         </div>
     </div>
 
-    <!-- Menu do usuário logado -->
-    <div class="usuario-menu" id="usuario-barra">
+    <header class="app-shell-topo" id="app-shell-topo" style="display: none;">
+        <div class="app-brand">
+            <span>Garagem Digital</span>
+            <strong>Projetos automotivos</strong>
+        </div>
 
-        <button type="button" class="usuario-menu-toggle" onclick="alternarMenuUsuario(event)">
-            <div class="usuario-avatar" id="usuario-avatar">
-                ?
-            </div>
-
-            <div class="usuario-menu-info">
-                <span class="usuario-label">Logado como</span>
-                <strong class="usuario-nome" id="usuario-nome"></strong>
-            </div>
-
-            <span class="usuario-seta">▾</span>
-        </button>
-
-        <div class="usuario-dropdown" id="usuario-dropdown">
-            <button type="button" class="btn-perfil" onclick="abrirMeuPerfil()">
-                Ver perfil
+        <div class="app-nav">
+            <button type="button" id="nav-garagem" class="ativo" onclick="mostrarSecaoPrincipal('garagem')">
+                Garagem
             </button>
 
-            <button type="button" class="btn-equipe" onclick="abrirMinhaEquipe()">
-                Minha equipe
+            <button type="button" id="nav-diario" onclick="mostrarSecaoPrincipal('diario')">
+                Diário
             </button>
 
-            <button type="button" class="btn-sair" onclick="sair()">
-                Sair
+            <button type="button" id="nav-encontros" onclick="mostrarSecaoPrincipal('encontros')">
+                Encontros
             </button>
         </div>
 
-    </div>
+        <div class="app-shell-acoes">
+            <button type="button" class="btn-toggle-form" onclick="alternarFormularioProjeto()">
+                + Novo projeto
+            </button>
+        </div>
+
+        <div class="usuario-menu" id="usuario-barra">
+            <button type="button" class="usuario-menu-toggle" onclick="alternarMenuUsuario(event)">
+                <div class="usuario-avatar" id="usuario-avatar">
+                    ?
+                </div>
+
+                <div class="usuario-menu-info">
+                    <span class="usuario-label">Perfil</span>
+                    <strong class="usuario-nome" id="usuario-nome"></strong>
+                </div>
+
+                <span class="usuario-seta">▾</span>
+            </button>
+
+            <div class="usuario-dropdown" id="usuario-dropdown">
+                <button type="button" class="btn-perfil" onclick="abrirMeuPerfil()">
+                    Ver perfil
+                </button>
+
+                <button type="button" class="btn-equipe" onclick="abrirMinhaEquipe()">
+                    Minha equipe
+                </button>
+
+                <button type="button" class="btn-sair" onclick="sair()">
+                    Sair
+                </button>
+            </div>
+        </div>
+    </header>
 
     <!-- Conteúdo principal da garagem -->
     <div class="conteudo-app" id="conteudo-app">
-
-        <div class="acoes-garagem">
-            <button type="button" class="btn-toggle-form" onclick="alternarFormularioProjeto()">
-                + Estacionar novo projeto
-            </button>
-        </div>
 
         <div class="formulario-container" id="container-form" style="display: none;">
             <h2 id="titulo-form">Registrar Novo Projeto</h2>
@@ -246,20 +264,6 @@
                 <button type="submit" id="btn-submit" class="btn-principal">Estacionar na Garagem</button>
                 <button type="button" id="btn-cancelar-edicao" onclick="resetarFormulario()">Cancelar edição</button>
             </form>
-        </div>
-
-        <div class="app-nav">
-            <button type="button" id="nav-garagem" class="ativo" onclick="mostrarSecaoPrincipal('garagem')">
-                Garagem
-            </button>
-
-            <button type="button" id="nav-diario" onclick="mostrarSecaoPrincipal('diario')">
-                Diário
-            </button>
-
-            <button type="button" id="nav-encontros" onclick="mostrarSecaoPrincipal('encontros')">
-                Encontros
-            </button>
         </div>
 
         <section class="secao-principal secao-principal-ativa" id="secao-garagem">
