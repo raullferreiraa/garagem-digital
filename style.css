@@ -5685,13 +5685,13 @@
 
                 .app-shell-topo {
                     position: sticky;
-                    top: 10px;
+                    top: 8px;
                     width: calc(100% - 16px);
-                    grid-template-columns: 1fr auto;
+                    grid-template-columns: minmax(0, 1fr) auto;
                     gap: 8px;
-                    margin-bottom: 18px;
+                    margin: 0 auto 16px;
                     padding: 8px;
-                    border-radius: 24px;
+                    border-radius: 22px;
                 }
 
                 .app-brand {
@@ -5729,9 +5729,11 @@
                 .app-shell-topo .app-nav {
                     grid-column: 1 / -1;
                     width: 100%;
+                    margin: 0;
                     gap: 4px;
                     padding: 5px;
                     border-radius: 18px;
+                    box-sizing: border-box;
                 }
 
                 .app-shell-topo .app-nav button {
@@ -5745,6 +5747,7 @@
 
                 .app-shell-acoes {
                     grid-column: 1 / -1;
+                    width: 100%;
                 }
 
                 .app-shell-acoes .btn-toggle-form {
@@ -6330,41 +6333,6 @@
                 .pagina-projeto .evolucao-imagem {
                     width: 100%;
                     max-height: 230px;
-                }
-
-                .app-nav {
-                    width: calc(100% - 24px);
-                    max-width: none;
-                    margin: 0 auto 16px;
-                    gap: 5px;
-                    padding: 5px;
-                    border-radius: 22px;
-                    box-sizing: border-box;
-                }
-
-                .app-nav button {
-                    min-height: 42px;
-                    padding: 0 9px;
-                    border-radius: 17px;
-                    font-size: 0.58rem;
-                    letter-spacing: 0.045em;
-                    gap: 5px;
-                }
-
-                .app-nav button::before {
-                    width: 5px;
-                    height: 5px;
-                    box-shadow: none;
-                }
-
-                .app-nav button.ativo::before {
-                    width: 12px;
-                }
-
-                .app-nav button::after {
-                    left: 12px;
-                    right: 12px;
-                    bottom: 5px;
                 }
 
                 .secao-encontros {
