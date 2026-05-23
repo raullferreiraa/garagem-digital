@@ -511,16 +511,15 @@
         }
 
         function obterOffsetHeaderApp() {
-            const header =
-                document.querySelector('.app-header') ||
-                document.querySelector('.header-app') ||
-                document.querySelector('.app-nav');
+            const header = document.querySelector('.app-shell-topo');
 
-            if (!header) {
-                return 110;
+            if (!header || header.style.display === 'none') {
+                return 24;
             }
 
-            return header.getBoundingClientRect().height + 28;
+            const margemExtra = window.innerWidth <= 768 ? 18 : 24;
+
+            return header.getBoundingClientRect().height + margemExtra;
         }
 
         function rolarParaElementoComHeader(elemento) {
@@ -613,14 +612,20 @@
                 botoes[secao].classList.add('ativo');
             }
 
+            if (secao !== 'garagem') {
+                fecharFormularioProjeto();
+            }
+
             if (secao === 'diario') {
                 carregarFeedEvolucoes();
             }
 
-            window.scrollTo({
-                top: 0,
-                left: 0,
-                behavior: 'smooth'
+            requestAnimationFrame(() => {
+                window.scrollTo({
+                    top: 0,
+                    left: 0,
+                    behavior: 'smooth'
+                });
             });
         }
 
