@@ -1,4 +1,4 @@
-# Garagem Digital - Cultura da Lata 027 🚘
+# Garagem Digital 🚘
 
 Uma aplicação web full stack criada para catalogar, documentar e exibir projetos automotivos da cena de rua — antigos, rebaixados, modificados, daily cars e projetos em andamento.
 
