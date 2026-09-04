@@ -1,8 +1,8 @@
-from datetime import datetime
 from typing import Annotated
-from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
+
+from app.schemas.usuario import PerfilPrivado
 
 
 Username = Annotated[str, Field(min_length=3, max_length=30, pattern=r"^[a-z0-9._]+$")]
@@ -45,24 +45,9 @@ class RefreshTokenEntrada(BaseModel):
     refresh_token: Annotated[str, Field(min_length=40, max_length=256)]
 
 
-class UsuarioPublico(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: UUID
-    nome: str
-    username: str
-    email: EmailStr
-    avatar_url: str | None
-    bio: str | None
-    cidade: str | None
-    estado: str | None
-    criado_em: datetime
-
-
 class TokenResposta(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int
-    usuario: UsuarioPublico
-
+    usuario: PerfilPrivado

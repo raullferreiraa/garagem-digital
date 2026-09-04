@@ -37,3 +37,31 @@ uvicorn app.main:app --reload
 
 5. Verifique `http://127.0.0.1:8000/api/v1/health`.
 
+## Contratos disponiveis
+
+### Autenticacao
+
+- `POST /api/v1/auth/cadastro`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/auth/me`
+
+### Perfis
+
+- `PATCH /api/v1/usuarios/me`
+- `GET /api/v1/usuarios/{usuario_id}`
+- `GET /api/v1/usuarios/{usuario_id}/carros`
+
+### Carros
+
+- `POST /api/v1/carros`
+- `GET /api/v1/carros`
+- `GET /api/v1/carros/meus`
+- `GET /api/v1/carros/{carro_id}`
+- `PATCH /api/v1/carros/{carro_id}`
+- `DELETE /api/v1/carros/{carro_id}`
+
+O feed usa paginacao por cursor. Campos privados, como email e placa, nao sao
+expostos em perfis e carros publicos. A placa so aparece publicamente quando seu
+proprietario habilita `placa_visivel` de forma explicita.

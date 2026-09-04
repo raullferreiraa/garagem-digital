@@ -11,8 +11,8 @@ from app.schemas.auth import (
     RefreshTokenEntrada,
     TokenResposta,
     UsuarioCadastro,
-    UsuarioPublico,
 )
+from app.schemas.usuario import PerfilPrivado
 from app.services.auth import (
     CredenciaisInvalidas,
     IdentificadorEmUso,
@@ -72,7 +72,6 @@ def logout(dados: RefreshTokenEntrada, db: DbSession) -> Response:
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@router.get("/me", response_model=UsuarioPublico)
-def me(usuario: UsuarioAtual) -> UsuarioPublico:
-    return UsuarioPublico.model_validate(usuario)
-
+@router.get("/me", response_model=PerfilPrivado)
+def me(usuario: UsuarioAtual) -> PerfilPrivado:
+    return PerfilPrivado.model_validate(usuario)

@@ -23,6 +23,11 @@ de carros e permissoes de equipe sao verificadas pela API.
 4. O proprietario escolhe quais carros quer associar a cada equipe.
 5. O vocabulario tecnico e visual usa `equipe`, nunca `clube`.
 6. Localizacao e opcional e serve para eventos e comunidades, nao rastreamento.
+7. Email nunca faz parte do perfil publico.
+8. Placas ficam privadas por padrao e exigem consentimento explicito para exibicao.
+9. Edicao e exclusao de carros usam o proprietario autenticado pelo token.
+10. Feeds usam cursor estavel composto por data e identificador, nao paginas por
+   deslocamento.
 
 ## Limites da primeira fundacao
 

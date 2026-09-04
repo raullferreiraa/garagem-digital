@@ -13,7 +13,8 @@ from app.core.security import (
 )
 from app.models.sessao_refresh import SessaoRefresh
 from app.models.usuario import Usuario
-from app.schemas.auth import CredenciaisLogin, TokenResposta, UsuarioCadastro, UsuarioPublico
+from app.schemas.auth import CredenciaisLogin, TokenResposta, UsuarioCadastro
+from app.schemas.usuario import PerfilPrivado
 
 
 class IdentificadorEmUso(ValueError):
@@ -95,7 +96,7 @@ def _montar_resposta(usuario: Usuario, refresh_token: str) -> TokenResposta:
         access_token=access_token,
         refresh_token=refresh_token,
         expires_in=expires_in,
-        usuario=UsuarioPublico.model_validate(usuario),
+        usuario=PerfilPrivado.model_validate(usuario),
     )
 
 

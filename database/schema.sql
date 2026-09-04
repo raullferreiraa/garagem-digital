@@ -41,6 +41,7 @@ CREATE TABLE carros (
     ano SMALLINT,
     cor VARCHAR(50),
     placa VARCHAR(10),
+    placa_visivel BOOLEAN NOT NULL DEFAULT FALSE,
     tipo_suspensao VARCHAR(50),
     aro_roda SMALLINT,
     foto_principal_url TEXT,
