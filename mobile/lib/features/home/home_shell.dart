@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/cars/create_car_screen.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -19,20 +20,44 @@ final class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int _index = 0;
+  int _feedRevision = 0;
+  int _garageRevision = 0;
+
+  Future<void> _openCreateCar() async {
+    final created = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => CreateCarScreen(repository: widget.carsRepository),
+      ),
+    );
+
+    if (created == true && mounted) {
+      setState(() {
+        _index = 1;
+        _feedRevision++;
+        _garageRevision++;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Carro adicionado à sua garagem.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pages = [
       CarList(
+        key: ValueKey('feed-$_feedRevision'),
         title: 'Explorar projetos',
-        emptyMessage: 'Os primeiros projetos aparecerao aqui.',
+        emptyMessage: 'Os primeiros projetos aparecerão aqui.',
         loader: widget.carsRepository.feed,
       ),
       CarList(
+        key: ValueKey('garage-$_garageRevision'),
         title: 'Minha garagem',
-        emptyMessage: 'Adicione seu carro e comece a registrar a historia dele.',
+        emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
         loader: widget.carsRepository.mine,
-        primaryAction: const _AddCarButton(),
+        primaryActionLabel: 'Adicionar carro',
+        onPrimaryAction: _openCreateCar,
       ),
       const _TeamsPage(),
       _ProfilePage(session: widget.session),
@@ -70,21 +95,6 @@ class _HomeShellState extends State<HomeShell> {
   }
 }
 
-final class _AddCarButton extends StatelessWidget {
-  const _AddCarButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton.icon(
-      onPressed: () => ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cadastro de carro e o proximo fluxo.')),
-      ),
-      icon: const Icon(Icons.add),
-      label: const Text('Adicionar carro'),
-    );
-  }
-}
-
 final class _TeamsPage extends StatelessWidget {
   const _TeamsPage();
 
@@ -101,12 +111,12 @@ final class _TeamsPage extends StatelessWidget {
               Icon(Icons.groups_rounded, size: 64),
               SizedBox(height: 16),
               Text(
-                'Equipes entram no proximo ciclo.',
+                'Equipes entram no próximo ciclo.',
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 8),
               Text(
-                'Cada dono escolhera quais carros quer mostrar na garagem da equipe.',
+                'Cada dono escolherá quais carros quer mostrar na garagem da equipe.',
                 textAlign: TextAlign.center,
               ),
             ],

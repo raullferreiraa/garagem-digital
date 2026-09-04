@@ -22,4 +22,28 @@ final class CarsRepository {
         .map(Car.fromJson)
         .toList(growable: false);
   }
+
+  Future<Car> create({
+    required String model,
+    int? year,
+    String? color,
+    String? plate,
+    bool plateVisible = false,
+    String? history,
+    String? projectStatus,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/carros',
+      data: {
+        'modelo': model.trim(),
+        'ano': year,
+        'cor': color,
+        'placa': plate,
+        'placa_visivel': plateVisible,
+        'historia': history,
+        'status_projeto': projectStatus,
+      },
+    );
+    return Car.fromJson(response.data!);
+  }
 }

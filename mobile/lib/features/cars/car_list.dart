@@ -7,14 +7,16 @@ final class CarList extends StatefulWidget {
     required this.title,
     required this.emptyMessage,
     required this.loader,
-    this.primaryAction,
+    this.primaryActionLabel,
+    this.onPrimaryAction,
     super.key,
-  });
+  }) : assert(onPrimaryAction == null || primaryActionLabel != null);
 
   final String title;
   final String emptyMessage;
   final Future<List<Car>> Function() loader;
-  final Widget? primaryAction;
+  final String? primaryActionLabel;
+  final VoidCallback? onPrimaryAction;
 
   @override
   State<CarList> createState() => _CarListState();
@@ -39,6 +41,13 @@ class _CarListState extends State<CarList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(widget.title)),
+      floatingActionButton: widget.onPrimaryAction == null
+          ? null
+          : FloatingActionButton.extended(
+              onPressed: widget.onPrimaryAction,
+              icon: const Icon(Icons.add),
+              label: Text(widget.primaryActionLabel!),
+            ),
       body: FutureBuilder<List<Car>>(
         future: _cars,
         builder: (context, snapshot) {
@@ -58,13 +67,12 @@ class _CarListState extends State<CarList> {
             return _MessageState(
               icon: Icons.directions_car_outlined,
               message: widget.emptyMessage,
-              customAction: widget.primaryAction,
             );
           }
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView.separated(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               itemCount: cars.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
               itemBuilder: (context, index) => _CarCard(car: cars[index]),
@@ -84,6 +92,7 @@ final class _CarCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -133,14 +142,12 @@ final class _MessageState extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
-    this.customAction,
   });
 
   final IconData icon;
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
-  final Widget? customAction;
 
   @override
   Widget build(BuildContext context) {
@@ -153,10 +160,7 @@ final class _MessageState extends StatelessWidget {
             Icon(icon, size: 64),
             const SizedBox(height: 16),
             Text(message, textAlign: TextAlign.center),
-            if (customAction != null) ...[
-              const SizedBox(height: 20),
-              customAction!,
-            ] else if (onAction != null) ...[
+            if (onAction != null) ...[
               const SizedBox(height: 20),
               FilledButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
