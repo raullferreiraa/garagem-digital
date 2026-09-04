@@ -3,19 +3,18 @@
 Cliente Flutter Android-first. O nome exibido ainda e temporario e fica centralizado
 em `lib/core/config/app_config.dart`.
 
-## Gerar a estrutura Android
+## Preparar o ambiente
 
-Este ambiente de desenvolvimento nao possui o Flutter SDK. Na primeira execucao,
-com Flutter 3.24 ou superior instalado, rode:
+A estrutura Android esta versionada no repositorio. Com Flutter 3.47.2 ou superior
+instalado, rode:
 
 ```bash
 cd mobile
-flutter create --platforms=android --org br.com.garagem .
 flutter pub get
 ```
 
-O comando preserva os arquivos de `lib/` e gera somente a estrutura nativa que
-depende da versao local do Flutter/Gradle.
+O modo debug permite HTTP para acessar a API local. Builds de producao continuam
+bloqueando trafego sem TLS.
 
 ## Executar
 
