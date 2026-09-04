@@ -187,4 +187,4 @@ COMMENT ON TABLE carros_equipe IS
     'Garagem coletiva explicita. A API deve validar que adicionado_por e o proprietario do carro e membro da equipe.';
 
 COMMENT ON COLUMN eventos.localizacao IS
-    'Localizacao de evento ou ponto publico; nunca residencia ou rastreamento em tempo real.';
+    'Localizacao de evento ou ponto publico, nunca residencia ou rastreamento em tempo real.';

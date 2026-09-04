@@ -26,11 +26,12 @@ Na raiz do repositorio:
 ```bash
 cp .env.compose.example .env
 # Preencha POSTGRES_PASSWORD e JWT_SECRET com valores locais fortes.
+# Para a senha local do PostgreSQL, use letras e numeros para evitar codificacao na URL.
 docker compose up --build
 ```
 
 Esse comando inicia a API em `http://127.0.0.1:8000` e um PostgreSQL 17 com
-PostGIS 3.5. Na primeira inicializacao, `database/schema.sql` cria o esquema.
+PostGIS 3.5. Antes de iniciar o servidor, o Alembic aplica todas as migrations.
 
 Para recriar completamente o banco de desenvolvimento:
 
@@ -61,6 +62,22 @@ uvicorn app.main:app --reload
 ```
 
 5. Verifique `http://127.0.0.1:8000/api/v1/health`.
+
+## Banco e migrations
+
+`database/schema.sql` e o snapshot imutavel da primeira versao do banco. Mudancas
+posteriores devem ser criadas como novas revisions em `backend/alembic/versions`.
+
+```bash
+alembic upgrade head
+alembic current
+```
+
+Para criar uma migration futura:
+
+```bash
+alembic revision -m "descreva a mudanca"
+```
 
 ## Contratos disponiveis
 
