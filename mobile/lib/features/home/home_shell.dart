@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
+import 'package:garagem_mobile/features/cars/car.dart';
+import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
+import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/cars/create_car_screen.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -23,23 +25,39 @@ class _HomeShellState extends State<HomeShell> {
   int _feedRevision = 0;
   int _garageRevision = 0;
 
+  void _refreshCars() {
+    setState(() {
+      _feedRevision++;
+      _garageRevision++;
+    });
+  }
+
   Future<void> _openCreateCar() async {
-    final created = await Navigator.of(context).push<bool>(
+    final created = await Navigator.of(context).push<Car>(
       MaterialPageRoute(
-        builder: (_) => CreateCarScreen(repository: widget.carsRepository),
+        builder: (_) => CarFormScreen(repository: widget.carsRepository),
       ),
     );
 
-    if (created == true && mounted) {
-      setState(() {
-        _index = 1;
-        _feedRevision++;
-        _garageRevision++;
-      });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Carro adicionado à sua garagem.')),
-      );
-    }
+    if (created == null || !mounted) return;
+    setState(() => _index = 1);
+    _refreshCars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Carro adicionado à sua garagem.')),
+    );
+  }
+
+  Future<void> _openCar(Car car, {required bool canManage}) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => CarDetailScreen(
+          car: car,
+          repository: widget.carsRepository,
+          canManage: canManage,
+        ),
+      ),
+    );
+    if (mounted) _refreshCars();
   }
 
   @override
@@ -50,12 +68,14 @@ class _HomeShellState extends State<HomeShell> {
         title: 'Explorar projetos',
         emptyMessage: 'Os primeiros projetos aparecerão aqui.',
         loader: widget.carsRepository.feed,
+        onCarTap: (car) => _openCar(car, canManage: false),
       ),
       CarList(
         key: ValueKey('garage-$_garageRevision'),
         title: 'Minha garagem',
         emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
         loader: widget.carsRepository.mine,
+        onCarTap: (car) => _openCar(car, canManage: true),
         primaryActionLabel: 'Adicionar carro',
         onPrimaryAction: _openCreateCar,
       ),

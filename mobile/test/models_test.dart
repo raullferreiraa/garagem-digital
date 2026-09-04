@@ -19,14 +19,24 @@ void main() {
     expect(user.city, 'Sao Paulo');
   });
 
-  test('converte carro publico retornado pelo feed', () {
+  test('converte ficha privada do carro retornada pela API', () {
     final car = Car.fromJson({
       'id': '76db2576-7f23-46d6-bd71-cdcd44987724',
-      'modelo': 'Gol GTI',
-      'ano': 1994,
-      'cor': 'Azul',
+      'modelo': 'Omega CD 4.1',
+      'ano': 1996,
+      'cor': 'Preto',
       'foto_principal_url': null,
-      'status_projeto': 'Em evolucao',
+      'status_projeto': 'Em evolução',
+      'historia': 'Projeto de rua',
+      'motor': '4.1 seis cilindros',
+      'cambio': 'Manual',
+      'combustivel': 'Gasolina',
+      'potencia_estimada': '168 cv',
+      'preparacao': null,
+      'tipo_suspensao': 'Original',
+      'aro_roda': 17,
+      'placa': 'ABC1D23',
+      'placa_visivel': false,
       'proprietario': {
         'id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
         'nome': 'Raul Ferreira',
@@ -35,7 +45,25 @@ void main() {
       },
     });
 
-    expect(car.model, 'Gol GTI');
-    expect(car.ownerUsername, 'raul');
+    expect(car.model, 'Omega CD 4.1');
+    expect(car.engine, '4.1 seis cilindros');
+    expect(car.wheelSize, 17);
+    expect(car.plateVisible, isFalse);
+  });
+
+  test('serializa dados editáveis usando os nomes da API', () {
+    const input = CarInput(
+      model: 'Omega CD 4.1',
+      plateVisible: false,
+      year: 1996,
+      wheelSize: 17,
+      estimatedPower: '168 cv',
+    );
+
+    final json = input.toJson();
+    expect(json['modelo'], 'Omega CD 4.1');
+    expect(json['aro_roda'], 17);
+    expect(json['potencia_estimada'], '168 cv');
+    expect(json['placa_visivel'], isFalse);
   });
 }

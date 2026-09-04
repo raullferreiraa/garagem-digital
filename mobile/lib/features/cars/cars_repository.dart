@@ -23,27 +23,23 @@ final class CarsRepository {
         .toList(growable: false);
   }
 
-  Future<Car> create({
-    required String model,
-    int? year,
-    String? color,
-    String? plate,
-    bool plateVisible = false,
-    String? history,
-    String? projectStatus,
-  }) async {
+  Future<Car> create(CarInput input) async {
     final response = await _api.dio.post<Map<String, Object?>>(
       '/carros',
-      data: {
-        'modelo': model.trim(),
-        'ano': year,
-        'cor': color,
-        'placa': plate,
-        'placa_visivel': plateVisible,
-        'historia': history,
-        'status_projeto': projectStatus,
-      },
+      data: input.toJson(),
     );
     return Car.fromJson(response.data!);
+  }
+
+  Future<Car> update(String carId, CarInput input) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/carros/$carId',
+      data: input.toJson(),
+    );
+    return Car.fromJson(response.data!);
+  }
+
+  Future<void> delete(String carId) async {
+    await _api.dio.delete<void>('/carros/$carId');
   }
 }

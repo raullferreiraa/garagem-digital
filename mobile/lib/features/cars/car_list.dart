@@ -7,6 +7,7 @@ final class CarList extends StatefulWidget {
     required this.title,
     required this.emptyMessage,
     required this.loader,
+    required this.onCarTap,
     this.primaryActionLabel,
     this.onPrimaryAction,
     super.key,
@@ -15,6 +16,7 @@ final class CarList extends StatefulWidget {
   final String title;
   final String emptyMessage;
   final Future<List<Car>> Function() loader;
+  final ValueChanged<Car> onCarTap;
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
 
@@ -75,7 +77,10 @@ class _CarListState extends State<CarList> {
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
               itemCount: cars.length,
               separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _CarCard(car: cars[index]),
+              itemBuilder: (context, index) => _CarCard(
+                car: cars[index],
+                onTap: () => widget.onCarTap(cars[index]),
+              ),
             ),
           );
         },
@@ -85,52 +90,58 @@ class _CarListState extends State<CarList> {
 }
 
 final class _CarCard extends StatelessWidget {
-  const _CarCard({required this.car});
+  const _CarCard({required this.car, required this.onTap});
 
   final Car car;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: car.photoUrl == null
-                ? const ColoredBox(
-                    color: Color(0xFF24262A),
-                    child: Icon(Icons.directions_car_rounded, size: 72),
-                  )
-                : Image.network(
-                    car.photoUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const ColoredBox(
+      child: InkWell(
+        onTap: onTap,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AspectRatio(
+              aspectRatio: 16 / 10,
+              child: car.photoUrl == null
+                  ? const ColoredBox(
                       color: Color(0xFF24262A),
-                      child: Icon(Icons.broken_image_outlined, size: 48),
+                      child: Icon(Icons.directions_car_rounded, size: 72),
+                    )
+                  : Image.network(
+                      car.photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const ColoredBox(
+                        color: Color(0xFF24262A),
+                        child: Icon(Icons.broken_image_outlined, size: 48),
+                      ),
                     ),
-                  ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  [car.model, car.year].where((value) => value != null).join(' '),
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 4),
-                Text('${car.ownerName}  @${car.ownerUsername}'),
-                if (car.projectStatus != null) ...[
-                  const SizedBox(height: 12),
-                  Chip(label: Text(car.projectStatus!)),
-                ],
-              ],
             ),
-          ),
-        ],
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    [car.model, car.year]
+                        .where((value) => value != null)
+                        .join(' '),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('${car.ownerName}  @${car.ownerUsername}'),
+                  if (car.projectStatus != null) ...[
+                    const SizedBox(height: 12),
+                    Chip(label: Text(car.projectStatus!)),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
