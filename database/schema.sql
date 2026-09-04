@@ -11,6 +11,7 @@ CREATE TABLE usuarios (
     bio VARCHAR(280),
     cidade VARCHAR(120),
     estado VARCHAR(120),
+    ativo BOOLEAN NOT NULL DEFAULT TRUE,
     criado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     atualizado_em TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT usuarios_username_unico UNIQUE (username),
@@ -18,6 +19,20 @@ CREATE TABLE usuarios (
     CONSTRAINT usuarios_username_formato
         CHECK (username ~ '^[a-z0-9._]{3,30}$')
 );
+
+CREATE TABLE sessoes_refresh (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expira_em TIMESTAMPTZ NOT NULL,
+    revogada_em TIMESTAMPTZ,
+    criada_em TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX sessoes_refresh_usuario_idx ON sessoes_refresh(usuario_id);
+CREATE INDEX sessoes_refresh_ativas_idx
+    ON sessoes_refresh(usuario_id, expira_em)
+    WHERE revogada_em IS NULL;
 
 CREATE TABLE carros (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -172,4 +187,3 @@ COMMENT ON TABLE carros_equipe IS
 
 COMMENT ON COLUMN eventos.localizacao IS
     'Localizacao de evento ou ponto publico; nunca residencia ou rastreamento em tempo real.';
-

@@ -26,10 +26,12 @@ de carros e permissoes de equipe sao verificadas pela API.
 
 ## Limites da primeira fundacao
 
-- Autenticacao ainda sera implementada antes das rotas de escrita.
+- Autenticacao usa access token JWT curto e refresh token opaco, rotativo e
+  revogavel. Apenas o hash do refresh token e armazenado no banco.
+- Rotas protegidas obtem a identidade pelo token; nao aceitam `usuario_id` como
+  prova de identidade.
 - O provedor de armazenamento de imagens sera decidido antes do primeiro upload.
 - O frontend Flutter sera criado depois que os contratos iniciais da API estiverem
   autenticados e testados.
 - Participacao em uma ou varias equipes permanece flexivel no banco. A regra final
   pode ser aplicada na API sem nova migracao estrutural.
-
