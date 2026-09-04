@@ -12,9 +12,7 @@ final class SecureTokenStorage implements TokenStorage {
 
   static const _accessTokenKey = 'access_token';
   static const _refreshTokenKey = 'refresh_token';
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
+  static const _storage = FlutterSecureStorage();
 
   @override
   Future<String?> readAccessToken() => _storage.read(key: _accessTokenKey);
