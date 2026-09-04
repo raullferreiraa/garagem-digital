@@ -19,6 +19,31 @@ substituta testada na API nova.
 
 ## Execucao local
 
+### Opcao recomendada: Docker
+
+Na raiz do repositorio:
+
+```bash
+cp .env.compose.example .env
+# Preencha POSTGRES_PASSWORD e JWT_SECRET com valores locais fortes.
+docker compose up --build
+```
+
+Esse comando inicia a API em `http://127.0.0.1:8000` e um PostgreSQL 17 com
+PostGIS 3.5. Na primeira inicializacao, `database/schema.sql` cria o esquema.
+
+Para recriar completamente o banco de desenvolvimento:
+
+```bash
+docker compose down --volumes
+docker compose up --build
+```
+
+Esse comando remove apenas o volume local criado pelo Compose. Nao deve ser usado
+em um ambiente que contenha dados importantes.
+
+### Opcao manual
+
 1. Copie `.env.example` para `.env`.
 2. Inicie o PostgreSQL com PostGIS e execute `database/schema.sql`.
 3. Crie um ambiente virtual e instale as dependencias:
