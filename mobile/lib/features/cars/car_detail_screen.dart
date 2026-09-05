@@ -9,6 +9,8 @@ import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 
 enum _CarAction { edit, delete }
 
+enum _EvolutionAction { edit, delete }
+
 final class CarDetailScreen extends StatefulWidget {
   const CarDetailScreen({
     required this.car,
@@ -126,6 +128,91 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     );
   }
 
+  Future<void> _editEvolution(Evolution evolution) async {
+    final updated = await Navigator.of(context).push<Evolution>(
+      MaterialPageRoute(
+        builder: (_) => EvolutionFormScreen(
+          carId: _car.id,
+          carModel: _car.model,
+          repository: widget.evolutionsRepository,
+          evolution: evolution,
+        ),
+      ),
+    );
+    if (updated == null || !mounted) return;
+
+    setState(() {
+      _evolutions = _evolutions.then((items) {
+        final next = [
+          for (final item in items)
+            if (item.id == updated.id) updated else item,
+        ];
+        next.sort((a, b) => b.timelineDate.compareTo(a.timelineDate));
+        return next;
+      });
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Evolução atualizada.')),
+    );
+  }
+
+  Future<void> _deleteEvolution(Evolution evolution) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir evolução?'),
+        content: Text(
+          'O registro “${evolution.title}” será removido do diário. Essa ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    try {
+      await widget.evolutionsRepository.delete(_car.id, evolution.id);
+      if (!mounted) return;
+      setState(() {
+        _evolutions = _evolutions.then(
+          (items) => items
+              .where((item) => item.id != evolution.id)
+              .toList(growable: false),
+        );
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Evolução excluída.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
+  }
+
+  void _selectEvolutionAction(
+    _EvolutionAction action,
+    Evolution evolution,
+  ) {
+    switch (action) {
+      case _EvolutionAction.edit:
+        _editEvolution(evolution);
+        break;
+      case _EvolutionAction.delete:
+        _deleteEvolution(evolution);
+        break;
+    }
+  }
+
   String _formatDate(DateTime date) {
     final local = date.toLocal();
     final day = local.day.toString().padLeft(2, '0');
@@ -198,6 +285,28 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                                   evolutionCategoryLabels[evolution.category] ??
                                       evolution.category!,
                                 ),
+                              ),
+                            if (widget.canManage)
+                              PopupMenuButton<_EvolutionAction>(
+                                tooltip: 'Opções da evolução',
+                                onSelected: (action) =>
+                                    _selectEvolutionAction(action, evolution),
+                                itemBuilder: (_) => const [
+                                  PopupMenuItem(
+                                    value: _EvolutionAction.edit,
+                                    child: ListTile(
+                                      leading: Icon(Icons.edit_outlined),
+                                      title: Text('Editar'),
+                                    ),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _EvolutionAction.delete,
+                                    child: ListTile(
+                                      leading: Icon(Icons.delete_outline),
+                                      title: Text('Excluir'),
+                                    ),
+                                  ),
+                                ],
                               ),
                           ],
                         ),

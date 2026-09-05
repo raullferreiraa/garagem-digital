@@ -23,4 +23,20 @@ final class EvolutionsRepository {
     );
     return Evolution.fromJson(response.data!);
   }
+
+  Future<Evolution> update(
+    String carId,
+    String evolutionId,
+    EvolutionInput input,
+  ) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId',
+      data: input.toJson(),
+    );
+    return Evolution.fromJson(response.data!);
+  }
+
+  Future<void> delete(String carId, String evolutionId) async {
+    await _api.dio.delete<void>('/carros/$carId/evolucoes/$evolutionId');
+  }
 }

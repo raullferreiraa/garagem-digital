@@ -9,12 +9,14 @@ final class EvolutionFormScreen extends StatefulWidget {
     required this.carId,
     required this.carModel,
     required this.repository,
+    this.evolution,
     super.key,
   });
 
   final String carId;
   final String carModel;
   final EvolutionsRepository repository;
+  final Evolution? evolution;
 
   @override
   State<EvolutionFormScreen> createState() => _EvolutionFormScreenState();
@@ -22,14 +24,29 @@ final class EvolutionFormScreen extends StatefulWidget {
 
 class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _titleController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _mileageController = TextEditingController();
+  late final TextEditingController _titleController;
+  late final TextEditingController _descriptionController;
+  late final TextEditingController _mileageController;
 
   String? _category;
-  DateTime? _occurredAt = DateTime.now();
+  DateTime? _occurredAt;
   bool _submitting = false;
   String? _errorMessage;
+
+  bool get _editing => widget.evolution != null;
+
+  @override
+  void initState() {
+    super.initState();
+    final evolution = widget.evolution;
+    _titleController = TextEditingController(text: evolution?.title);
+    _descriptionController = TextEditingController(text: evolution?.description);
+    _mileageController = TextEditingController(
+      text: evolution?.mileageKm?.toString(),
+    );
+    _category = evolution?.category;
+    _occurredAt = evolution?.occurredAt ?? DateTime.now();
+  }
 
   @override
   void dispose() {
@@ -75,16 +92,20 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
 
     try {
       final mileage = _mileageController.text.trim();
-      final evolution = await widget.repository.create(
-        widget.carId,
-        EvolutionInput(
-          title: _titleController.text,
-          description: _descriptionController.text,
-          category: _category,
-          occurredAt: _occurredAt,
-          mileageKm: mileage.isEmpty ? null : int.parse(mileage),
-        ),
+      final input = EvolutionInput(
+        title: _titleController.text,
+        description: _descriptionController.text,
+        category: _category,
+        occurredAt: _occurredAt,
+        mileageKm: mileage.isEmpty ? null : int.parse(mileage),
       );
+      final evolution = _editing
+          ? await widget.repository.update(
+              widget.carId,
+              widget.evolution!.id,
+              input,
+            )
+          : await widget.repository.create(widget.carId, input);
       if (mounted) Navigator.of(context).pop(evolution);
     } catch (error) {
       if (!mounted) return;
@@ -104,7 +125,9 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Registrar evolução')),
+      appBar: AppBar(
+        title: Text(_editing ? 'Editar evolução' : 'Registrar evolução'),
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
@@ -116,11 +139,15 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               const SizedBox(height: 8),
-              const Text('Registre uma nova etapa na história deste projeto.'),
+              Text(
+                _editing
+                    ? 'Atualize este registro do diário.'
+                    : 'Registre uma nova etapa na história deste projeto.',
+              ),
               const SizedBox(height: 24),
               TextFormField(
                 controller: _titleController,
-                autofocus: true,
+                autofocus: !_editing,
                 textCapitalization: TextCapitalization.sentences,
                 decoration: const InputDecoration(
                   labelText: 'Título *',
@@ -218,7 +245,13 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
                     : const Icon(Icons.add),
-                label: Text(_submitting ? 'Publicando...' : 'Registrar evolução'),
+                label: Text(
+                  _submitting
+                      ? 'Salvando...'
+                      : _editing
+                          ? 'Salvar alterações'
+                          : 'Registrar evolução',
+                ),
               ),
             ],
           ),
