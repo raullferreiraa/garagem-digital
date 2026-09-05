@@ -27,9 +27,9 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
 
   void _onCropped(CropResult result) {
     switch (result) {
-      case CropResult.success(:final croppedImage):
+      case CropSuccess(:final croppedImage):
         if (mounted) Navigator.of(context).pop(croppedImage);
-      case CropResult.error():
+      case CropFailure():
         if (!mounted) return;
         setState(() {
           _cropping = false;
@@ -51,7 +51,10 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
                 controller: _controller,
                 onCropped: _onCropped,
                 aspectRatio: 16 / 10,
-                initialSize: 0.92,
+                initialRectBuilder: InitialRectBuilder.withSizeAndRatio(
+                  size: 0.92,
+                  aspectRatio: 16 / 10,
+                ),
                 interactive: true,
                 fixCropRect: true,
                 baseColor: const Color(0xFF101114),
