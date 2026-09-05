@@ -10,11 +10,13 @@ final class EvolutionPhotosScreen extends StatefulWidget {
   const EvolutionPhotosScreen({
     required this.evolution,
     required this.repository,
+    required this.onChanged,
     super.key,
   });
 
   final Evolution evolution;
   final EvolutionsRepository repository;
+  final ValueChanged<Evolution> onChanged;
 
   @override
   State<EvolutionPhotosScreen> createState() => _EvolutionPhotosScreenState();
@@ -101,6 +103,7 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
           _evolution = updated;
           _uploaded = index + 1;
         });
+        widget.onChanged(updated);
       }
       if (!mounted) return;
       setState(() => _working = false);
@@ -160,6 +163,7 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
         _evolution = updated;
         _working = false;
       });
+      widget.onChanged(updated);
     } catch (error) {
       if (!mounted) return;
       setState(() => _working = false);

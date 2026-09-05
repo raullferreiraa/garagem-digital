@@ -142,10 +142,24 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         builder: (_) => EvolutionPhotosScreen(
           evolution: evolution,
           repository: widget.evolutionsRepository,
+          onChanged: _replaceEvolution,
         ),
       ),
     );
-    if (mounted) await _reloadEvolutions();
+  }
+
+  void _replaceEvolution(Evolution updated) {
+    if (!mounted) return;
+    setState(() {
+      _evolutions = _evolutions.then((items) {
+        final next = [
+          for (final item in items)
+            if (item.id == updated.id) updated else item,
+        ];
+        next.sort((a, b) => b.timelineDate.compareTo(a.timelineDate));
+        return next;
+      });
+    });
   }
 
   Future<void> _openPhotoActions() async {
@@ -292,16 +306,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     );
     if (updated == null || !mounted) return;
 
-    setState(() {
-      _evolutions = _evolutions.then((items) {
-        final next = [
-          for (final item in items)
-            if (item.id == updated.id) updated else item,
-        ];
-        next.sort((a, b) => b.timelineDate.compareTo(a.timelineDate));
-        return next;
-      });
-    });
+    _replaceEvolution(updated);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evolução atualizada.')),
     );
