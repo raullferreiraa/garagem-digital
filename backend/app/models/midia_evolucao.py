@@ -47,7 +47,6 @@ class MidiaEvolucao(Base):
     evolucao_id: Mapped[UUID] = mapped_column(
         PostgresUUID(as_uuid=True),
         ForeignKey("evolucoes_projeto.id", ondelete="CASCADE"),
-        index=True,
     )
     url: Mapped[str] = mapped_column(Text)
     tipo: Mapped[str] = mapped_column(String(10), default="imagem")
