@@ -26,18 +26,32 @@ final class TeamsScreen extends StatefulWidget {
 }
 
 class _TeamsScreenState extends State<TeamsScreen> {
-  late Future<List<Team>> _teams;
+  List<Team>? _teams;
+  Object? _loadError;
+  bool _loading = true;
 
   @override
   void initState() {
     super.initState();
-    _teams = widget.repository.list();
+    _reload();
   }
 
   Future<void> _reload() async {
-    final updated = await widget.repository.list();
-    if (!mounted) return;
-    setState(() => _teams = Future.value(updated));
+    try {
+      final updated = await widget.repository.list();
+      if (!mounted) return;
+      setState(() {
+        _teams = updated;
+        _loadError = null;
+        _loading = false;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _loadError = error;
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _create() async {
@@ -47,6 +61,13 @@ class _TeamsScreenState extends State<TeamsScreen> {
       ),
     );
     if (created == null || !mounted) return;
+    setState(() {
+      _teams = [
+        created,
+        ...?_teams?.where((team) => team.id != created.id),
+      ];
+      _loadError = null;
+    });
     await _open(created.id);
   }
 
@@ -74,56 +95,55 @@ class _TeamsScreenState extends State<TeamsScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Criar equipe'),
       ),
-      body: FutureBuilder<List<Team>>(
-        future: _teams,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return _TeamMessage(
-              message: apiErrorMessage(snapshot.error!),
-              onRetry: _reload,
-            );
-          }
-          final teams = snapshot.data ?? const <Team>[];
-          if (teams.isEmpty) {
-            return const _TeamMessage(
-              message: 'Crie a primeira equipe e reúna projetos automotivos.',
-            );
-          }
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              itemCount: teams.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final team = teams[index];
-                return Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(16),
-                    leading: CircleAvatar(
-                      radius: 28,
-                      child: Text(team.name.substring(0, 1).toUpperCase()),
-                    ),
-                    title: Text(team.name),
-                    subtitle: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (team.location != null) Text(team.location!),
-                        Text('${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}'),
-                        if (team.myRole != null)
-                          Text('Você é ${_roleLabel(team.myRole!)}'),
-                        if (team.myRequest == 'pendente')
-                          const Text('Pedido de entrada pendente'),
-                      ],
-                    ),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _open(team.id),
+      body: _body(),
+    );
+  }
+
+  Widget _body() {
+    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loadError != null && _teams == null) {
+      return _TeamMessage(
+        message: apiErrorMessage(_loadError!),
+        onRetry: _reload,
+      );
+    }
+    final teams = _teams ?? const <Team>[];
+    if (teams.isEmpty) {
+      return const _TeamMessage(
+        message: 'Crie a primeira equipe e reúna projetos automotivos.',
+      );
+    }
+    return RefreshIndicator(
+      onRefresh: _reload,
+      child: ListView.separated(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+        itemCount: teams.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        itemBuilder: (context, index) {
+          final team = teams[index];
+          return Card(
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(16),
+              leading: CircleAvatar(
+                radius: 28,
+                child: Text(team.name.substring(0, 1).toUpperCase()),
+              ),
+              title: Text(team.name),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (team.location != null) Text(team.location!),
+                  Text(
+                    '${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}',
                   ),
-                );
-              },
+                  if (team.myRole != null)
+                    Text('Você é ${_roleLabel(team.myRole!)}'),
+                  if (team.myRequest == 'pendente')
+                    const Text('Pedido de entrada pendente'),
+                ],
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _open(team.id),
             ),
           );
         },
