@@ -6,18 +6,22 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garagem_mobile/features/teams/teams_screen.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.teamsRepository,
     super.key,
   });
 
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final TeamsRepository teamsRepository;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -83,7 +87,12 @@ class _HomeShellState extends State<HomeShell> {
         primaryActionLabel: 'Adicionar carro',
         onPrimaryAction: _openCreateCar,
       ),
-      const _TeamsPage(),
+      TeamsScreen(
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+      ),
       _ProfilePage(session: widget.session),
     ];
 
@@ -114,38 +123,6 @@ class _HomeShellState extends State<HomeShell> {
             label: 'Perfil',
           ),
         ],
-      ),
-    );
-  }
-}
-
-final class _TeamsPage extends StatelessWidget {
-  const _TeamsPage();
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Equipes')),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.groups_rounded, size: 64),
-              SizedBox(height: 16),
-              Text(
-                'Equipes entram no próximo ciclo.',
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Cada dono escolherá quais carros quer mostrar na garagem da equipe.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

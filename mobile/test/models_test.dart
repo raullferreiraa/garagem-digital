@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/teams/team.dart';
 
 void main() {
   test('converte perfil privado retornado pela API', () {
@@ -98,6 +99,41 @@ void main() {
     expect(json['aro_roda'], 17);
     expect(json['potencia_estimada'], '168 cv');
     expect(json['placa_visivel'], isFalse);
+  });
+
+  test('converte resumo e detalhe de equipe', () {
+    final json = {
+      'id': 'f3c513a2-a08f-45b2-a056-9898ca4df0d9',
+      'nome': 'Equipe Omega ES',
+      'slug': 'equipe-omega-es',
+      'descricao': 'Projetos capixabas',
+      'cidade': 'Vila Velha',
+      'estado': 'ES',
+      'visibilidade': 'publica',
+      'total_membros': 1,
+      'meu_papel': 'dono',
+      'minha_solicitacao': null,
+      'dono_id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
+      'membros': [
+        {
+          'papel': 'dono',
+          'entrou_em': '2026-09-05T12:00:00Z',
+          'usuario': {
+            'id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
+            'nome': 'Raul Ferreira',
+            'username': 'raul',
+            'avatar_url': null,
+          },
+        },
+      ],
+      'carros': <Object?>[],
+      'solicitacoes_pendentes': <Object?>[],
+    };
+    final team = TeamDetail.fromJson(json);
+    expect(team.name, 'Equipe Omega ES');
+    expect(team.location, 'Vila Velha - ES');
+    expect(team.myRole, 'dono');
+    expect(team.members.single.username, 'raul');
   });
 
   test('converte e serializa uma evolução do diário', () {

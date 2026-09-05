@@ -4,6 +4,7 @@ final class Car {
   const Car({
     required this.id,
     required this.model,
+    required this.ownerId,
     required this.ownerName,
     required this.ownerUsername,
     this.year,
@@ -27,6 +28,7 @@ final class Car {
     return Car(
       id: json['id']! as String,
       model: json['modelo']! as String,
+      ownerId: owner['id']! as String,
       ownerName: owner['nome']! as String,
       ownerUsername: owner['username']! as String,
       year: json['ano'] as int?,
@@ -50,6 +52,7 @@ final class Car {
 
   final String id;
   final String model;
+  final String ownerId;
   final String ownerName;
   final String ownerUsername;
   final int? year;

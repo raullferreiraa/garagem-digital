@@ -5,18 +5,21 @@ import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class GaragemApp extends StatelessWidget {
   const GaragemApp({
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.teamsRepository,
     super.key,
   });
 
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final TeamsRepository teamsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +46,7 @@ final class GaragemApp extends StatelessWidget {
               session: session,
               carsRepository: carsRepository,
               evolutionsRepository: evolutionsRepository,
+              teamsRepository: teamsRepository,
             ),
         },
       ),
@@ -55,8 +59,6 @@ final class _StartupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
