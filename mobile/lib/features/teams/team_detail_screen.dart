@@ -137,7 +137,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       builder: (context, snapshot) {
         final team = snapshot.data;
         return Scaffold(
-          appBar: AppBar(title: Text(team?.name ?? 'Equipe')),
+          appBar: AppBar(
+            title: Text(team?.name ?? 'Equipe'),
+            scrolledUnderElevation: 0,
+          ),
           body: snapshot.connectionState == ConnectionState.waiting
               ? const Center(child: CircularProgressIndicator())
               : snapshot.hasError
@@ -157,22 +160,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   }
 
   Widget _content(TeamDetail team) {
+    final colors = Theme.of(context).colorScheme;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
       children: [
-        CircleAvatar(
-          radius: 44,
-          child: Text(team.name.substring(0, 1).toUpperCase()),
-        ),
+        _TeamHero(team: team),
         const SizedBox(height: 16),
-        Text(team.name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall),
-        if (team.location != null)
-          Text(team.location!, textAlign: TextAlign.center),
-        if (team.description != null) ...[
-          const SizedBox(height: 16),
-          Text(team.description!, textAlign: TextAlign.center),
-        ],
-        const SizedBox(height: 20),
         if (team.myRole == null && team.myRequest != 'pendente')
           FilledButton.icon(
             onPressed: _acting
@@ -185,87 +179,488 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             label: const Text('Pedir para entrar'),
           ),
         if (team.myRole == null && team.myRequest == 'pendente')
-          const Chip(
-            avatar: Icon(Icons.schedule),
-            label: Text('Pedido de entrada pendente'),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.tertiaryContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.schedule),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Seu pedido está com a equipe. Você poderá escolher um carro depois da aprovação.',
+                  ),
+                ),
+              ],
+            ),
           ),
         if (team.myRole != null)
-          OutlinedButton.icon(
+          FilledButton.tonalIcon(
             onPressed: _acting ? null : () => _chooseCar(team),
-            icon: const Icon(Icons.garage_outlined),
-            label: const Text('Escolher meu carro nesta equipe'),
+            icon: const Icon(Icons.swap_horiz),
+            label: Text(
+              team.cars.any((car) => car.ownerId == widget.currentUserId)
+                  ? 'Trocar meu carro na equipe'
+                  : 'Escolher meu carro para a equipe',
+            ),
           ),
         if (team.pendingRequests.isNotEmpty) ...[
-          const SizedBox(height: 28),
-          Text('Pedidos de entrada', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 8),
+          const SizedBox(height: 24),
+          _SectionHeader(
+            eyebrow: 'GESTÃO',
+            title: 'Pedidos de entrada',
+            trailing: '${team.pendingRequests.length}',
+          ),
+          const SizedBox(height: 12),
           for (final request in team.pendingRequests)
-            Card(
-              child: ListTile(
-                title: Text(request.name),
-                subtitle: Text('@${request.username}'),
-                trailing: Wrap(
-                  children: [
-                    IconButton(
-                      tooltip: 'Recusar',
-                      onPressed: _acting
-                          ? null
-                          : () => _act(
-                                () => widget.repository.decideRequest(
-                                  team.id,
-                                  request.id,
-                                  approve: false,
-                                ),
-                                'Pedido recusado.',
-                              ),
-                      icon: const Icon(Icons.close),
-                    ),
-                    IconButton(
-                      tooltip: 'Aprovar',
-                      onPressed: _acting
-                          ? null
-                          : () => _act(
-                                () => widget.repository.decideRequest(
-                                  team.id,
-                                  request.id,
-                                  approve: true,
-                                ),
-                                'Novo integrante aprovado.',
-                              ),
-                      icon: const Icon(Icons.check),
-                    ),
-                  ],
+            _RequestCard(
+              request: request,
+              acting: _acting,
+              onReject: () => _act(
+                () => widget.repository.decideRequest(
+                  team.id,
+                  request.id,
+                  approve: false,
                 ),
+                'Pedido recusado.',
+              ),
+              onApprove: () => _act(
+                () => widget.repository.decideRequest(
+                  team.id,
+                  request.id,
+                  approve: true,
+                ),
+                'Novo integrante aprovado.',
               ),
             ),
         ],
         const SizedBox(height: 28),
-        Text('Garagem da equipe', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
+        _SectionHeader(
+          eyebrow: 'PROJETOS ESCOLHIDOS',
+          title: 'Garagem da equipe',
+          trailing: '${team.cars.length}',
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Cada integrante decide qual máquina representa seu projeto aqui.',
+          style: TextStyle(color: colors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 14),
         if (team.cars.isEmpty)
-          const Card(
-            child: Padding(
-              padding: EdgeInsets.all(24),
-              child: Text(
-                'Os carros escolhidos pelos integrantes aparecerão aqui.',
-                textAlign: TextAlign.center,
+          Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: colors.outlineVariant),
+              gradient: LinearGradient(
+                colors: [
+                  colors.surfaceContainerHigh,
+                  colors.surfaceContainer,
+                ],
               ),
+            ),
+            child: const Column(
+              children: [
+                Icon(Icons.sports_motorsports_outlined, size: 46),
+                SizedBox(height: 12),
+                Text(
+                  'A garagem ainda está vazia',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Os carros escolhidos pelos integrantes aparecerão juntos aqui.',
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ),
           )
         else
-          for (final car in team.cars) _TeamCarCard(car: car, onTap: () => _openCar(car)),
-        const SizedBox(height: 28),
-        Text('Integrantes (${team.memberCount})', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        for (final member in team.members)
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: CircleAvatar(child: Text(member.name.substring(0, 1).toUpperCase())),
-            title: Text(member.name),
-            subtitle: Text('@${member.username}'),
-            trailing: Text(member.role == 'dono' ? 'Dono' : 'Membro'),
+          SizedBox(
+            height: 250,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: team.cars.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                final car = team.cars[index];
+                return _TeamCarCard(
+                  car: car,
+                  onTap: () => _openCar(car),
+                );
+              },
+            ),
           ),
+        const SizedBox(height: 28),
+        _SectionHeader(
+          eyebrow: 'PESSOAS',
+          title: 'Integrantes',
+          trailing: '${team.memberCount}',
+        ),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(22),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var index = 0; index < team.members.length; index++) ...[
+                _MemberTile(member: team.members[index]),
+                if (index != team.members.length - 1)
+                  Divider(height: 1, color: colors.outlineVariant),
+              ],
+            ],
+          ),
+        ),
       ],
+    );
+  }
+}
+
+final class _TeamHero extends StatelessWidget {
+  const _TeamHero({required this.team});
+
+  final TeamDetail team;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.primaryContainer,
+            colors.surfaceContainerHigh,
+          ],
+        ),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(22),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Text(
+                  team.name.substring(0, 1).toUpperCase(),
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _StatusPill(
+                          icon: team.visibility == 'publica'
+                              ? Icons.public
+                              : Icons.lock_outline,
+                          label: team.visibility == 'publica'
+                              ? 'Pública'
+                              : 'Privada',
+                        ),
+                        if (team.myRole != null)
+                          _StatusPill(
+                            icon: Icons.shield_outlined,
+                            label: _roleName(team.myRole!),
+                            highlighted: true,
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      team.name,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w900,
+                          ),
+                    ),
+                    if (team.location != null) ...[
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 16),
+                          const SizedBox(width: 4),
+                          Expanded(child: Text(team.location!)),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (team.description != null) ...[
+            const SizedBox(height: 18),
+            Text(
+              team.description!,
+              style: TextStyle(color: colors.onSurfaceVariant, height: 1.45),
+            ),
+          ],
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _TeamStat(
+                  icon: Icons.people_outline,
+                  value: '${team.memberCount}',
+                  label: 'integrantes',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _TeamStat(
+                  icon: Icons.directions_car_outlined,
+                  value: '${team.cars.length}',
+                  label: 'projetos',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+String _roleName(String role) => switch (role) {
+      'dono' => 'Dono',
+      'administrador' => 'Administrador',
+      'moderador' => 'Moderador',
+      _ => 'Membro',
+    };
+
+final class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.icon,
+    required this.label,
+    this.highlighted = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: highlighted
+            ? colors.primary.withValues(alpha: 0.16)
+            : colors.surface.withValues(alpha: 0.45),
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: highlighted ? colors.primary : null),
+          const SizedBox(width: 5),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
+      ),
+    );
+  }
+}
+
+final class _TeamStat extends StatelessWidget {
+  const _TeamStat({
+    required this.icon,
+    required this.value,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(13),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
+              Text(label, style: Theme.of(context).textTheme.labelSmall),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({
+    required this.eyebrow,
+    required this.title,
+    required this.trailing,
+  });
+
+  final String eyebrow;
+  final String title;
+  final String trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                eyebrow,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                    ),
+              ),
+              const SizedBox(height: 3),
+              Text(title, style: Theme.of(context).textTheme.titleLarge),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(99),
+          ),
+          child: Text(trailing),
+        ),
+      ],
+    );
+  }
+}
+
+final class _RequestCard extends StatelessWidget {
+  const _RequestCard({
+    required this.request,
+    required this.acting,
+    required this.onReject,
+    required this.onApprove,
+  });
+
+  final TeamRequest request;
+  final bool acting;
+  final VoidCallback onReject;
+  final VoidCallback onApprove;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.22)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                child: Text(request.name.substring(0, 1).toUpperCase()),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      request.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    Text('@${request.username}'),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: acting ? null : onReject,
+                  child: const Text('Recusar'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: acting ? null : onApprove,
+                  child: const Text('Aprovar'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _MemberTile extends StatelessWidget {
+  const _MemberTile({required this.member});
+
+  final TeamMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+      leading: CircleAvatar(
+        child: Text(member.name.substring(0, 1).toUpperCase()),
+      ),
+      title: Text(member.name),
+      subtitle: Text('@${member.username}'),
+      trailing: _StatusPill(
+        icon: member.role == 'dono' ? Icons.star_outline : Icons.person_outline,
+        label: _roleName(member.role),
+        highlighted: member.role == 'dono',
+      ),
     );
   }
 }
@@ -278,39 +673,67 @@ final class _TeamCarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final colors = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: 250,
+      child: Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            SizedBox.square(
-              dimension: 96,
+            SizedBox(
+              height: 150,
               child: car.photoUrl == null
-                  ? const ColoredBox(
-                      color: Color(0xFF24262A),
-                      child: Icon(Icons.directions_car),
+                  ? ColoredBox(
+                      color: colors.surfaceContainerHighest,
+                      child: const Icon(Icons.directions_car, size: 48),
                     )
-                  : Image.network(car.photoUrl!, fit: BoxFit.cover),
+                  : Image.network(
+                      car.photoUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => ColoredBox(
+                        color: colors.surfaceContainerHighest,
+                        child: const Icon(Icons.broken_image_outlined),
+                      ),
+                    ),
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(car.model, style: Theme.of(context).textTheme.titleMedium),
-                    Text('@${car.ownerUsername}'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            [car.model, car.year]
+                                .whereType<Object>()
+                                .join(' '),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                          ),
+                        ),
+                        const Icon(Icons.arrow_outward, size: 18),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '@${car.ownerUsername}',
+                      style: TextStyle(color: colors.onSurfaceVariant),
+                    ),
                   ],
                 ),
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(right: 8),
-              child: Icon(Icons.chevron_right),
-            ),
           ],
         ),
+      ),
       ),
     );
   }
