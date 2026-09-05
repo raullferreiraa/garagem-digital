@@ -63,3 +63,10 @@ class EvolucaoProjeto(Base):
 
     carro = relationship("Carro", back_populates="evolucoes")
     autor = relationship("Usuario", lazy="joined")
+    fotos = relationship(
+        "MidiaEvolucao",
+        back_populates="evolucao",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+        order_by="MidiaEvolucao.ordem",
+    )

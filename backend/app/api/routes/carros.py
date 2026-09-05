@@ -36,6 +36,7 @@ from app.services.media import (
     ArquivoMuitoGrande,
     ImagemInvalida,
     remover_media,
+    remover_midias_do_carro,
     salvar_foto_principal,
 )
 
@@ -161,8 +162,7 @@ def remover_carro(
     db: DbSession,
 ) -> Response:
     carro = obter_carro_do_proprietario(db, carro_id, usuario.id)
-    url_da_foto = carro.foto_principal_url if carro is not None else None
     if not excluir_carro(db, carro_id, usuario.id):
         raise HTTPException(status_code=404, detail="Carro nao encontrado.")
-    remover_media(url_da_foto)
+    remover_midias_do_carro(carro_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

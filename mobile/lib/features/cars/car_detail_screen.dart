@@ -8,6 +8,7 @@ import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -133,6 +134,18 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evolução registrada no diário.')),
     );
+  }
+
+  Future<void> _openEvolutionPhotos(Evolution evolution) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EvolutionPhotosScreen(
+          evolution: evolution,
+          repository: widget.evolutionsRepository,
+        ),
+      ),
+    );
+    if (mounted) await _reloadEvolutions();
   }
 
   Future<void> _openPhotoActions() async {
@@ -462,6 +475,61 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                               const SizedBox(width: 6),
                               Text('${evolution.mileageKm} km'),
                             ],
+                          ),
+                        ],
+                        if (evolution.photos.isNotEmpty) ...[
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 112,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: evolution.photos.length,
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 8),
+                              itemBuilder: (context, index) {
+                                final photo = evolution.photos[index];
+                                return InkWell(
+                                  borderRadius: BorderRadius.circular(10),
+                                  onTap: () => Navigator.of(context).push<void>(
+                                    MaterialPageRoute(
+                                      builder: (_) => EvolutionPhotoViewer(
+                                        photos: evolution.photos,
+                                        initialIndex: index,
+                                      ),
+                                    ),
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: AspectRatio(
+                                      aspectRatio: 4 / 3,
+                                      child: Image.network(
+                                        photo.url,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const ColoredBox(
+                                          color: Color(0xFF24262A),
+                                          child: Icon(
+                                            Icons.broken_image_outlined,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ],
+                        if (widget.canManage) ...[
+                          const SizedBox(height: 10),
+                          TextButton.icon(
+                            onPressed: () => _openEvolutionPhotos(evolution),
+                            icon: const Icon(Icons.photo_library_outlined),
+                            label: Text(
+                              evolution.photos.isEmpty
+                                  ? 'Adicionar fotos'
+                                  : 'Gerenciar ${evolution.photos.length} fotos',
+                            ),
                           ),
                         ],
                       ],

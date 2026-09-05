@@ -1,5 +1,6 @@
 from io import BytesIO
 from pathlib import Path
+from shutil import rmtree
 from uuid import UUID, uuid4
 
 from PIL import Image, ImageOps, UnidentifiedImageError
@@ -21,7 +22,7 @@ def _diretorio_do_carro(carro_id: UUID) -> Path:
     return diretorio
 
 
-def salvar_foto_principal(carro_id: UUID, conteudo: bytes) -> str:
+def _salvar_imagem(diretorio: Path, conteudo: bytes) -> Path:
     if len(conteudo) > settings.media_max_upload_bytes:
         raise ArquivoMuitoGrande
 
@@ -38,7 +39,8 @@ def salvar_foto_principal(carro_id: UUID, conteudo: bytes) -> str:
             fundo = Image.new("RGB", rgba.size, "white")
             fundo.paste(rgba, mask=rgba.getchannel("A"))
 
-            destino = _diretorio_do_carro(carro_id) / f"{uuid4()}.jpg"
+            diretorio.mkdir(parents=True, exist_ok=True)
+            destino = diretorio / f"{uuid4()}.jpg"
             temporario = destino.with_suffix(".tmp")
             fundo.save(
                 temporario,
@@ -55,7 +57,25 @@ def salvar_foto_principal(carro_id: UUID, conteudo: bytes) -> str:
     ) as error:
         raise ImagemInvalida from error
 
+    return destino
+
+
+def salvar_foto_principal(carro_id: UUID, conteudo: bytes) -> str:
+    destino = _salvar_imagem(_diretorio_do_carro(carro_id), conteudo)
     return f"{settings.media_url_prefix}/carros/{carro_id}/{destino.name}"
+
+
+def salvar_foto_evolucao(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    conteudo: bytes,
+) -> str:
+    diretorio = _diretorio_do_carro(carro_id) / "evolucoes" / str(evolucao_id)
+    destino = _salvar_imagem(diretorio, conteudo)
+    return (
+        f"{settings.media_url_prefix}/carros/{carro_id}/"
+        f"evolucoes/{evolucao_id}/{destino.name}"
+    )
 
 
 def remover_media(url: str | None) -> None:
@@ -70,3 +90,11 @@ def remover_media(url: str | None) -> None:
     if raiz not in destino.parents:
         return
     destino.unlink(missing_ok=True)
+
+
+def remover_midias_do_carro(carro_id: UUID) -> None:
+    raiz = settings.media_root.resolve()
+    diretorio = (raiz / "carros" / str(carro_id)).resolve()
+    if raiz not in diretorio.parents:
+        return
+    rmtree(diretorio, ignore_errors=True)

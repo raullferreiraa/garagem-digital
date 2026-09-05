@@ -8,7 +8,13 @@ from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
 from app.main import app
-from app.models import Carro, EvolucaoProjeto, SessaoRefresh, Usuario  # noqa: F401
+from app.models import (  # noqa: F401
+    Carro,
+    EvolucaoProjeto,
+    MidiaEvolucao,
+    SessaoRefresh,
+    Usuario,
+)
 
 
 @pytest.fixture

@@ -80,11 +80,20 @@ class EvolucaoAtualizacao(BaseModel):
         return self
 
 
+class FotoEvolucaoResposta(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    url: str
+    criado_em: datetime
+
+
 class EvolucaoResposta(EvolucaoBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
     carro_id: UUID
     autor: UsuarioResumo
+    fotos: list[FotoEvolucaoResposta] = Field(default_factory=list)
     criado_em: datetime
     atualizado_em: datetime

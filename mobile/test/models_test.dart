@@ -109,6 +109,13 @@ void main() {
       'categoria': 'manutencao',
       'ocorreu_em': '2026-09-05T12:00:00Z',
       'quilometragem_km': 185000,
+      'fotos': [
+        {
+          'id': '47fce765-5074-48a7-bc05-e99a960e7e42',
+          'url': '/media/carros/omega/evolucoes/revisao/foto.jpg',
+          'criado_em': '2026-09-05T13:05:00Z',
+        },
+      ],
       'criado_em': '2026-09-05T13:00:00Z',
       'autor': {
         'id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
@@ -120,6 +127,11 @@ void main() {
 
     expect(evolution.title, 'Primeira revisão');
     expect(evolution.mileageKm, 185000);
+    expect(evolution.photos, hasLength(1));
+    expect(
+      evolution.photos.single.url,
+      'http://10.0.2.2:8000/media/carros/omega/evolucoes/revisao/foto.jpg',
+    );
     expect(evolution.timelineDate.toUtc().hour, 12);
 
     final json = EvolutionInput(

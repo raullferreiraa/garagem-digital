@@ -1,3 +1,25 @@
+import 'package:garagem_mobile/core/config/app_config.dart';
+
+final class EvolutionPhoto {
+  const EvolutionPhoto({
+    required this.id,
+    required this.url,
+    required this.createdAt,
+  });
+
+  factory EvolutionPhoto.fromJson(Map<String, Object?> json) {
+    return EvolutionPhoto(
+      id: json['id']! as String,
+      url: AppConfig.resolveApiUrl(json['url']! as String)!,
+      createdAt: DateTime.parse(json['criado_em']! as String),
+    );
+  }
+
+  final String id;
+  final String url;
+  final DateTime createdAt;
+}
+
 final class Evolution {
   const Evolution({
     required this.id,
@@ -7,6 +29,7 @@ final class Evolution {
     required this.authorName,
     required this.authorUsername,
     required this.createdAt,
+    this.photos = const [],
     this.category,
     this.occurredAt,
     this.mileageKm,
@@ -14,6 +37,10 @@ final class Evolution {
 
   factory Evolution.fromJson(Map<String, Object?> json) {
     final author = json['autor']! as Map<String, Object?>;
+    final photos = (json['fotos'] as List<Object?>? ?? const [])
+        .cast<Map<String, Object?>>()
+        .map(EvolutionPhoto.fromJson)
+        .toList(growable: false);
     return Evolution(
       id: json['id']! as String,
       carId: json['carro_id']! as String,
@@ -21,6 +48,7 @@ final class Evolution {
       description: json['descricao']! as String,
       authorName: author['nome']! as String,
       authorUsername: author['username']! as String,
+      photos: photos,
       category: json['categoria'] as String?,
       occurredAt: _optionalDate(json['ocorreu_em']),
       mileageKm: json['quilometragem_km'] as int?,
@@ -34,6 +62,7 @@ final class Evolution {
   final String description;
   final String authorName;
   final String authorUsername;
+  final List<EvolutionPhoto> photos;
   final String? category;
   final DateTime? occurredAt;
   final int? mileageKm;
