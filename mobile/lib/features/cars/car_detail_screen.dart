@@ -113,8 +113,14 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ),
     );
     if (created == null || !mounted) return;
-    await _reloadEvolutions();
-    if (!mounted) return;
+    setState(() {
+      _evolutions = _evolutions.then(
+        (items) => [
+          created,
+          ...items.where((item) => item.id != created.id),
+        ],
+      );
+    });
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evolução registrada no diário.')),
     );
