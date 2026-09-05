@@ -1,8 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
@@ -189,11 +192,20 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       );
       if (photo == null || !mounted) return;
 
+      final selectedBytes = await photo.readAsBytes();
+      if (!mounted) return;
+      final croppedBytes = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(
+          builder: (_) => PhotoCropScreen(image: selectedBytes),
+        ),
+      );
+      if (croppedBytes == null || !mounted) return;
+
       setState(() => _updatingPhoto = true);
       final updated = await widget.repository.uploadMainPhoto(
         _car.id,
-        filePath: photo.path,
-        fileName: photo.name,
+        bytes: croppedBytes,
+        fileName: 'foto-principal.jpg',
       );
       if (!mounted) return;
       setState(() {

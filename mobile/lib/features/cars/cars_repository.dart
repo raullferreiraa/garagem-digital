@@ -46,14 +46,14 @@ final class CarsRepository {
 
   Future<Car> uploadMainPhoto(
     String carId, {
-    required String filePath,
+    required List<int> bytes,
     required String fileName,
   }) async {
     final response = await _api.dio.post<Map<String, Object?>>(
       '/carros/$carId/foto-principal',
       data: FormData.fromMap({
-        'arquivo': await MultipartFile.fromFile(
-          filePath,
+        'arquivo': MultipartFile.fromBytes(
+          bytes,
           filename: fileName,
         ),
       }),
