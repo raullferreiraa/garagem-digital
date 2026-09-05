@@ -35,9 +35,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Future<void> _reload() async {
-    final next = widget.repository.list();
-    setState(() => _teams = next);
-    await next;
+    final updated = await widget.repository.list();
+    if (!mounted) return;
+    setState(() => _teams = Future.value(updated));
   }
 
   Future<void> _create() async {
@@ -47,8 +47,6 @@ class _TeamsScreenState extends State<TeamsScreen> {
       ),
     );
     if (created == null || !mounted) return;
-    await _reload();
-    if (!mounted) return;
     await _open(created.id);
   }
 

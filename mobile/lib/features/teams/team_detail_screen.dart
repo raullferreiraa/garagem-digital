@@ -38,9 +38,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   }
 
   Future<void> _reload() async {
-    final next = widget.repository.detail(widget.teamId);
-    setState(() => _team = next);
-    await next;
+    final updated = await widget.repository.detail(widget.teamId);
+    if (!mounted) return;
+    setState(() => _team = Future.value(updated));
   }
 
   Future<void> _act(Future<void> Function() action, String success) async {
@@ -59,21 +59,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
 
     try {
       await _reload();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(success)),
-        );
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Ação concluída. Puxe a tela para baixo para atualizar.',
-            ),
-          ),
-        );
-      }
+    } catch (error, stackTrace) {
+      debugPrint('Falha ao atualizar equipe: $error\n$stackTrace');
+    }
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(success)),
+      );
     }
     if (mounted) setState(() => _acting = false);
   }
@@ -187,7 +179,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                 ? null
                 : () => _act(
                       () => widget.repository.requestEntry(team.id),
-                      'Pedido de entrada enviado.',
+                      'Pedido enviado. Aguarde a aprovação da equipe.',
                     ),
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Pedir para entrar'),
