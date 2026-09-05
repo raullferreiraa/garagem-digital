@@ -49,8 +49,8 @@ def test_fluxo_de_equipe_pedido_e_carro_escolhido(client: TestClient) -> None:
     pedido = client.post(
         f"/api/v1/equipes/{equipe['id']}/solicitacoes", headers=auth(membro)
     )
-    assert pedido.status_code == 201
-    assert pedido.json()["status"] == "pendente"
+    assert pedido.status_code == 204
+    assert pedido.content == b""
 
     repetido = client.post(
         f"/api/v1/equipes/{equipe['id']}/solicitacoes", headers=auth(membro)

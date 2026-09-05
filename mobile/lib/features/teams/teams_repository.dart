@@ -29,7 +29,7 @@ final class TeamsRepository {
   }
 
   Future<void> requestEntry(String teamId) async {
-    await _api.dio.post<void>('/equipes/$teamId/solicitacoes');
+    await _api.dio.post<Object?>('/equipes/$teamId/solicitacoes');
   }
 
   Future<void> decideRequest(
@@ -37,20 +37,20 @@ final class TeamsRepository {
     String requestId, {
     required bool approve,
   }) async {
-    await _api.dio.patch<void>(
+    await _api.dio.patch<Object?>(
       '/equipes/$teamId/solicitacoes/$requestId',
       data: {'decisao': approve ? 'aprovar' : 'recusar'},
     );
   }
 
   Future<void> selectCar(String teamId, String carId) async {
-    await _api.dio.put<void>(
+    await _api.dio.put<Object?>(
       '/equipes/$teamId/meu-carro',
       data: {'carro_id': carId},
     );
   }
 
   Future<void> removeSelectedCar(String teamId) async {
-    await _api.dio.delete<void>('/equipes/$teamId/meu-carro');
+    await _api.dio.delete<Object?>('/equipes/$teamId/meu-carro');
   }
 }

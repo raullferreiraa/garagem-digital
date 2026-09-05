@@ -47,19 +47,35 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     setState(() => _acting = true);
     try {
       await action();
-      await _reload();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(success)));
-      }
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
       }
-    } finally {
       if (mounted) setState(() => _acting = false);
+      return;
     }
+
+    try {
+      await _reload();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(success)),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Ação concluída. Puxe a tela para baixo para atualizar.',
+            ),
+          ),
+        );
+      }
+    }
+    if (mounted) setState(() => _acting = false);
   }
 
   Future<void> _chooseCar(TeamDetail team) async {

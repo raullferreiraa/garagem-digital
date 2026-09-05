@@ -62,15 +62,18 @@ def detalhe_equipe(
         raise _erro(error) from error
 
 
-@router.post("/{equipe_id}/solicitacoes", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/{equipe_id}/solicitacoes",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def pedir_entrada(
     equipe_id: UUID, usuario: UsuarioAtual, db: DbSession
-) -> dict[str, str]:
+) -> Response:
     try:
-        solicitacao = solicitar_entrada(db, equipe_id, usuario)
-        return {"id": str(solicitacao.id), "status": solicitacao.status}
+        solicitar_entrada(db, equipe_id, usuario)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.patch(
