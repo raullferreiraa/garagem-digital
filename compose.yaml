@@ -33,11 +33,14 @@ services:
       JWT_SECRET: ${JWT_SECRET:?Defina JWT_SECRET no arquivo .env}
       ACCESS_TOKEN_MINUTES: 15
       REFRESH_TOKEN_DAYS: 30
+      MEDIA_ROOT: /data/media
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
+    volumes:
+      - media_data:/data/media
     healthcheck:
       test:
         [
@@ -52,3 +55,4 @@ services:
 
 volumes:
   postgres_data:
+  media_data:

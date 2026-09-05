@@ -36,6 +36,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Capture resolved lockfile
+        run: |
+          echo LOCKFILE_BEGIN
+          cat pubspec.lock
+          echo LOCKFILE_END
+
       - name: Analyze
         run: flutter analyze --fatal-infos
 

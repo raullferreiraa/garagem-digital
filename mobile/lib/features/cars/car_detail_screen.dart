@@ -6,10 +6,13 @@ import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:image_picker/image_picker.dart';
 
 enum _CarAction { edit, delete }
 
 enum _EvolutionAction { edit, delete }
+
+enum _PhotoAction { camera, gallery, remove }
 
 final class CarDetailScreen extends StatefulWidget {
   const CarDetailScreen({
@@ -33,6 +36,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
   late Future<List<Evolution>> _evolutions;
   bool _deleting = false;
+  bool _updatingPhoto = false;
 
   @override
   void initState() {
@@ -126,6 +130,128 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Evolução registrada no diário.')),
     );
+  }
+
+  Future<void> _openPhotoActions() async {
+    final action = await showModalBottomSheet<_PhotoAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(
+              title: Text('Foto principal'),
+              subtitle: Text('Ela aparecerá na garagem e em Explorar.'),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('Tirar foto'),
+              onTap: () => Navigator.of(context).pop(_PhotoAction.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('Escolher da galeria'),
+              onTap: () => Navigator.of(context).pop(_PhotoAction.gallery),
+            ),
+            if (_car.photoUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remover foto'),
+                onTap: () => Navigator.of(context).pop(_PhotoAction.remove),
+              ),
+          ],
+        ),
+      ),
+    );
+    if (action == null || !mounted) return;
+
+    switch (action) {
+      case _PhotoAction.camera:
+        await _pickAndUploadPhoto(ImageSource.camera);
+        break;
+      case _PhotoAction.gallery:
+        await _pickAndUploadPhoto(ImageSource.gallery);
+        break;
+      case _PhotoAction.remove:
+        await _removePhoto();
+        break;
+    }
+  }
+
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    try {
+      final photo = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 90,
+      );
+      if (photo == null || !mounted) return;
+
+      setState(() => _updatingPhoto = true);
+      final updated = await widget.repository.uploadMainPhoto(
+        _car.id,
+        filePath: photo.path,
+        fileName: photo.name,
+      );
+      if (!mounted) return;
+      setState(() {
+        _car = updated;
+        _updatingPhoto = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto principal atualizada.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _updatingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
+  }
+
+  Future<void> _removePhoto() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Remover foto?'),
+        content: const Text(
+          'O carro voltará a usar a imagem padrão até você escolher outra foto.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    setState(() => _updatingPhoto = true);
+    try {
+      final updated = await widget.repository.removeMainPhoto(_car.id);
+      if (!mounted) return;
+      setState(() {
+        _car = updated;
+        _updatingPhoto = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto principal removida.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _updatingPhoto = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
   }
 
   Future<void> _editEvolution(Evolution evolution) async {
@@ -386,12 +512,16 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
               children: [
                 AspectRatio(
                   aspectRatio: 16 / 10,
-                  child: _car.photoUrl == null
-                      ? const ColoredBox(
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (_car.photoUrl == null)
+                        const ColoredBox(
                           color: Color(0xFF24262A),
                           child: Icon(Icons.directions_car_rounded, size: 96),
                         )
-                      : Image.network(
+                      else
+                        Image.network(
                           _car.photoUrl!,
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => const ColoredBox(
@@ -399,6 +529,23 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                             child: Icon(Icons.broken_image_outlined, size: 64),
                           ),
                         ),
+                      if (widget.canManage && !_updatingPhoto)
+                        Positioned(
+                          right: 16,
+                          bottom: 16,
+                          child: IconButton.filled(
+                            onPressed: _openPhotoActions,
+                            tooltip: 'Alterar foto principal',
+                            icon: const Icon(Icons.add_a_photo_outlined),
+                          ),
+                        ),
+                      if (_updatingPhoto)
+                        const ColoredBox(
+                          color: Color(0x66000000),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                    ],
+                  ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(20),

@@ -52,6 +52,38 @@ void main() {
     expect(car.plateVisible, isFalse);
   });
 
+  test('resolve caminho relativo da foto para o host da API', () {
+    final car = Car.fromJson({
+      'id': '76db2576-7f23-46d6-bd71-cdcd44987724',
+      'modelo': 'Omega CD 4.1',
+      'ano': 1996,
+      'cor': 'Preto',
+      'foto_principal_url': '/media/carros/omega/foto.jpg',
+      'status_projeto': null,
+      'historia': null,
+      'motor': null,
+      'cambio': null,
+      'combustivel': null,
+      'potencia_estimada': null,
+      'preparacao': null,
+      'tipo_suspensao': null,
+      'aro_roda': null,
+      'placa': null,
+      'placa_visivel': false,
+      'proprietario': {
+        'id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
+        'nome': 'Raul Ferreira',
+        'username': 'raul',
+        'avatar_url': null,
+      },
+    });
+
+    expect(
+      car.photoUrl,
+      'http://10.0.2.2:8000/media/carros/omega/foto.jpg',
+    );
+  });
+
   test('serializa dados editáveis usando os nomes da API', () {
     const input = CarInput(
       model: 'Omega CD 4.1',

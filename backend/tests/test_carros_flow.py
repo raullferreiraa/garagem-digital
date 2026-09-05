@@ -1,4 +1,7 @@
+from io import BytesIO
+
 from fastapi.testclient import TestClient
+from PIL import Image
 
 
 def cadastrar(client: TestClient, username: str) -> dict[str, object]:
@@ -17,6 +20,12 @@ def cadastrar(client: TestClient, username: str) -> dict[str, object]:
 
 def auth_header(tokens: dict[str, object]) -> dict[str, str]:
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+def imagem_png() -> bytes:
+    conteudo = BytesIO()
+    Image.new("RGB", (120, 80), "blue").save(conteudo, format="PNG")
+    return conteudo.getvalue()
 
 
 def test_perfil_publico_nao_expoe_email_e_edicao_exige_token(
@@ -162,3 +171,58 @@ def test_feed_paginado_e_garagens_publica_e_privada(client: TestClient) -> None:
 
     cursor_invalido = client.get("/api/v1/carros?cursor=invalido")
     assert cursor_invalido.status_code == 400
+
+
+def test_foto_principal_exige_dono_e_remove_metadados(
+    client: TestClient,
+) -> None:
+    dono = cadastrar(client, "foto.dono")
+    intruso = cadastrar(client, "foto.intruso")
+    criado = client.post(
+        "/api/v1/carros",
+        headers=auth_header(dono),
+        json={"modelo": "Omega CD"},
+    ).json()
+    url = f"/api/v1/carros/{criado['id']}/foto-principal"
+
+    sem_token = client.post(
+        url,
+        files={"arquivo": ("omega.png", imagem_png(), "image/png")},
+    )
+    assert sem_token.status_code == 401
+
+    outro_usuario = client.post(
+        url,
+        headers=auth_header(intruso),
+        files={"arquivo": ("omega.png", imagem_png(), "image/png")},
+    )
+    assert outro_usuario.status_code == 404
+
+    invalida = client.post(
+        url,
+        headers=auth_header(dono),
+        files={"arquivo": ("omega.jpg", b"nao e imagem", "image/jpeg")},
+    )
+    assert invalida.status_code == 415
+
+    enviada = client.post(
+        url,
+        headers=auth_header(dono),
+        files={"arquivo": ("omega.png", imagem_png(), "image/png")},
+    )
+    assert enviada.status_code == 200
+    foto_url = enviada.json()["foto_principal_url"]
+    assert foto_url.startswith(f"/media/carros/{criado['id']}/")
+    assert foto_url.endswith(".jpg")
+
+    publica = client.get(foto_url)
+    assert publica.status_code == 200
+    assert publica.headers["content-type"] == "image/jpeg"
+    with Image.open(BytesIO(publica.content)) as foto_processada:
+        assert foto_processada.format == "JPEG"
+        assert not foto_processada.getexif()
+
+    removida = client.delete(url, headers=auth_header(dono))
+    assert removida.status_code == 200
+    assert removida.json()["foto_principal_url"] is None
+    assert client.get(foto_url).status_code == 404

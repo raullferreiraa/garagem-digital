@@ -1,5 +1,7 @@
 alembic
 fastapi
+Pillow
+python-multipart
 email-validator
 psycopg[binary]
 pydantic-settings

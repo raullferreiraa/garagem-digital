@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -22,6 +23,10 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = SecretStr("development-only-change-this-secret")
     access_token_minutes: int = 15
     refresh_token_days: int = 30
+    media_root: Path = Path("media")
+    media_url_prefix: str = "/media"
+    media_max_upload_bytes: int = 10 * 1024 * 1024
+    media_max_dimension: int = 2048
 
     @property
     def allowed_origins_list(self) -> list[str]:

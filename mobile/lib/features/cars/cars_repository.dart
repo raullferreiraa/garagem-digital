@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 
@@ -41,5 +42,29 @@ final class CarsRepository {
 
   Future<void> delete(String carId) async {
     await _api.dio.delete<void>('/carros/$carId');
+  }
+
+  Future<Car> uploadMainPhoto(
+    String carId, {
+    required String filePath,
+    required String fileName,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/carros/$carId/foto-principal',
+      data: FormData.fromMap({
+        'arquivo': await MultipartFile.fromFile(
+          filePath,
+          filename: fileName,
+        ),
+      }),
+    );
+    return Car.fromJson(response.data!);
+  }
+
+  Future<Car> removeMainPhoto(String carId) async {
+    final response = await _api.dio.delete<Map<String, Object?>>(
+      '/carros/$carId/foto-principal',
+    );
+    return Car.fromJson(response.data!);
   }
 }

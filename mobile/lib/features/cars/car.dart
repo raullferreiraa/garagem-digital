@@ -1,3 +1,5 @@
+import 'package:garagem_mobile/core/config/app_config.dart';
+
 final class Car {
   const Car({
     required this.id,
@@ -29,7 +31,9 @@ final class Car {
       ownerUsername: owner['username']! as String,
       year: json['ano'] as int?,
       color: json['cor'] as String?,
-      photoUrl: json['foto_principal_url'] as String?,
+      photoUrl: AppConfig.resolveApiUrl(
+        json['foto_principal_url'] as String?,
+      ),
       projectStatus: json['status_projeto'] as String?,
       history: json['historia'] as String?,
       engine: json['motor'] as String?,
