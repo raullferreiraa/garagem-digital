@@ -104,6 +104,14 @@ alembic revision -m "descreva a mudanca"
 - `PATCH /api/v1/carros/{carro_id}`
 - `DELETE /api/v1/carros/{carro_id}`
 
-O feed usa paginacao por cursor. Campos privados, como email e placa, nao sao
-expostos em perfis e carros publicos. A placa so aparece publicamente quando seu
-proprietario habilita `placa_visivel` de forma explicita.
+### Diario de evolucoes
+
+- `GET /api/v1/carros/{carro_id}/evolucoes`
+- `POST /api/v1/carros/{carro_id}/evolucoes`
+- `PATCH /api/v1/carros/{carro_id}/evolucoes/{evolucao_id}`
+- `DELETE /api/v1/carros/{carro_id}/evolucoes/{evolucao_id}`
+
+O feed e o diario sao publicos para leitura. Somente o proprietario pode alterar o
+carro e registrar, editar ou excluir suas evolucoes. Campos privados, como email e
+placa, nao sao expostos em perfis e carros publicos. A placa so aparece publicamente
+quando seu proprietario habilita `placa_visivel` de forma explicita.

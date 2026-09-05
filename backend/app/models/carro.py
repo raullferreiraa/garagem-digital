@@ -53,6 +53,11 @@ class Carro(Base):
     )
 
     proprietario = relationship("Usuario", back_populates="carros", lazy="joined")
+    evolucoes = relationship(
+        "EvolucaoProjeto",
+        back_populates="carro",
+        cascade="all, delete-orphan",
+    )
 
     @property
     def placa_publica(self) -> str | None:

@@ -8,6 +8,7 @@ import 'package:garagem_mobile/core/storage/token_storage.dart';
 import 'package:garagem_mobile/features/auth/auth_repository.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ Future<void> main() async {
     GaragemApp(
       session: session,
       carsRepository: CarsRepository(apiClient),
+      evolutionsRepository: EvolutionsRepository(apiClient),
     ),
   );
   unawaited(session.restore());

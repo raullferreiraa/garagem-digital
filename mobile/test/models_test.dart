@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
+import 'package:garagem_mobile/features/evolutions/evolution.dart';
 
 void main() {
   test('converte perfil privado retornado pela API', () {
@@ -65,5 +66,38 @@ void main() {
     expect(json['aro_roda'], 17);
     expect(json['potencia_estimada'], '168 cv');
     expect(json['placa_visivel'], isFalse);
+  });
+
+  test('converte e serializa uma evolução do diário', () {
+    final evolution = Evolution.fromJson({
+      'id': 'e2e8ae1f-cebb-4f66-bd6f-75e1886f1e6b',
+      'carro_id': '76db2576-7f23-46d6-bd71-cdcd44987724',
+      'titulo': 'Primeira revisão',
+      'descricao': 'Troca de óleo e filtros.',
+      'categoria': 'manutencao',
+      'ocorreu_em': '2026-09-05T12:00:00Z',
+      'quilometragem_km': 185000,
+      'criado_em': '2026-09-05T13:00:00Z',
+      'autor': {
+        'id': 'a58bcf75-f9a3-4b05-a3e3-c4a1eaf76575',
+        'nome': 'Raul Ferreira',
+        'username': 'raul',
+        'avatar_url': null,
+      },
+    });
+
+    expect(evolution.title, 'Primeira revisão');
+    expect(evolution.mileageKm, 185000);
+    expect(evolution.timelineDate.toUtc().hour, 12);
+
+    final json = EvolutionInput(
+      title: evolution.title,
+      description: evolution.description,
+      category: evolution.category,
+      occurredAt: evolution.occurredAt,
+      mileageKm: evolution.mileageKm,
+    ).toJson();
+    expect(json['categoria'], 'manutencao');
+    expect(json['quilometragem_km'], 185000);
   });
 }

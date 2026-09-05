@@ -5,16 +5,19 @@ import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
     required this.session,
     required this.carsRepository,
+    required this.evolutionsRepository,
     super.key,
   });
 
   final SessionController session;
   final CarsRepository carsRepository;
+  final EvolutionsRepository evolutionsRepository;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -53,6 +56,7 @@ class _HomeShellState extends State<HomeShell> {
         builder: (_) => CarDetailScreen(
           car: car,
           repository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
           canManage: canManage,
         ),
       ),

@@ -3,6 +3,9 @@ import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 
 enum _CarAction { edit, delete }
 
@@ -10,12 +13,14 @@ final class CarDetailScreen extends StatefulWidget {
   const CarDetailScreen({
     required this.car,
     required this.repository,
+    required this.evolutionsRepository,
     required this.canManage,
     super.key,
   });
 
   final Car car;
   final CarsRepository repository;
+  final EvolutionsRepository evolutionsRepository;
   final bool canManage;
 
   @override
@@ -24,7 +29,14 @@ final class CarDetailScreen extends StatefulWidget {
 
 class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
+  late Future<List<Evolution>> _evolutions;
   bool _deleting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _evolutions = widget.evolutionsRepository.byCar(_car.id);
+  }
 
   Future<void> _edit() async {
     final updated = await Navigator.of(context).push<Car>(
@@ -82,6 +94,132 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         _delete();
         break;
     }
+  }
+
+  Future<void> _reloadEvolutions() async {
+    final next = widget.evolutionsRepository.byCar(_car.id);
+    setState(() => _evolutions = next);
+    await next;
+  }
+
+  Future<void> _openEvolutionForm() async {
+    final created = await Navigator.of(context).push<Evolution>(
+      MaterialPageRoute(
+        builder: (_) => EvolutionFormScreen(
+          carId: _car.id,
+          carModel: _car.model,
+          repository: widget.evolutionsRepository,
+        ),
+      ),
+    );
+    if (created == null || !mounted) return;
+    await _reloadEvolutions();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Evolução registrada no diário.')),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
+    final day = local.day.toString().padLeft(2, '0');
+    final month = local.month.toString().padLeft(2, '0');
+    return '$day/$month/${local.year}';
+  }
+
+  Widget _evolutionTimeline() {
+    return FutureBuilder<List<Evolution>>(
+      future: _evolutions,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        if (snapshot.hasError) {
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(apiErrorMessage(snapshot.error!)),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: _reloadEvolutions,
+                    child: const Text('Tentar novamente'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final evolutions = snapshot.data ?? const <Evolution>[];
+        if (evolutions.isEmpty) {
+          return const Card(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: Text(
+                'O diário ainda está vazio. Cada mudança importante poderá ser registrada aqui.',
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            for (final evolution in evolutions)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _formatDate(evolution.timelineDate),
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                            ),
+                            if (evolution.category != null)
+                              Chip(
+                                label: Text(
+                                  evolutionCategoryLabels[evolution.category] ??
+                                      evolution.category!,
+                                ),
+                              ),
+                          ],
+                        ),
+                        Text(
+                          evolution.title,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(evolution.description),
+                        if (evolution.mileageKm != null) ...[
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              const Icon(Icons.speed_outlined, size: 18),
+                              const SizedBox(width: 6),
+                              Text('${evolution.mileageKm} km'),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
+    );
   }
 
   @override
@@ -194,6 +332,25 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                             ],
                           ),
                         ),
+                      const SizedBox(height: 28),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Diário de evoluções',
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                          ),
+                          if (widget.canManage)
+                            IconButton.filled(
+                              onPressed: _openEvolutionForm,
+                              tooltip: 'Registrar evolução',
+                              icon: const Icon(Icons.add),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      _evolutionTimeline(),
                     ],
                   ),
                 ),

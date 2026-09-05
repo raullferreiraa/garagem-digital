@@ -3,17 +3,20 @@ import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/features/auth/login_screen.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
 
 final class GaragemApp extends StatelessWidget {
   const GaragemApp({
     required this.session,
     required this.carsRepository,
+    required this.evolutionsRepository,
     super.key,
   });
 
   final SessionController session;
   final CarsRepository carsRepository;
+  final EvolutionsRepository evolutionsRepository;
 
   @override
   Widget build(BuildContext context) {
@@ -39,6 +42,7 @@ final class GaragemApp extends StatelessWidget {
           SessionStatus.authenticated => HomeShell(
               session: session,
               carsRepository: carsRepository,
+              evolutionsRepository: evolutionsRepository,
             ),
         },
       ),
