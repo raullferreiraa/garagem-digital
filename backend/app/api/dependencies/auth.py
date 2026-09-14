@@ -48,5 +48,18 @@ def obter_usuario_atual(
     return usuario
 
 
+def obter_usuario_opcional(
+    credentials: Annotated[
+        HTTPAuthorizationCredentials | None,
+        Depends(bearer_scheme),
+    ],
+    db: Annotated[Session, Depends(get_db)],
+) -> Usuario | None:
+    if credentials is None:
+        return None
+    return obter_usuario_atual(credentials, db)
+
+
 UsuarioAtual = Annotated[Usuario, Depends(obter_usuario_atual)]
+UsuarioOpcional = Annotated[Usuario | None, Depends(obter_usuario_opcional)]
 

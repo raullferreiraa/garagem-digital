@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import UsuarioAtual
+from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
 from app.core.database import get_db
 from app.models.carro import Carro
 from app.models.seguidor import Seguidor
@@ -43,7 +43,7 @@ def _buscar_usuario_ativo(db: Session, usuario_id: UUID) -> Usuario:
 @router.get("/{usuario_id}", response_model=PerfilSocial)
 def obter_perfil(
     usuario_id: UUID,
-    usuario_atual: UsuarioAtual,
+    usuario_atual: UsuarioOpcional,
     db: DbSession,
 ) -> PerfilSocial:
     usuario = _buscar_usuario_ativo(db, usuario_id)
@@ -63,7 +63,8 @@ def obter_perfil(
         )
     )
     seguido_por_mim = (
-        usuario_atual.id != usuario_id
+        usuario_atual is not None
+        and usuario_atual.id != usuario_id
         and db.get(Seguidor, (usuario_atual.id, usuario_id)) is not None
     )
 
