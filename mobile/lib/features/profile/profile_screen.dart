@@ -440,7 +440,7 @@ final class _ProfileSocialStat extends StatelessWidget {
   }
 }
 
-$avatarMarker
+final class _Avatar extends StatelessWidget {
   const _Avatar({required this.name, required this.avatarUrl});
 
   final String name;
