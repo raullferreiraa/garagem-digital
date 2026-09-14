@@ -31,6 +31,7 @@ final class PublicProfileScreen extends StatefulWidget {
 
 final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   late Future<_ProfileData> _data;
+  _ProfileData? _visibleData;
   bool _changingFollow = false;
 
   @override
@@ -48,20 +49,80 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Future<void> _reload() async {
     final next = _load();
     setState(() => _data = next);
-    await next;
+    final loaded = await next;
+    if (mounted) setState(() => _visibleData = loaded);
   }
 
-  Future<void> _toggleFollow(PublicProfile profile) async {
-    setState(() => _changingFollow = true);
+  PublicProfile _withFollowState(
+    PublicProfile profile, {
+    required bool followed,
+  }) {
+    final difference = followed == profile.followedByMe
+        ? 0
+        : followed
+            ? 1
+            : -1;
+    return PublicProfile(
+      id: profile.id,
+      name: profile.name,
+      username: profile.username,
+      projectCount: profile.projectCount,
+      followerCount: profile.followerCount + difference,
+      followingCount: profile.followingCount,
+      followedByMe: followed,
+      avatarUrl: profile.avatarUrl,
+      bio: profile.bio,
+      city: profile.city,
+      state: profile.state,
+    );
+  }
+
+  Future<void> _toggleFollow(_ProfileData data) async {
+    final previous = data;
+    final shouldFollow = !data.profile.followedByMe;
+    final optimistic = (
+      profile: _withFollowState(data.profile, followed: shouldFollow),
+      cars: data.cars,
+    );
+    setState(() {
+      _changingFollow = true;
+      _visibleData = optimistic;
+    });
+
     try {
-      if (profile.followedByMe) {
-        await widget.usersRepository.unfollow(profile.id);
+      if (shouldFollow) {
+        await widget.usersRepository.follow(data.profile.id);
       } else {
-        await widget.usersRepository.follow(profile.id);
+        await widget.usersRepository.unfollow(data.profile.id);
       }
-      await _reload();
+
+      try {
+        final confirmed = await widget.usersRepository.profile(data.profile.id);
+        if (mounted) {
+          setState(() {
+            _visibleData = (profile: confirmed, cars: data.cars);
+          });
+        }
+      } catch (_) {
+        // A ação principal já terminou. A confirmação pode esperar o próximo
+        // pull-to-refresh sem apresentar um falso erro ao usuário.
+      }
     } catch (error) {
+      try {
+        final confirmed = await widget.usersRepository.profile(data.profile.id);
+        if (!mounted) return;
+        if (confirmed.followedByMe == shouldFollow) {
+          setState(() {
+            _visibleData = (profile: confirmed, cars: data.cars);
+          });
+          return;
+        }
+      } catch (_) {
+        // Se nem a reconciliação responder, restauramos o estado anterior.
+      }
+
       if (mounted) {
+        setState(() => _visibleData = previous);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
@@ -90,10 +151,14 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     return FutureBuilder<_ProfileData>(
       future: _data,
       builder: (context, snapshot) {
+        final data = _visibleData ?? snapshot.data;
         return Scaffold(
           appBar: AppBar(title: const Text('Perfil')),
-          body: snapshot.connectionState == ConnectionState.waiting
-              ? const Center(child: CircularProgressIndicator())
+          body: data != null
+              ? RefreshIndicator(
+                  onRefresh: _reload,
+                  child: _content(data),
+                )
               : snapshot.hasError
                   ? Center(
                       child: FilledButton.icon(
@@ -102,10 +167,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         label: Text(apiErrorMessage(snapshot.error!)),
                       ),
                     )
-                  : RefreshIndicator(
-                      onRefresh: _reload,
-                      child: _content(snapshot.data!),
-                    ),
+                  : const Center(child: CircularProgressIndicator()),
         );
       },
     );
@@ -198,14 +260,14 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       ? OutlinedButton.icon(
                           onPressed: _changingFollow
                               ? null
-                              : () => _toggleFollow(profile),
+                              : () => _toggleFollow(data),
                           icon: const Icon(Icons.person_remove_outlined),
                           label: const Text('Seguindo'),
                         )
                       : FilledButton.icon(
                           onPressed: _changingFollow
                               ? null
-                              : () => _toggleFollow(profile),
+                              : () => _toggleFollow(data),
                           icon: const Icon(Icons.person_add_alt_1),
                           label: const Text('Seguir'),
                         ),
