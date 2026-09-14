@@ -25,7 +25,7 @@ final class CarDetailScreen extends StatefulWidget {
     required this.repository,
     required this.evolutionsRepository,
     required this.canManage,
-    required this.currentUserId,
+    this.currentUserId = '',
     this.onOwnerTap,
     super.key,
   });
