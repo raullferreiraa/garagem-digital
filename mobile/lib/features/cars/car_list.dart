@@ -269,134 +269,175 @@ final class _CarCard extends StatelessWidget {
       if (car.engine != null) (Icons.settings_outlined, car.engine!),
       if (car.color != null) (Icons.palette_outlined, car.color!),
     ];
+    final ownerInitial =
+        car.ownerName.isEmpty ? '?' : car.ownerName[0].toUpperCase();
 
     return Material(
       color: colors.surfaceContainer,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(26),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: highlighted ? colors.primary : colors.outlineVariant,
-                width: 3,
-              ),
+            border: Border.all(
+              color: highlighted
+                  ? colors.primary.withValues(alpha: 0.42)
+                  : colors.outlineVariant,
             ),
+            borderRadius: BorderRadius.circular(26),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Stack(
-                  fit: StackFit.expand,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(17, 15, 13, 13),
+                child: Row(
                   children: [
-                    if (car.photoUrl == null)
-                      ColoredBox(
+                    CircleAvatar(
+                      radius: 20,
+                      backgroundImage: car.ownerAvatarUrl == null
+                          ? null
+                          : NetworkImage(car.ownerAvatarUrl!),
+                      child: car.ownerAvatarUrl == null
+                          ? Text(
+                              ownerInitial,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                              ),
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 11),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            car.ownerName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          Text(
+                            '@${car.ownerUsername}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: colors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Icon(
+                        Icons.arrow_outward_rounded,
+                        size: 20,
+                        color: colors.primary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              AspectRatio(
+                aspectRatio: 16 / 10,
+                child: car.photoUrl == null
+                    ? ColoredBox(
                         color: colors.surfaceContainerHighest,
                         child: Icon(
                           Icons.directions_car_rounded,
-                          size: 72,
+                          size: 78,
                           color: colors.onSurfaceVariant,
                         ),
                       )
-                    else
-                      Image.network(
+                    : Image.network(
                         car.photoUrl!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => ColoredBox(
                           color: colors.surfaceContainerHighest,
                           child: const Icon(
                             Icons.broken_image_outlined,
-                            size: 48,
+                            size: 52,
                           ),
                         ),
                       ),
-                    const DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Color(0x22000000),
-                            Color(0x00000000),
-                            Color(0x99000000),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      right: 14,
-                      top: 14,
-                      child: Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xB8000000),
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                        child: const Icon(
-                          Icons.arrow_outward_rounded,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    if (car.projectStatus != null)
-                      Positioned(
-                        left: 14,
-                        bottom: 14,
-                        child: _StatusPill(label: car.projectStatus!),
-                      ),
-                  ],
-                ),
               ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 17, 18, 19),
+              Container(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 17),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      colors.primaryContainer.withValues(alpha: 0.42),
+                      colors.surfaceContainer,
+                    ],
+                  ),
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      [car.model, car.year]
-                          .where((value) => value != null)
-                          .join(' '),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 17,
-                          backgroundImage: car.ownerAvatarUrl == null
-                              ? null
-                              : NetworkImage(car.ownerAvatarUrl!),
-                          child: car.ownerAvatarUrl == null
-                              ? Text(
-                                  car.ownerName.isEmpty
-                                      ? '?'
-                                      : car.ownerName[0].toUpperCase(),
-                                  style: Theme.of(context).textTheme.labelMedium,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 9),
                         Expanded(
-                          child: Text(
-                            '${car.ownerName}  @${car.ownerUsername}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: colors.onSurfaceVariant),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                highlighted
+                                    ? 'SEU PROJETO'
+                                    : 'PROJETO AUTOMOTIVO',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: colors.primary,
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.1,
+                                    ),
+                              ),
+                              const SizedBox(height: 5),
+                              Text(
+                                [car.model, car.year]
+                                    .where((value) => value != null)
+                                    .join(' '),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(fontWeight: FontWeight.w900),
+                              ),
+                            ],
                           ),
                         ),
+                        if (car.projectStatus != null) ...[
+                          const SizedBox(width: 12),
+                          _StatusPill(label: car.projectStatus!),
+                        ],
                       ],
                     ),
+                    if (car.history != null && car.history!.trim().isNotEmpty) ...[
+                      const SizedBox(height: 10),
+                      Text(
+                        car.history!,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                              height: 1.35,
+                            ),
+                      ),
+                    ],
                     if (details.isNotEmpty) ...[
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 15),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -406,6 +447,31 @@ final class _CarCard extends StatelessWidget {
                         ],
                       ),
                     ],
+                    const SizedBox(height: 17),
+                    Divider(color: colors.outlineVariant),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.auto_awesome_outlined,
+                          size: 18,
+                          color: colors.primary,
+                        ),
+                        const SizedBox(width: 7),
+                        Text(
+                          'Abrir projeto',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                color: colors.primary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.chevron_right_rounded,
+                          color: colors.primary,
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -427,15 +493,16 @@ final class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xD91B1110),
+        color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: const Color(0x66FFFFFF)),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.35),
+        ),
       ),
       child: Text(
         label,
         style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

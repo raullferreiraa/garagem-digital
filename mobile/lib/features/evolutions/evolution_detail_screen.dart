@@ -502,64 +502,67 @@ final class _CommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onAuthorTap,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            avatar,
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          comment.authorName,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontWeight: FontWeight.w700),
-                        ),
+    return Padding(
+      padding: const EdgeInsets.all(14),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          avatar,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: InkWell(
+                    onTap: onAuthorTap,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 3,
                       ),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          '@${comment.authorUsername}',
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                      child: Wrap(
+                        spacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Text(
+                            comment.authorName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text('@${comment.authorUsername}'),
+                          if (onAuthorTap != null)
+                            const Icon(Icons.open_in_new, size: 14),
+                        ],
                       ),
-                      if (onAuthorTap != null) ...[
-                        const SizedBox(width: 5),
-                        const Icon(Icons.open_in_new, size: 14),
-                      ],
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    date,
-                    style: Theme.of(context).textTheme.labelSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(comment.content),
-                ],
-              ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  date,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
+                const SizedBox(height: 8),
+                Text(comment.content),
+              ],
             ),
-            if (canDelete)
-              IconButton(
-                onPressed: deleting ? null : onDelete,
-                tooltip: 'Excluir comentário',
-                icon: deleting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.delete_outline),
-              ),
-          ],
-        ),
+          ),
+          if (canDelete)
+            IconButton(
+              onPressed: deleting ? null : onDelete,
+              tooltip: 'Excluir comentário',
+              icon: deleting
+                  ? const SizedBox.square(
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.delete_outline),
+            ),
+        ],
       ),
     );
   }
