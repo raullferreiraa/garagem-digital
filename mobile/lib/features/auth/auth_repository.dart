@@ -44,6 +44,29 @@ final class AuthRepository {
     return User.fromJson(response.data!);
   }
 
+  Future<User> updateProfile({
+    required String name,
+    String? bio,
+    String? city,
+    String? state,
+  }) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/usuarios/me',
+      data: {
+        'nome': name.trim(),
+        'bio': _optionalText(bio),
+        'cidade': _optionalText(city),
+        'estado': _optionalText(state),
+      },
+    );
+    return User.fromJson(response.data!);
+  }
+
+  String? _optionalText(String? value) {
+    final normalized = value?.trim();
+    return normalized == null || normalized.isEmpty ? null : normalized;
+  }
+
   Future<bool> hasSession() async => await _tokens.readRefreshToken() != null;
 
   Future<void> logout() async {

@@ -6,6 +6,7 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
 
@@ -27,7 +28,7 @@ final class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-class _HomeShellState extends State<HomeShell> {
+final class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   int _feedRevision = 0;
   int _garageRevision = 0;
@@ -93,7 +94,11 @@ class _HomeShellState extends State<HomeShell> {
         evolutionsRepository: widget.evolutionsRepository,
         currentUserId: widget.session.user!.id,
       ),
-      _ProfilePage(session: widget.session),
+      ProfileScreen(
+        session: widget.session,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+      ),
     ];
 
     return Scaffold(
@@ -121,53 +126,6 @@ class _HomeShellState extends State<HomeShell> {
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Perfil',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-final class _ProfilePage extends StatelessWidget {
-  const _ProfilePage({required this.session});
-
-  final SessionController session;
-
-  @override
-  Widget build(BuildContext context) {
-    final user = session.user!;
-    return Scaffold(
-      appBar: AppBar(title: const Text('Perfil')),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          CircleAvatar(
-            radius: 42,
-            child: Text(
-              user.name.substring(0, 1).toUpperCase(),
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            user.name,
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          Text(
-            '@${user.username}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge,
-          ),
-          if (user.bio != null) ...[
-            const SizedBox(height: 16),
-            Text(user.bio!, textAlign: TextAlign.center),
-          ],
-          const SizedBox(height: 32),
-          OutlinedButton.icon(
-            onPressed: session.logout,
-            icon: const Icon(Icons.logout),
-            label: const Text('Sair'),
           ),
         ],
       ),

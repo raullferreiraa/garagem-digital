@@ -49,6 +49,21 @@ final class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateProfile({
+    required String name,
+    String? bio,
+    String? city,
+    String? state,
+  }) async {
+    user = await _repository.updateProfile(
+      name: name,
+      bio: bio,
+      city: city,
+      state: state,
+    );
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     user = null;
