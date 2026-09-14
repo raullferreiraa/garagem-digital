@@ -1,3 +1,4 @@
+import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 
 final class Team {
@@ -50,6 +51,7 @@ final class TeamMember {
     required this.name,
     required this.username,
     required this.role,
+    this.avatarUrl,
   });
 
   factory TeamMember.fromJson(Map<String, Object?> json) {
@@ -59,6 +61,7 @@ final class TeamMember {
       name: user['nome']! as String,
       username: user['username']! as String,
       role: json['papel']! as String,
+      avatarUrl: AppConfig.resolveApiUrl(user['avatar_url'] as String?),
     );
   }
 
@@ -66,6 +69,7 @@ final class TeamMember {
   final String name;
   final String username;
   final String role;
+  final String? avatarUrl;
 }
 
 final class TeamRequest {
@@ -73,6 +77,7 @@ final class TeamRequest {
     required this.id,
     required this.name,
     required this.username,
+    this.avatarUrl,
   });
 
   factory TeamRequest.fromJson(Map<String, Object?> json) {
@@ -81,12 +86,14 @@ final class TeamRequest {
       id: json['id']! as String,
       name: user['nome']! as String,
       username: user['username']! as String,
+      avatarUrl: AppConfig.resolveApiUrl(user['avatar_url'] as String?),
     );
   }
 
   final String id;
   final String name;
   final String username;
+  final String? avatarUrl;
 }
 
 final class TeamDetail extends Team {

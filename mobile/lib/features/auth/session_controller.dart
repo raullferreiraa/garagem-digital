@@ -64,6 +64,19 @@ final class SessionController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> uploadAvatar({
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    user = await _repository.uploadAvatar(bytes: bytes, fileName: fileName);
+    notifyListeners();
+  }
+
+  Future<void> removeAvatar() async {
+    user = await _repository.removeAvatar();
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await _repository.logout();
     user = null;

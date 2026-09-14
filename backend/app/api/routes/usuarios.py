@@ -1,11 +1,20 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Response,
+    UploadFile,
+    status,
+)
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.carro import Carro
 from app.models.seguidor import Seguidor
@@ -18,6 +27,12 @@ from app.schemas.usuario import (
     UsuarioResumo,
 )
 from app.services.carros import listar_carros_do_usuario
+from app.services.media import (
+    ArquivoMuitoGrande,
+    ImagemInvalida,
+    remover_media,
+    salvar_avatar,
+)
 
 
 router = APIRouter()
@@ -35,6 +50,47 @@ def atualizar_meu_perfil(
 
     db.commit()
     db.refresh(usuario)
+    return PerfilPrivado.model_validate(usuario)
+
+
+@router.post("/me/avatar", response_model=PerfilPrivado)
+async def enviar_avatar(
+    usuario: UsuarioAtual,
+    db: DbSession,
+    arquivo: Annotated[UploadFile, File()],
+) -> PerfilPrivado:
+    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    try:
+        nova_url = salvar_avatar(usuario.id, conteudo)
+    except ArquivoMuitoGrande as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="A foto deve ter no maximo 10 MB.",
+        ) from error
+    except ImagemInvalida as error:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Envie uma imagem JPEG, PNG ou WebP valida.",
+        ) from error
+
+    url_anterior = usuario.avatar_url
+    usuario.avatar_url = nova_url
+    db.commit()
+    db.refresh(usuario)
+    remover_media(url_anterior)
+    return PerfilPrivado.model_validate(usuario)
+
+
+@router.delete("/me/avatar", response_model=PerfilPrivado)
+def remover_avatar(
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> PerfilPrivado:
+    url_anterior = usuario.avatar_url
+    usuario.avatar_url = None
+    db.commit()
+    db.refresh(usuario)
+    remover_media(url_anterior)
     return PerfilPrivado.model_validate(usuario)
 
 

@@ -626,7 +626,12 @@ final class _RequestCard extends StatelessWidget {
           Row(
             children: [
               CircleAvatar(
-                child: Text(request.name.substring(0, 1).toUpperCase()),
+                backgroundImage: request.avatarUrl == null
+                    ? null
+                    : NetworkImage(request.avatarUrl!),
+                child: request.avatarUrl == null
+                    ? Text(request.name.substring(0, 1).toUpperCase())
+                    : null,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -679,7 +684,11 @@ final class _MemberTile extends StatelessWidget {
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       leading: CircleAvatar(
-        child: Text(member.name.substring(0, 1).toUpperCase()),
+        backgroundImage:
+            member.avatarUrl == null ? null : NetworkImage(member.avatarUrl!),
+        child: member.avatarUrl == null
+            ? Text(member.name.substring(0, 1).toUpperCase())
+            : null,
       ),
       title: Text(member.name),
       subtitle: Text('@${member.username}'),

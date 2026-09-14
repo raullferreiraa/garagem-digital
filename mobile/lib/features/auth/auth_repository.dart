@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
@@ -58,6 +59,26 @@ final class AuthRepository {
         'cidade': _optionalText(city),
         'estado': _optionalText(state),
       },
+    );
+    return User.fromJson(response.data!);
+  }
+
+  Future<User> uploadAvatar({
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/usuarios/me/avatar',
+      data: FormData.fromMap({
+        'arquivo': MultipartFile.fromBytes(bytes, filename: fileName),
+      }),
+    );
+    return User.fromJson(response.data!);
+  }
+
+  Future<User> removeAvatar() async {
+    final response = await _api.dio.delete<Map<String, Object?>>(
+      '/usuarios/me/avatar',
     );
     return User.fromJson(response.data!);
   }

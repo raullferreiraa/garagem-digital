@@ -4,9 +4,18 @@ import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 
 final class PhotoCropScreen extends StatefulWidget {
-  const PhotoCropScreen({required this.image, super.key});
+  const PhotoCropScreen({
+    required this.image,
+    this.aspectRatio = 16 / 10,
+    this.title = 'Enquadrar foto',
+    this.instructions = 'Arraste para enquadrar e use dois dedos para ampliar.',
+    super.key,
+  });
 
   final Uint8List image;
+  final double aspectRatio;
+  final String title;
+  final String instructions;
 
   @override
   State<PhotoCropScreen> createState() => _PhotoCropScreenState();
@@ -41,7 +50,7 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Enquadrar foto')),
+      appBar: AppBar(title: Text(widget.title)),
       body: SafeArea(
         child: Column(
           children: [
@@ -50,10 +59,10 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
                 image: widget.image,
                 controller: _controller,
                 onCropped: _onCropped,
-                aspectRatio: 16 / 10,
+                aspectRatio: widget.aspectRatio,
                 initialRectBuilder: InitialRectBuilder.withSizeAndRatio(
                   size: 0.92,
-                  aspectRatio: 16 / 10,
+                  aspectRatio: widget.aspectRatio,
                 ),
                 interactive: true,
                 fixCropRect: true,
@@ -70,8 +79,8 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text(
-                    'Arraste para enquadrar e use dois dedos para ampliar.',
+                  Text(
+                    widget.instructions,
                     textAlign: TextAlign.center,
                   ),
                   if (_errorMessage != null) ...[

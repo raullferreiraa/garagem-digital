@@ -54,6 +54,45 @@ def test_perfil_publico_nao_expoe_email_e_edicao_exige_token(
     assert atualizado.json()["bio"] == "Minha garagem"
 
 
+def test_avatar_do_usuario_pode_ser_enviado_e_removido(
+    client: TestClient,
+) -> None:
+    tokens = cadastrar(client, "avatar.usuario")
+    usuario = tokens["usuario"]
+    url = "/api/v1/usuarios/me/avatar"
+
+    sem_token = client.post(
+        url,
+        files={"arquivo": ("avatar.png", imagem_png(), "image/png")},
+    )
+    assert sem_token.status_code == 401
+
+    invalida = client.post(
+        url,
+        headers=auth_header(tokens),
+        files={"arquivo": ("avatar.jpg", b"nao e imagem", "image/jpeg")},
+    )
+    assert invalida.status_code == 415
+
+    enviada = client.post(
+        url,
+        headers=auth_header(tokens),
+        files={"arquivo": ("avatar.png", imagem_png(), "image/png")},
+    )
+    assert enviada.status_code == 200
+    avatar_url = enviada.json()["avatar_url"]
+    assert avatar_url.startswith(f"/media/usuarios/{usuario['id']}/")
+    assert client.get(avatar_url).status_code == 200
+
+    perfil = client.get(f"/api/v1/usuarios/{usuario['id']}").json()
+    assert perfil["avatar_url"] == avatar_url
+
+    removida = client.delete(url, headers=auth_header(tokens))
+    assert removida.status_code == 200
+    assert removida.json()["avatar_url"] is None
+    assert client.get(avatar_url).status_code == 404
+
+
 def test_crud_de_carro_respeita_propriedade_e_privacidade(
     client: TestClient,
 ) -> None:
