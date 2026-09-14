@@ -891,7 +891,7 @@ final class _ProjectIdentity extends StatelessWidget {
                         children: [
                           Flexible(
                             child: Text(
-                              '${car.ownerName}  @${car.ownerUsername}',
+                              '@${car.ownerUsername}',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(

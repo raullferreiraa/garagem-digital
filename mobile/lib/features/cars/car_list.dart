@@ -314,18 +314,12 @@ final class _CarCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            car.ownerName,
+                            '@${car.ownerUsername}',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontWeight: FontWeight.w800,
                             ),
-                          ),
-                          Text(
-                            '@${car.ownerUsername}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(color: colors.onSurfaceVariant),
                           ),
                         ],
                       ),

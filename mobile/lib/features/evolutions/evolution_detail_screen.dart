@@ -275,7 +275,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${evolution.authorName}  @${evolution.authorUsername}',
+                  '@${evolution.authorUsername}',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 14),
@@ -528,12 +528,11 @@ final class _CommentTile extends StatelessWidget {
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
-                            comment.authorName,
+                            '@${comment.authorUsername}',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          Text('@${comment.authorUsername}'),
                           if (onAuthorTap != null)
                             const Icon(Icons.open_in_new, size: 14),
                         ],
