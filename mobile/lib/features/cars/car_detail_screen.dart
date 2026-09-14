@@ -26,6 +26,7 @@ final class CarDetailScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.canManage,
     this.currentUserId = '',
+    this.onProfileTap,
     this.onOwnerTap,
     super.key,
   });
@@ -35,6 +36,7 @@ final class CarDetailScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final bool canManage;
   final String currentUserId;
+  final ValueChanged<String>? onProfileTap;
   final VoidCallback? onOwnerTap;
 
   @override
@@ -305,6 +307,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
           evolution: evolution,
           repository: widget.evolutionsRepository,
           currentUserId: widget.currentUserId,
+          onProfileTap: widget.onProfileTap,
         ),
       ),
     );

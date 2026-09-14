@@ -10,12 +10,14 @@ final class EvolutionDetailScreen extends StatefulWidget {
     required this.evolution,
     required this.repository,
     required this.currentUserId,
+    this.onProfileTap,
     super.key,
   });
 
   final Evolution evolution;
   final EvolutionsRepository repository;
   final String currentUserId;
+  final ValueChanged<String>? onProfileTap;
 
   @override
   State<EvolutionDetailScreen> createState() => _EvolutionDetailScreenState();
@@ -152,6 +154,31 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(apiErrorMessage(error))),
       );
+    }
+  }
+
+  Future<void> _confirmDeleteComment(EvolutionComment comment) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Excluir comentário?'),
+        content: const Text(
+          'O comentário será removido da conversa. Essa ação não pode ser desfeita.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await _deleteComment(comment);
     }
   }
 
@@ -383,7 +410,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                             deleting: _deletingComments.contains(
                               interactions.comments[index].id,
                             ),
-                            onDelete: () => _deleteComment(
+                            onAuthorTap: widget.onProfileTap == null
+                                ? null
+                                : () => widget.onProfileTap!(
+                                      interactions.comments[index].authorId,
+                                    ),
+                            onDelete: () => _confirmDeleteComment(
                               interactions.comments[index],
                             ),
                           ),
@@ -457,6 +489,7 @@ final class _CommentTile extends StatelessWidget {
     required this.canDelete,
     required this.deleting,
     required this.onDelete,
+    this.onAuthorTap,
   });
 
   final EvolutionComment comment;
@@ -465,52 +498,68 @@ final class _CommentTile extends StatelessWidget {
   final bool canDelete;
   final bool deleting;
   final VoidCallback onDelete;
+  final VoidCallback? onAuthorTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          avatar,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Wrap(
-                  spacing: 6,
-                  children: [
-                    Text(
-                      comment.authorName,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    Text('@${comment.authorUsername}'),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  date,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(comment.content),
-              ],
+    return InkWell(
+      onTap: onAuthorTap,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            avatar,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          comment.authorName,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          '@${comment.authorUsername}',
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      if (onAuthorTap != null) ...[
+                        const SizedBox(width: 5),
+                        const Icon(Icons.open_in_new, size: 14),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    date,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(comment.content),
+                ],
+              ),
             ),
-          ),
-          if (canDelete)
-            IconButton(
-              onPressed: deleting ? null : onDelete,
-              tooltip: 'Excluir comentário',
-              icon: deleting
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.delete_outline),
-            ),
-        ],
+            if (canDelete)
+              IconButton(
+                onPressed: deleting ? null : onDelete,
+                tooltip: 'Excluir comentário',
+                icon: deleting
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_outline),
+              ),
+          ],
+        ),
       ),
     );
   }

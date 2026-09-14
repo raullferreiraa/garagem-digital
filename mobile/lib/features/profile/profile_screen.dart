@@ -115,6 +115,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           evolutionsRepository: widget.evolutionsRepository,
           canManage: true,
           currentUserId: widget.session.user!.id,
+          onProfileTap: _openPublicProfile,
         ),
       ),
     );

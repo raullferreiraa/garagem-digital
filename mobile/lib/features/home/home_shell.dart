@@ -83,6 +83,7 @@ final class _HomeShellState extends State<HomeShell> {
           evolutionsRepository: widget.evolutionsRepository,
           canManage: canManage,
           currentUserId: widget.session.user!.id,
+          onProfileTap: _openPublicProfile,
           onOwnerTap: car.ownerId == widget.session.user!.id
               ? null
               : () => _openPublicProfile(car.ownerId),
@@ -97,14 +98,16 @@ final class _HomeShellState extends State<HomeShell> {
     final pages = [
       CarList(
         key: ValueKey('feed-$_feedRevision'),
-        title: 'Explorar projetos',
+        title: 'Explorar',
+        mode: CarListMode.explore,
         emptyMessage: 'Os primeiros projetos aparecerão aqui.',
         loader: widget.carsRepository.feed,
         onCarTap: (car) => _openCar(car, canManage: false),
       ),
       CarList(
         key: ValueKey('garage-$_garageRevision'),
-        title: 'Minha garagem',
+        title: 'Garagem',
+        mode: CarListMode.garage,
         emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
         loader: widget.carsRepository.mine,
         onCarTap: (car) => _openCar(car, canManage: true),

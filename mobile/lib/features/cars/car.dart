@@ -7,6 +7,7 @@ final class Car {
     required this.ownerId,
     required this.ownerName,
     required this.ownerUsername,
+    this.ownerAvatarUrl,
     this.year,
     this.color,
     this.photoUrl,
@@ -31,6 +32,7 @@ final class Car {
       ownerId: owner['id']! as String,
       ownerName: owner['nome']! as String,
       ownerUsername: owner['username']! as String,
+      ownerAvatarUrl: AppConfig.resolveApiUrl(owner['avatar_url'] as String?),
       year: json['ano'] as int?,
       color: json['cor'] as String?,
       photoUrl: AppConfig.resolveApiUrl(
@@ -55,6 +57,7 @@ final class Car {
   final String ownerId;
   final String ownerName;
   final String ownerUsername;
+  final String? ownerAvatarUrl;
   final int? year;
   final String? color;
   final String? photoUrl;

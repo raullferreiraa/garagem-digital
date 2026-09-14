@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 
+enum CarListMode { explore, garage }
+
 final class CarList extends StatefulWidget {
   const CarList({
     required this.title,
     required this.emptyMessage,
     required this.loader,
     required this.onCarTap,
+    this.mode = CarListMode.explore,
     this.primaryActionLabel,
     this.onPrimaryAction,
     super.key,
@@ -17,6 +20,7 @@ final class CarList extends StatefulWidget {
   final String emptyMessage;
   final Future<List<Car>> Function() loader;
   final ValueChanged<Car> onCarTap;
+  final CarListMode mode;
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
 
@@ -41,15 +45,20 @@ class _CarListState extends State<CarList> {
 
   @override
   Widget build(BuildContext context) {
+    final isGarage = widget.mode == CarListMode.garage;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.title)),
-      floatingActionButton: widget.onPrimaryAction == null
-          ? null
-          : FloatingActionButton.extended(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          if (widget.onPrimaryAction != null)
+            IconButton(
               onPressed: widget.onPrimaryAction,
-              icon: const Icon(Icons.add),
-              label: Text(widget.primaryActionLabel!),
+              tooltip: widget.primaryActionLabel,
+              icon: const Icon(Icons.add_circle_outline),
             ),
+          if (widget.onPrimaryAction != null) const SizedBox(width: 8),
+        ],
+      ),
       body: FutureBuilder<List<Car>>(
         future: _cars,
         builder: (context, snapshot) {
@@ -64,23 +73,67 @@ class _CarListState extends State<CarList> {
               onAction: _reload,
             );
           }
+
           final cars = snapshot.data ?? const <Car>[];
-          if (cars.isEmpty) {
-            return _MessageState(
-              icon: Icons.directions_car_outlined,
-              message: widget.emptyMessage,
-            );
-          }
           return RefreshIndicator(
             onRefresh: _reload,
-            child: ListView.separated(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-              itemCount: cars.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 16),
-              itemBuilder: (context, index) => _CarCard(
-                car: cars[index],
-                onTap: () => widget.onCarTap(cars[index]),
-              ),
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+              children: [
+                _CarsHero(
+                  mode: widget.mode,
+                  carCount: cars.length,
+                  onCreate: widget.onPrimaryAction,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isGarage ? 'Seus projetos' : 'Projetos para descobrir',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 11,
+                        vertical: 7,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '${cars.length}',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.primary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (cars.isEmpty)
+                  _EmptyGarage(
+                    message: widget.emptyMessage,
+                    isGarage: isGarage,
+                    onCreate: widget.onPrimaryAction,
+                  )
+                else
+                  for (var index = 0; index < cars.length; index++) ...[
+                    _CarCard(
+                      car: cars[index],
+                      highlighted: isGarage,
+                      onTap: () => widget.onCarTap(cars[index]),
+                    ),
+                    if (index != cars.length - 1)
+                      const SizedBox(height: 14),
+                  ],
+              ],
             ),
           );
         },
@@ -89,59 +142,371 @@ class _CarListState extends State<CarList> {
   }
 }
 
+final class _CarsHero extends StatelessWidget {
+  const _CarsHero({
+    required this.mode,
+    required this.carCount,
+    this.onCreate,
+  });
+
+  final CarListMode mode;
+  final int carCount;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final isGarage = mode == CarListMode.garage;
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.primaryContainer.withValues(alpha: 0.9),
+            colors.surfaceContainerHigh,
+          ],
+        ),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: 0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(
+              isGarage ? Icons.garage_rounded : Icons.explore_rounded,
+              color: colors.primary,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            isGarage
+                ? 'Sua garagem, sua história'
+                : 'Máquinas que contam histórias',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isGarage
+                ? 'Organize seus projetos e registre cada etapa da evolução.'
+                : 'Descubra projetos reais, acompanhe ideias e encontre novas inspirações.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.45,
+                ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              _HeroStat(
+                value: '$carCount',
+                label: carCount == 1 ? 'projeto' : 'projetos',
+              ),
+              if (isGarage) ...[
+                const Spacer(),
+                FilledButton.icon(
+                  onPressed: onCreate,
+                  icon: const Icon(Icons.add, size: 18),
+                  label: const Text('Adicionar'),
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _HeroStat extends StatelessWidget {
+  const _HeroStat({required this.value, required this.label});
+
+  final String value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          value,
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w900,
+              ),
+        ),
+        Text(label, style: Theme.of(context).textTheme.labelMedium),
+      ],
+    );
+  }
+}
+
 final class _CarCard extends StatelessWidget {
-  const _CarCard({required this.car, required this.onTap});
+  const _CarCard({
+    required this.car,
+    required this.highlighted,
+    required this.onTap,
+  });
 
   final Car car;
+  final bool highlighted;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    final colors = Theme.of(context).colorScheme;
+    final details = <(IconData, String)>[
+      if (car.year != null) (Icons.calendar_today_outlined, '${car.year}'),
+      if (car.engine != null) (Icons.settings_outlined, car.engine!),
+      if (car.color != null) (Icons.palette_outlined, car.color!),
+    ];
+
+    return Material(
+      color: colors.surfaceContainer,
+      borderRadius: BorderRadius.circular(24),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AspectRatio(
-              aspectRatio: 16 / 10,
-              child: car.photoUrl == null
-                  ? const ColoredBox(
-                      color: Color(0xFF24262A),
-                      child: Icon(Icons.directions_car_rounded, size: 72),
-                    )
-                  : Image.network(
-                      car.photoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const ColoredBox(
-                        color: Color(0xFF24262A),
-                        child: Icon(Icons.broken_image_outlined, size: 48),
-                      ),
-                    ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    [car.model, car.year]
-                        .where((value) => value != null)
-                        .join(' '),
-                    style: Theme.of(context).textTheme.titleLarge,
-                  ),
-                  const SizedBox(height: 4),
-                  Text('${car.ownerName}  @${car.ownerUsername}'),
-                  if (car.projectStatus != null) ...[
-                    const SizedBox(height: 12),
-                    Chip(label: Text(car.projectStatus!)),
-                  ],
-                ],
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: highlighted ? colors.primary : colors.outlineVariant,
+                width: 3,
               ),
             ),
-          ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    if (car.photoUrl == null)
+                      ColoredBox(
+                        color: colors.surfaceContainerHighest,
+                        child: Icon(
+                          Icons.directions_car_rounded,
+                          size: 72,
+                          color: colors.onSurfaceVariant,
+                        ),
+                      )
+                    else
+                      Image.network(
+                        car.photoUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => ColoredBox(
+                          color: colors.surfaceContainerHighest,
+                          child: const Icon(
+                            Icons.broken_image_outlined,
+                            size: 48,
+                          ),
+                        ),
+                      ),
+                    const DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Color(0x22000000),
+                            Color(0x00000000),
+                            Color(0x99000000),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 14,
+                      top: 14,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xB8000000),
+                          borderRadius: BorderRadius.circular(99),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_outward_rounded,
+                          size: 20,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    if (car.projectStatus != null)
+                      Positioned(
+                        left: 14,
+                        bottom: 14,
+                        child: _StatusPill(label: car.projectStatus!),
+                      ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(18, 17, 18, 19),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      [car.model, car.year]
+                          .where((value) => value != null)
+                          .join(' '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 17,
+                          backgroundImage: car.ownerAvatarUrl == null
+                              ? null
+                              : NetworkImage(car.ownerAvatarUrl!),
+                          child: car.ownerAvatarUrl == null
+                              ? Text(
+                                  car.ownerName.isEmpty
+                                      ? '?'
+                                      : car.ownerName[0].toUpperCase(),
+                                  style: Theme.of(context).textTheme.labelMedium,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 9),
+                        Expanded(
+                          child: Text(
+                            '${car.ownerName}  @${car.ownerUsername}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(color: colors.onSurfaceVariant),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (details.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final detail in details)
+                            _MetaPill(icon: detail.$1, label: detail.$2),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+}
+
+final class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xD91B1110),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: const Color(0x66FFFFFF)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+final class _MetaPill extends StatelessWidget {
+  const _MetaPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(99),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: colors.primary),
+          const SizedBox(width: 5),
+          Text(label, style: Theme.of(context).textTheme.labelMedium),
+        ],
+      ),
+    );
+  }
+}
+
+final class _EmptyGarage extends StatelessWidget {
+  const _EmptyGarage({
+    required this.message,
+    required this.isGarage,
+    this.onCreate,
+  });
+
+  final String message;
+  final bool isGarage;
+  final VoidCallback? onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            isGarage
+                ? Icons.garage_outlined
+                : Icons.travel_explore_outlined,
+            size: 54,
+          ),
+          const SizedBox(height: 14),
+          Text(message, textAlign: TextAlign.center),
+          if (onCreate != null) ...[
+            const SizedBox(height: 18),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add),
+              label: const Text('Adicionar projeto'),
+            ),
+          ],
+        ],
       ),
     );
   }

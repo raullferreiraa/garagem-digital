@@ -174,6 +174,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
           evolutionsRepository: widget.evolutionsRepository,
           canManage: car.ownerId == widget.currentUserId,
           currentUserId: widget.currentUserId,
+          onProfileTap: _openProfile,
         ),
       ),
     );
