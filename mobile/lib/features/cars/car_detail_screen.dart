@@ -578,22 +578,26 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final specs = <(String, String?)>[
-      ('Ano', _car.year?.toString()),
-      ('Cor', _car.color),
-      ('Motor', _car.engine),
-      ('Câmbio', _car.transmission),
-      ('Combustível', _car.fuel),
-      ('Potência', _car.estimatedPower),
-      ('Preparação', _car.preparation),
-      ('Suspensão', _car.suspensionType),
-      ('Rodas', _car.wheelSize == null ? null : 'Aro ${_car.wheelSize}'),
-      ('Placa', _car.plate),
+    final specs = <(String, String?, IconData)>[
+      ('Ano', _car.year?.toString(), Icons.calendar_today_outlined),
+      ('Cor', _car.color, Icons.palette_outlined),
+      ('Motor', _car.engine, Icons.settings_outlined),
+      ('Câmbio', _car.transmission, Icons.sync_alt_rounded),
+      ('Combustível', _car.fuel, Icons.local_gas_station_outlined),
+      ('Potência', _car.estimatedPower, Icons.speed_outlined),
+      ('Preparação', _car.preparation, Icons.build_outlined),
+      ('Suspensão', _car.suspensionType, Icons.airline_seat_recline_extra),
+      (
+        'Rodas',
+        _car.wheelSize == null ? null : 'Aro ${_car.wheelSize}',
+        Icons.tire_repair_outlined,
+      ),
+      ('Placa', _car.plate, Icons.badge_outlined),
     ].where((item) => item.$2 != null).toList(growable: false);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_car.model),
+        title: const Text('Projeto'),
         actions: [
           if (widget.canManage)
             PopupMenuButton<_CarAction>(
@@ -604,14 +608,14 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   value: _CarAction.edit,
                   child: ListTile(
                     leading: Icon(Icons.edit_outlined),
-                    title: Text('Editar'),
+                    title: Text('Editar projeto'),
                   ),
                 ),
                 PopupMenuItem(
                   value: _CarAction.delete,
                   child: ListTile(
                     leading: Icon(Icons.delete_outline),
-                    title: Text('Excluir'),
+                    title: Text('Excluir projeto'),
                   ),
                 ),
               ],
@@ -621,169 +625,494 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       body: _deleting
           ? const Center(child: CircularProgressIndicator())
           : ListView(
-              padding: const EdgeInsets.only(bottom: 32),
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
               children: [
-                AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      if (_car.photoUrl == null)
-                        const ColoredBox(
-                          color: Color(0xFF24262A),
-                          child: Icon(Icons.directions_car_rounded, size: 96),
-                        )
-                      else
-                        Image.network(
-                          _car.photoUrl!,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: Color(0xFF24262A),
-                            child: Icon(Icons.broken_image_outlined, size: 64),
-                          ),
-                        ),
-                      if (widget.canManage && !_updatingPhoto)
-                        Positioned(
-                          right: 16,
-                          bottom: 16,
-                          child: IconButton.filled(
-                            onPressed: _openPhotoActions,
-                            tooltip: 'Alterar foto principal',
-                            icon: const Icon(Icons.add_a_photo_outlined),
-                          ),
-                        ),
-                      if (_updatingPhoto)
-                        const ColoredBox(
-                          color: Color(0x66000000),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                    ],
-                  ),
+                _ProjectCover(
+                  car: _car,
+                  canManage: widget.canManage,
+                  updatingPhoto: _updatingPhoto,
+                  onPhotoTap: _openPhotoActions,
                 ),
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        [_car.model, _car.year]
-                            .where((value) => value != null)
-                            .join(' '),
-                        style: Theme.of(context).textTheme.headlineMedium,
-                      ),
-                      const SizedBox(height: 6),
-                      InkWell(
-                        onTap: widget.onOwnerTap,
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                '${_car.ownerName}  @${_car.ownerUsername}',
-                                style: TextStyle(
-                                  color: widget.onOwnerTap == null
-                                      ? null
-                                      : Theme.of(context).colorScheme.primary,
-                                  fontWeight: widget.onOwnerTap == null
-                                      ? null
-                                      : FontWeight.w700,
-                                ),
-                              ),
-                              if (widget.onOwnerTap != null) ...[
-                                const SizedBox(width: 5),
-                                const Icon(Icons.open_in_new, size: 16),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
-                      if (_car.projectStatus != null) ...[
-                        const SizedBox(height: 12),
-                        Chip(label: Text(_car.projectStatus!)),
-                      ],
-                      const SizedBox(height: 28),
-                      Text(
-                        'História do projeto',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        _car.history ??
-                            'O proprietário ainda não contou a história deste projeto.',
-                      ),
-                      const SizedBox(height: 28),
-                      Text(
-                        'Ficha do carro',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 10),
-                      if (specs.isEmpty)
-                        const Text('A ficha técnica ainda não foi preenchida.')
-                      else
-                        Card(
-                          child: Column(
-                            children: [
-                              for (var index = 0; index < specs.length; index++) ...[
-                                _SpecRow(label: specs[index].$1, value: specs[index].$2!),
-                                if (index < specs.length - 1)
-                                  const Divider(height: 1),
-                              ],
-                            ],
-                          ),
-                        ),
-                      const SizedBox(height: 28),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Diário de evoluções',
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          if (widget.canManage)
-                            IconButton.filled(
-                              onPressed: _openEvolutionForm,
-                              tooltip: 'Registrar evolução',
-                              icon: const Icon(Icons.add),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      _evolutionTimeline(),
-                    ],
-                  ),
+                const SizedBox(height: 16),
+                _ProjectIdentity(
+                  car: _car,
+                  onOwnerTap: widget.onOwnerTap,
                 ),
+                const SizedBox(height: 28),
+                const _SectionHeading(
+                  eyebrow: 'A HISTÓRIA',
+                  title: 'Sobre o projeto',
+                  icon: Icons.auto_stories_outlined,
+                ),
+                const SizedBox(height: 12),
+                _StoryCard(
+                  text: _car.history ??
+                      'O proprietário ainda não contou a história deste projeto.',
+                ),
+                const SizedBox(height: 28),
+                _SectionHeading(
+                  eyebrow: 'A MÁQUINA',
+                  title: 'Ficha do carro',
+                  icon: Icons.tune_rounded,
+                  count: specs.length,
+                ),
+                const SizedBox(height: 12),
+                if (specs.isEmpty)
+                  const _EmptyProjectSection(
+                    icon: Icons.tune_rounded,
+                    message: 'A ficha técnica ainda não foi preenchida.',
+                  )
+                else
+                  GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: specs.length,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 10,
+                      crossAxisSpacing: 10,
+                      childAspectRatio: 1.72,
+                    ),
+                    itemBuilder: (context, index) => _SpecTile(
+                      label: specs[index].$1,
+                      value: specs[index].$2!,
+                      icon: specs[index].$3,
+                    ),
+                  ),
+                const SizedBox(height: 30),
+                Row(
+                  children: [
+                    const Expanded(
+                      child: _SectionHeading(
+                        eyebrow: 'DIÁRIO DO PROJETO',
+                        title: 'Evoluções',
+                        icon: Icons.timeline_rounded,
+                      ),
+                    ),
+                    if (widget.canManage)
+                      IconButton.filled(
+                        onPressed: _openEvolutionForm,
+                        tooltip: 'Registrar evolução',
+                        icon: const Icon(Icons.add),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _evolutionTimeline(),
               ],
             ),
     );
   }
 }
 
-final class _SpecRow extends StatelessWidget {
-  const _SpecRow({required this.label, required this.value});
+final class _ProjectCover extends StatelessWidget {
+  const _ProjectCover({
+    required this.car,
+    required this.canManage,
+    required this.updatingPhoto,
+    required this.onPhotoTap,
+  });
 
-  final String label;
-  final String value;
+  final Car car;
+  final bool canManage;
+  final bool updatingPhoto;
+  final VoidCallback onPhotoTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      child: Row(
-        children: [
-          Expanded(child: Text(label)),
-          const SizedBox(width: 16),
-          Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.end,
-              style: const TextStyle(fontWeight: FontWeight.w600),
+    final colors = Theme.of(context).colorScheme;
+    return AspectRatio(
+      aspectRatio: 16 / 10,
+      child: Material(
+        borderRadius: BorderRadius.circular(28),
+        clipBehavior: Clip.antiAlias,
+        color: colors.surfaceContainerHighest,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (car.photoUrl == null)
+              Icon(
+                Icons.directions_car_rounded,
+                size: 104,
+                color: colors.onSurfaceVariant,
+              )
+            else
+              Image.network(
+                car.photoUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                  Icons.broken_image_outlined,
+                  size: 68,
+                  color: colors.onSurfaceVariant,
+                ),
+              ),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Color(0x22000000),
+                    Color(0x00000000),
+                    Color(0xB8000000),
+                  ],
+                  stops: [0, 0.52, 1],
+                ),
+              ),
             ),
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: 18,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Text(
+                      [car.model, car.year]
+                          .where((value) => value != null)
+                          .join(' '),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black54,
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                    ),
+                  ),
+                  if (canManage && !updatingPhoto) ...[
+                    const SizedBox(width: 12),
+                    IconButton.filled(
+                      onPressed: onPhotoTap,
+                      tooltip: 'Alterar foto principal',
+                      icon: const Icon(Icons.add_a_photo_outlined),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (updatingPhoto)
+              const ColoredBox(
+                color: Color(0x66000000),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _ProjectIdentity extends StatelessWidget {
+  const _ProjectIdentity({
+    required this.car,
+    this.onOwnerTap,
+  });
+
+  final Car car;
+  final VoidCallback? onOwnerTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final ownerInitial =
+        car.ownerName.isEmpty ? '?' : car.ownerName[0].toUpperCase();
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(26),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colors.primaryContainer.withValues(alpha: 0.82),
+            colors.surfaceContainerHigh,
+          ],
+        ),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'PROJETO AUTOMOTIVO',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            [car.model, car.year]
+                .where((value) => value != null)
+                .join(' '),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w900,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              CircleAvatar(
+                radius: 23,
+                backgroundImage: car.ownerAvatarUrl == null
+                    ? null
+                    : NetworkImage(car.ownerAvatarUrl!),
+                child: car.ownerAvatarUrl == null
+                    ? Text(
+                        ownerInitial,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      )
+                    : null,
+              ),
+              const SizedBox(width: 11),
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: InkWell(
+                    onTap: onOwnerTap,
+                    borderRadius: BorderRadius.circular(9),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 3,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              '${car.ownerName}  @${car.ownerUsername}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color:
+                                    onOwnerTap == null ? null : colors.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                          if (onOwnerTap != null) ...[
+                            const SizedBox(width: 5),
+                            const Icon(Icons.open_in_new, size: 15),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              if (car.projectStatus != null) ...[
+                const SizedBox(width: 8),
+                _ProjectStatus(label: car.projectStatus!),
+              ],
+            ],
           ),
         ],
       ),
     );
   }
 }
+
+final class _ProjectStatus extends StatelessWidget {
+  const _ProjectStatus({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: colors.primary.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(99),
+        border: Border.all(color: colors.primary.withValues(alpha: 0.34)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: colors.primary,
+              fontWeight: FontWeight.w800,
+            ),
+      ),
+    );
+  }
+}
+
+final class _SectionHeading extends StatelessWidget {
+  const _SectionHeading({
+    required this.eyebrow,
+    required this.title,
+    required this.icon,
+    this.count,
+  });
+
+  final String eyebrow;
+  final String title;
+  final IconData icon;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(9),
+          decoration: BoxDecoration(
+            color: colors.primary.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: colors.primary, size: 21),
+        ),
+        const SizedBox(width: 11),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                eyebrow,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: colors.primary,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.05,
+                    ),
+              ),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+        ),
+        if (count != null)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: colors.surfaceContainerHighest,
+              borderRadius: BorderRadius.circular(99),
+            ),
+            child: Text(
+              '$count',
+              style: const TextStyle(fontWeight: FontWeight.w800),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+final class _StoryCard extends StatelessWidget {
+  const _StoryCard({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(19),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(22),
+        border: Border(
+          left: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 3,
+          ),
+        ),
+      ),
+      child: Text(
+        text,
+        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
+      ),
+    );
+  }
+}
+
+final class _SpecTile extends StatelessWidget {
+  const _SpecTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: colors.primary),
+          const Spacer(),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _EmptyProjectSection extends StatelessWidget {
+  const _EmptyProjectSection({
+    required this.icon,
+    required this.message,
+  });
+
+  final IconData icon;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 30),
+          const SizedBox(width: 14),
+          Expanded(child: Text(message)),
+        ],
+      ),
+    );
+  }
+}
+
