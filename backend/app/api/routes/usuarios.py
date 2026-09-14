@@ -11,7 +11,12 @@ from app.models.carro import Carro
 from app.models.seguidor import Seguidor
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
-from app.schemas.usuario import PerfilAtualizacao, PerfilPrivado, PerfilSocial
+from app.schemas.usuario import (
+    PerfilAtualizacao,
+    PerfilPrivado,
+    PerfilSocial,
+    UsuarioResumo,
+)
 from app.services.carros import listar_carros_do_usuario
 
 
@@ -115,6 +120,42 @@ def deixar_de_seguir_usuario(
         db.delete(vinculo)
         db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/{usuario_id}/seguidores", response_model=list[UsuarioResumo])
+def listar_seguidores(
+    usuario_id: UUID,
+    db: DbSession,
+) -> list[UsuarioResumo]:
+    _buscar_usuario_ativo(db, usuario_id)
+    usuarios = db.scalars(
+        select(Usuario)
+        .join(Seguidor, Seguidor.seguidor_id == Usuario.id)
+        .where(
+            Seguidor.seguido_id == usuario_id,
+            Usuario.ativo.is_(True),
+        )
+        .order_by(Seguidor.criado_em.desc())
+    ).all()
+    return [UsuarioResumo.model_validate(usuario) for usuario in usuarios]
+
+
+@router.get("/{usuario_id}/seguindo", response_model=list[UsuarioResumo])
+def listar_seguidos(
+    usuario_id: UUID,
+    db: DbSession,
+) -> list[UsuarioResumo]:
+    _buscar_usuario_ativo(db, usuario_id)
+    usuarios = db.scalars(
+        select(Usuario)
+        .join(Seguidor, Seguidor.seguido_id == Usuario.id)
+        .where(
+            Seguidor.seguidor_id == usuario_id,
+            Usuario.ativo.is_(True),
+        )
+        .order_by(Seguidor.criado_em.desc())
+    ).all()
+    return [UsuarioResumo.model_validate(usuario) for usuario in usuarios]
 
 
 @router.get("/{usuario_id}/carros", response_model=list[CarroPublico])

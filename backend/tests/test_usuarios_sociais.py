@@ -59,6 +59,18 @@ def test_perfil_publico_e_fluxo_de_seguir(client: TestClient) -> None:
     assert perfil_seguido["total_seguidores"] == 1
     assert perfil_seguido["seguido_por_mim"] is True
 
+    seguidores = client.get(
+        f"/api/v1/usuarios/{amigo_id}/seguidores"
+    )
+    assert seguidores.status_code == 200
+    assert [item["id"] for item in seguidores.json()] == [raul_id]
+
+    seguindo = client.get(
+        f"/api/v1/usuarios/{raul_id}/seguindo"
+    )
+    assert seguindo.status_code == 200
+    assert [item["id"] for item in seguindo.json()] == [amigo_id]
+
     perfil_raul = client.get(
         f"/api/v1/usuarios/{raul_id}",
         headers=auth(raul),

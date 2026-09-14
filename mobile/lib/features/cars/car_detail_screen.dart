@@ -24,6 +24,7 @@ final class CarDetailScreen extends StatefulWidget {
     required this.repository,
     required this.evolutionsRepository,
     required this.canManage,
+    this.onOwnerTap,
     super.key,
   });
 
@@ -31,6 +32,7 @@ final class CarDetailScreen extends StatefulWidget {
   final CarsRepository repository;
   final EvolutionsRepository evolutionsRepository;
   final bool canManage;
+  final VoidCallback? onOwnerTap;
 
   @override
   State<CarDetailScreen> createState() => _CarDetailScreenState();
@@ -644,7 +646,33 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                         style: Theme.of(context).textTheme.headlineMedium,
                       ),
                       const SizedBox(height: 6),
-                      Text('${_car.ownerName}  @${_car.ownerUsername}'),
+                      InkWell(
+                        onTap: widget.onOwnerTap,
+                        borderRadius: BorderRadius.circular(8),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                '${_car.ownerName}  @${_car.ownerUsername}',
+                                style: TextStyle(
+                                  color: widget.onOwnerTap == null
+                                      ? null
+                                      : Theme.of(context).colorScheme.primary,
+                                  fontWeight: widget.onOwnerTap == null
+                                      ? null
+                                      : FontWeight.w700,
+                                ),
+                              ),
+                              if (widget.onOwnerTap != null) ...[
+                                const SizedBox(width: 5),
+                                const Icon(Icons.open_in_new, size: 16),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
                       if (_car.projectStatus != null) ...[
                         const SizedBox(height: 12),
                         Chip(label: Text(_car.projectStatus!)),

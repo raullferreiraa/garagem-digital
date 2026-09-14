@@ -5,6 +5,7 @@ import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
+import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 
 typedef _ProfileData = ({PublicProfile profile, List<Car> cars});
@@ -132,6 +133,38 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
   }
 
+  Future<void> _openProfile(String userId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          userId: userId,
+          currentUserId: widget.currentUserId,
+          usersRepository: widget.usersRepository,
+          carsRepository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openConnections(
+    PublicProfile profile, {
+    required bool following,
+  }) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SocialUsersScreen(
+          title: following ? 'Seguindo' : 'Seguidores',
+          loader: () => following
+              ? widget.usersRepository.following(profile.id)
+              : widget.usersRepository.followers(profile.id),
+          onUserTap: _openProfile,
+        ),
+      ),
+    );
+    if (mounted) await _reload();
+  }
+
   Future<void> _openCar(Car car) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -248,8 +281,22 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
               Row(
                 children: [
                   _Stat(value: profile.projectCount, label: 'projetos'),
-                  _Stat(value: profile.followerCount, label: 'seguidores'),
-                  _Stat(value: profile.followingCount, label: 'seguindo'),
+                  _Stat(
+                    value: profile.followerCount,
+                    label: 'seguidores',
+                    onTap: () => _openConnections(
+                      profile,
+                      following: false,
+                    ),
+                  ),
+                  _Stat(
+                    value: profile.followingCount,
+                    label: 'seguindo',
+                    onTap: () => _openConnections(
+                      profile,
+                      following: true,
+                    ),
+                  ),
                 ],
               ),
               if (!isMe) ...[
@@ -369,24 +416,36 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
 }
 
 final class _Stat extends StatelessWidget {
-  const _Stat({required this.value, required this.label});
+  const _Stat({
+    required this.value,
+    required this.label,
+    this.onTap,
+  });
 
   final int value;
   final String label;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            '$value',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              Text(
+                '$value',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
+              ),
+              Text(label, style: Theme.of(context).textTheme.labelMedium),
+            ],
           ),
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
-        ],
+        ),
       ),
     );
   }

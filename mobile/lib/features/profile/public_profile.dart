@@ -43,3 +43,26 @@ final class PublicProfile {
   final int followingCount;
   final bool followedByMe;
 }
+
+final class SocialUser {
+  const SocialUser({
+    required this.id,
+    required this.name,
+    required this.username,
+    this.avatarUrl,
+  });
+
+  factory SocialUser.fromJson(Map<String, Object?> json) {
+    return SocialUser(
+      id: json['id']! as String,
+      name: json['nome']! as String,
+      username: json['username']! as String,
+      avatarUrl: AppConfig.resolveApiUrl(json['avatar_url'] as String?),
+    );
+  }
+
+  final String id;
+  final String name;
+  final String username;
+  final String? avatarUrl;
+}

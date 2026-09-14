@@ -7,6 +7,7 @@ import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/profile_screen.dart';
+import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
@@ -35,6 +36,7 @@ final class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   int _feedRevision = 0;
   int _garageRevision = 0;
+  int _profileRevision = 0;
 
   void _refreshCars() {
     setState(() {
@@ -58,6 +60,20 @@ final class _HomeShellState extends State<HomeShell> {
     );
   }
 
+  Future<void> _openPublicProfile(String userId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          userId: userId,
+          currentUserId: widget.session.user!.id,
+          usersRepository: widget.usersRepository,
+          carsRepository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openCar(Car car, {required bool canManage}) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -66,6 +82,9 @@ final class _HomeShellState extends State<HomeShell> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: canManage,
+          onOwnerTap: car.ownerId == widget.session.user!.id
+              ? null
+              : () => _openPublicProfile(car.ownerId),
         ),
       ),
     );
@@ -99,9 +118,11 @@ final class _HomeShellState extends State<HomeShell> {
         usersRepository: widget.usersRepository,
       ),
       ProfileScreen(
+        key: ValueKey('profile-$_profileRevision'),
         session: widget.session,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
+        usersRepository: widget.usersRepository,
       ),
     ];
 
@@ -109,7 +130,12 @@ final class _HomeShellState extends State<HomeShell> {
       body: IndexedStack(index: _index, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
-        onDestinationSelected: (value) => setState(() => _index = value),
+        onDestinationSelected: (value) {
+          setState(() {
+            _index = value;
+            if (value == 3) _profileRevision++;
+          });
+        },
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.explore_outlined),

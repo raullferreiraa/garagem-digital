@@ -24,6 +24,22 @@ final class UsersRepository {
         .toList(growable: false);
   }
 
+  Future<List<SocialUser>> followers(String userId) {
+    return _connections('/usuarios/$userId/seguidores');
+  }
+
+  Future<List<SocialUser>> following(String userId) {
+    return _connections('/usuarios/$userId/seguindo');
+  }
+
+  Future<List<SocialUser>> _connections(String path) async {
+    final response = await _api.dio.get<List<Object?>>(path);
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(SocialUser.fromJson)
+        .toList(growable: false);
+  }
+
   Future<void> follow(String userId) async {
     await _api.dio.put<void>('/usuarios/$userId/seguir');
   }

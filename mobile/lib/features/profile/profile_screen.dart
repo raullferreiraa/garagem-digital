@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
@@ -7,18 +9,24 @@ import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/public_profile.dart';
+import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/social_users_screen.dart';
+import 'package:garagem_mobile/features/profile/users_repository.dart';
 
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.usersRepository,
     super.key,
   });
 
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final UsersRepository usersRepository;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -26,17 +34,61 @@ final class ProfileScreen extends StatefulWidget {
 
 final class _ProfileScreenState extends State<ProfileScreen> {
   late Future<List<Car>> _cars;
+  PublicProfile? _socialProfile;
 
   @override
   void initState() {
     super.initState();
     _cars = widget.carsRepository.mine();
+    unawaited(_loadSocialProfile());
+  }
+
+  Future<void> _loadSocialProfile() async {
+    try {
+      final profile = await widget.usersRepository.profile(
+        widget.session.user!.id,
+      );
+      if (mounted) setState(() => _socialProfile = profile);
+    } catch (error, stackTrace) {
+      debugPrint('Falha ao carregar dados sociais: $error\n$stackTrace');
+    }
   }
 
   Future<void> _reload() async {
     final next = widget.carsRepository.mine();
     setState(() => _cars = next);
-    await next;
+    await Future.wait<Object?>([next, _loadSocialProfile()]);
+  }
+
+  Future<void> _openPublicProfile(String userId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          userId: userId,
+          currentUserId: widget.session.user!.id,
+          usersRepository: widget.usersRepository,
+          carsRepository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
+        ),
+      ),
+    );
+    if (mounted) await _loadSocialProfile();
+  }
+
+  Future<void> _openConnections({required bool following}) async {
+    final userId = widget.session.user!.id;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SocialUsersScreen(
+          title: following ? 'Seguindo' : 'Seguidores',
+          loader: () => following
+              ? widget.usersRepository.following(userId)
+              : widget.usersRepository.followers(userId),
+          onUserTap: _openPublicProfile,
+        ),
+      ),
+    );
+    if (mounted) await _loadSocialProfile();
   }
 
   Future<void> _editProfile() async {
@@ -46,6 +98,8 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (changed != true || !mounted) return;
+    await _loadSocialProfile();
+    if (!mounted) return;
     setState(() {});
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Perfil atualizado.')),
@@ -121,6 +175,10 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   state: user.state,
                   avatarUrl: AppConfig.resolveApiUrl(user.avatarUrl),
                   projectsCount: cars.length,
+                  followersCount: _socialProfile?.followerCount ?? 0,
+                  followingCount: _socialProfile?.followingCount ?? 0,
+                  onFollowers: () => _openConnections(following: false),
+                  onFollowing: () => _openConnections(following: true),
                   onEdit: _editProfile,
                 ),
                 const SizedBox(height: 28),
@@ -209,6 +267,10 @@ final class _ProfileHero extends StatelessWidget {
     required this.state,
     required this.avatarUrl,
     required this.projectsCount,
+    required this.followersCount,
+    required this.followingCount,
+    required this.onFollowers,
+    required this.onFollowing,
     required this.onEdit,
   });
 
@@ -219,6 +281,10 @@ final class _ProfileHero extends StatelessWidget {
   final String? state;
   final String? avatarUrl;
   final int projectsCount;
+  final int followersCount;
+  final int followingCount;
+  final VoidCallback onFollowers;
+  final VoidCallback onFollowing;
   final VoidCallback onEdit;
 
   @override
@@ -282,7 +348,23 @@ final class _ProfileHero extends StatelessWidget {
                 : 'Conte um pouco sobre você e sua relação com carros.',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
+          Row(
+            children: [
+              _ProfileSocialStat(
+                value: followersCount,
+                label: 'seguidores',
+                onTap: onFollowers,
+              ),
+              const SizedBox(width: 10),
+              _ProfileSocialStat(
+                value: followingCount,
+                label: 'seguindo',
+                onTap: onFollowing,
+              ),
+            ],
+          ),
+          const SizedBox(height: 18),
           Row(
             children: [
               Expanded(
@@ -318,7 +400,47 @@ final class _ProfileHero extends StatelessWidget {
   }
 }
 
-final class _Avatar extends StatelessWidget {
+final class _ProfileSocialStat extends StatelessWidget {
+  const _ProfileSocialStat({
+    required this.value,
+    required this.label,
+    required this.onTap,
+  });
+
+  final int value;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: Colors.black.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Column(
+              children: [
+                Text(
+                  '$value',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                ),
+                Text(label),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+$avatarMarker
   const _Avatar({required this.name, required this.avatarUrl});
 
   final String name;
