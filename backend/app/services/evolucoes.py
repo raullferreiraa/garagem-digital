@@ -39,6 +39,19 @@ def criar_evolucao(
     return evolucao
 
 
+def obter_evolucao(
+    db: Session,
+    evolucao_id: UUID,
+    carro_id: UUID,
+) -> EvolucaoProjeto | None:
+    return db.scalar(
+        select(EvolucaoProjeto).where(
+            EvolucaoProjeto.id == evolucao_id,
+            EvolucaoProjeto.carro_id == carro_id,
+        )
+    )
+
+
 def obter_evolucao_do_autor(
     db: Session,
     evolucao_id: UUID,

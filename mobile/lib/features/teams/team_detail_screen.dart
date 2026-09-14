@@ -128,6 +128,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: car.ownerId == widget.currentUserId,
+          currentUserId: widget.currentUserId,
           onOwnerTap: car.ownerId == widget.currentUserId
               ? null
               : () => _openProfile(car.ownerId),

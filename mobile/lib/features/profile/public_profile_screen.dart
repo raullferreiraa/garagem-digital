@@ -173,6 +173,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: car.ownerId == widget.currentUserId,
+          currentUserId: widget.currentUserId,
         ),
       ),
     );

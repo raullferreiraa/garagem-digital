@@ -7,6 +7,7 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
@@ -24,6 +25,7 @@ final class CarDetailScreen extends StatefulWidget {
     required this.repository,
     required this.evolutionsRepository,
     required this.canManage,
+    required this.currentUserId,
     this.onOwnerTap,
     super.key,
   });
@@ -32,6 +34,7 @@ final class CarDetailScreen extends StatefulWidget {
   final CarsRepository repository;
   final EvolutionsRepository evolutionsRepository;
   final bool canManage;
+  final String currentUserId;
   final VoidCallback? onOwnerTap;
 
   @override
@@ -295,6 +298,18 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     }
   }
 
+  Future<void> _openEvolutionDetail(Evolution evolution) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EvolutionDetailScreen(
+          evolution: evolution,
+          repository: widget.evolutionsRepository,
+          currentUserId: widget.currentUserId,
+        ),
+      ),
+    );
+  }
+
   Future<void> _editEvolution(Evolution evolution) async {
     final updated = await Navigator.of(context).push<Evolution>(
       MaterialPageRoute(
@@ -527,8 +542,16 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                             ),
                           ),
                         ],
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton.icon(
+                            onPressed: () => _openEvolutionDetail(evolution),
+                            icon: const Icon(Icons.forum_outlined),
+                            label: const Text('Ver conversa'),
+                          ),
+                        ),
                         if (widget.canManage) ...[
-                          const SizedBox(height: 10),
                           TextButton.icon(
                             onPressed: () => _openEvolutionPhotos(evolution),
                             icon: const Icon(Icons.photo_library_outlined),

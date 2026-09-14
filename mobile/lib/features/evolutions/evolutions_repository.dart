@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
 
 final class EvolutionsRepository {
   EvolutionsRepository(this._api);
@@ -65,5 +66,49 @@ final class EvolutionsRepository {
       '/carros/$carId/evolucoes/$evolutionId/fotos/$photoId',
     );
     return Evolution.fromJson(response.data!);
+  }
+
+  Future<EvolutionInteractions> interactions(
+    String carId,
+    String evolutionId,
+  ) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId/interacoes',
+    );
+    return EvolutionInteractions.fromJson(response.data!);
+  }
+
+  Future<void> like(String carId, String evolutionId) async {
+    await _api.dio.put<void>(
+      '/carros/$carId/evolucoes/$evolutionId/curtida',
+    );
+  }
+
+  Future<void> unlike(String carId, String evolutionId) async {
+    await _api.dio.delete<void>(
+      '/carros/$carId/evolucoes/$evolutionId/curtida',
+    );
+  }
+
+  Future<EvolutionComment> comment(
+    String carId,
+    String evolutionId,
+    String content,
+  ) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios',
+      data: {'conteudo': content.trim()},
+    );
+    return EvolutionComment.fromJson(response.data!);
+  }
+
+  Future<void> deleteComment(
+    String carId,
+    String evolutionId,
+    String commentId,
+  ) async {
+    await _api.dio.delete<void>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId',
+    );
   }
 }

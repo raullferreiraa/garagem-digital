@@ -114,6 +114,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: true,
+          currentUserId: widget.session.user!.id,
         ),
       ),
     );

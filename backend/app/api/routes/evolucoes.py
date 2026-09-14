@@ -2,21 +2,28 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
 from app.core.config import settings
 from app.core.database import get_db
+from app.models.comentario_evolucao import ComentarioEvolucao
+from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.midia_evolucao import MidiaEvolucao
 from app.schemas.evolucao import (
     EvolucaoAtualizacao,
     EvolucaoCriacao,
     EvolucaoResposta,
+    ComentarioEvolucaoCriacao,
+    ComentarioEvolucaoResposta,
+    InteracoesEvolucaoResposta,
 )
 from app.services.carros import obter_carro, obter_carro_do_proprietario
 from app.services.evolucoes import (
     criar_evolucao,
     listar_evolucoes,
+    obter_evolucao,
     obter_evolucao_do_autor,
     obter_foto_da_evolucao,
 )
@@ -182,3 +189,142 @@ def excluir_evolucao(
     db.commit()
     for url in urls:
         remover_media(url)
+
+
+
+@router.get(
+    "/{carro_id}/evolucoes/{evolucao_id}/interacoes",
+    response_model=InteracoesEvolucaoResposta,
+)
+def obter_interacoes(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> InteracoesEvolucaoResposta:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    total_curtidas = db.scalar(
+        select(func.count()).select_from(CurtidaEvolucao).where(
+            CurtidaEvolucao.evolucao_id == evolucao_id
+        )
+    ) or 0
+    curtido_por_mim = db.get(
+        CurtidaEvolucao,
+        (evolucao_id, usuario.id),
+    ) is not None
+    comentarios = list(
+        db.scalars(
+            select(ComentarioEvolucao)
+            .where(ComentarioEvolucao.evolucao_id == evolucao_id)
+            .order_by(
+                ComentarioEvolucao.criado_em,
+                ComentarioEvolucao.id,
+            )
+        ).unique()
+    )
+    return InteracoesEvolucaoResposta(
+        total_curtidas=total_curtidas,
+        curtido_por_mim=curtido_por_mim,
+        comentarios=[
+            ComentarioEvolucaoResposta.model_validate(comentario)
+            for comentario in comentarios
+        ],
+    )
+
+
+@router.put(
+    "/{carro_id}/evolucoes/{evolucao_id}/curtida",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def curtir_evolucao(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> None:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    chave = (evolucao_id, usuario.id)
+    if db.get(CurtidaEvolucao, chave) is None:
+        db.add(
+            CurtidaEvolucao(
+                evolucao_id=evolucao_id,
+                usuario_id=usuario.id,
+            )
+        )
+        db.commit()
+
+
+@router.delete(
+    "/{carro_id}/evolucoes/{evolucao_id}/curtida",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remover_curtida(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> None:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    curtida = db.get(CurtidaEvolucao, (evolucao_id, usuario.id))
+    if curtida is not None:
+        db.delete(curtida)
+        db.commit()
+
+
+@router.post(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios",
+    response_model=ComentarioEvolucaoResposta,
+    status_code=status.HTTP_201_CREATED,
+)
+def comentar_evolucao(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    dados: ComentarioEvolucaoCriacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> ComentarioEvolucaoResposta:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    comentario = ComentarioEvolucao(
+        evolucao_id=evolucao_id,
+        autor_id=usuario.id,
+        conteudo=dados.conteudo,
+    )
+    db.add(comentario)
+    db.commit()
+    db.refresh(comentario)
+    return ComentarioEvolucaoResposta.model_validate(comentario)
+
+
+@router.delete(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios/{comentario_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def excluir_comentario(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> None:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    comentario = db.scalar(
+        select(ComentarioEvolucao).where(
+            ComentarioEvolucao.id == comentario_id,
+            ComentarioEvolucao.evolucao_id == evolucao_id,
+            ComentarioEvolucao.autor_id == usuario.id,
+        )
+    )
+    if comentario is None:
+        raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+    db.delete(comentario)
+    db.commit()

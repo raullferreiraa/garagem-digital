@@ -82,6 +82,7 @@ final class _HomeShellState extends State<HomeShell> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: canManage,
+          currentUserId: widget.session.user!.id,
           onOwnerTap: car.ownerId == widget.session.user!.id
               ? null
               : () => _openPublicProfile(car.ownerId),

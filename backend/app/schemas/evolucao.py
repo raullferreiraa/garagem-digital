@@ -97,3 +97,31 @@ class EvolucaoResposta(EvolucaoBase):
     fotos: list[FotoEvolucaoResposta] = Field(default_factory=list)
     criado_em: datetime
     atualizado_em: datetime
+
+
+class ComentarioEvolucaoCriacao(BaseModel):
+    conteudo: Annotated[str, Field(min_length=1, max_length=1000)]
+
+    @field_validator("conteudo")
+    @classmethod
+    def limpar_conteudo(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("O comentario nao pode ser vazio.")
+        return value
+
+
+class ComentarioEvolucaoResposta(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    evolucao_id: UUID
+    autor: UsuarioResumo
+    conteudo: str
+    criado_em: datetime
+
+
+class InteracoesEvolucaoResposta(BaseModel):
+    total_curtidas: int
+    curtido_por_mim: bool
+    comentarios: list[ComentarioEvolucaoResposta] = Field(default_factory=list)
