@@ -7,6 +7,7 @@ import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/profile_screen.dart';
+import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
 
@@ -16,6 +17,7 @@ final class HomeShell extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.teamsRepository,
+    required this.usersRepository,
     super.key,
   });
 
@@ -23,6 +25,7 @@ final class HomeShell extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final TeamsRepository teamsRepository;
+  final UsersRepository usersRepository;
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -93,6 +96,7 @@ final class _HomeShellState extends State<HomeShell> {
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
         currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
       ),
       ProfileScreen(
         session: widget.session,

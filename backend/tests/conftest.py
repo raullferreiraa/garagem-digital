@@ -15,6 +15,7 @@ from app.models import (  # noqa: F401
     EvolucaoProjeto,
     MidiaEvolucao,
     MembroEquipe,
+    Seguidor,
     SessaoRefresh,
     SolicitacaoEquipe,
     Usuario,

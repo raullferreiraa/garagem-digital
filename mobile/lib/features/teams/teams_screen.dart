@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/team_form_screen.dart';
@@ -15,6 +16,7 @@ final class TeamsScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.currentUserId,
+    required this.usersRepository,
     super.key,
   });
 
@@ -22,6 +24,7 @@ final class TeamsScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
+  final UsersRepository usersRepository;
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
@@ -83,6 +86,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           currentUserId: widget.currentUserId,
+          usersRepository: widget.usersRepository,
         ),
       ),
     );

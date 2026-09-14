@@ -4,6 +4,8 @@ import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
@@ -14,6 +16,7 @@ final class TeamDetailScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.currentUserId,
+    required this.usersRepository,
     super.key,
   });
 
@@ -22,6 +25,7 @@ final class TeamDetailScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
+  final UsersRepository usersRepository;
 
   @override
   State<TeamDetailScreen> createState() => _TeamDetailScreenState();
@@ -124,6 +128,21 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           repository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           canManage: car.ownerId == widget.currentUserId,
+        ),
+      ),
+    );
+    if (mounted) await _reload();
+  }
+
+  Future<void> _openProfile(String userId) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PublicProfileScreen(
+          userId: userId,
+          currentUserId: widget.currentUserId,
+          usersRepository: widget.usersRepository,
+          carsRepository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
         ),
       ),
     );
@@ -310,7 +329,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           child: Column(
             children: [
               for (var index = 0; index < team.members.length; index++) ...[
-                _MemberTile(member: team.members[index]),
+                _MemberTile(
+                  member: team.members[index],
+                  onTap: () => _openProfile(team.members[index].userId),
+                ),
                 if (index != team.members.length - 1)
                   Divider(height: 1, color: colors.outlineVariant),
               ],
@@ -643,13 +665,15 @@ final class _RequestCard extends StatelessWidget {
 }
 
 final class _MemberTile extends StatelessWidget {
-  const _MemberTile({required this.member});
+  const _MemberTile({required this.member, required this.onTap});
 
   final TeamMember member;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
+      onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
       leading: CircleAvatar(
         child: Text(member.name.substring(0, 1).toUpperCase()),

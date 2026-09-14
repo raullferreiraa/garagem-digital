@@ -1,15 +1,17 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Response, status
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
 from app.core.database import get_db
+from app.models.carro import Carro
+from app.models.seguidor import Seguidor
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
-from app.schemas.usuario import PerfilAtualizacao, PerfilPrivado, PerfilPublico
+from app.schemas.usuario import PerfilAtualizacao, PerfilPrivado, PerfilSocial
 from app.services.carros import listar_carros_do_usuario
 
 
@@ -31,12 +33,87 @@ def atualizar_meu_perfil(
     return PerfilPrivado.model_validate(usuario)
 
 
-@router.get("/{usuario_id}", response_model=PerfilPublico)
-def obter_perfil(usuario_id: UUID, db: DbSession) -> PerfilPublico:
+def _buscar_usuario_ativo(db: Session, usuario_id: UUID) -> Usuario:
     usuario = db.get(Usuario, usuario_id)
     if usuario is None or not usuario.ativo:
         raise HTTPException(status_code=404, detail="Usuario nao encontrado.")
-    return PerfilPublico.model_validate(usuario)
+    return usuario
+
+
+@router.get("/{usuario_id}", response_model=PerfilSocial)
+def obter_perfil(
+    usuario_id: UUID,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> PerfilSocial:
+    usuario = _buscar_usuario_ativo(db, usuario_id)
+    total_projetos = db.scalar(
+        select(func.count()).select_from(Carro).where(
+            Carro.proprietario_id == usuario_id
+        )
+    )
+    total_seguidores = db.scalar(
+        select(func.count()).select_from(Seguidor).where(
+            Seguidor.seguido_id == usuario_id
+        )
+    )
+    total_seguindo = db.scalar(
+        select(func.count()).select_from(Seguidor).where(
+            Seguidor.seguidor_id == usuario_id
+        )
+    )
+    seguido_por_mim = (
+        usuario_atual.id != usuario_id
+        and db.get(Seguidor, (usuario_atual.id, usuario_id)) is not None
+    )
+
+    return PerfilSocial(
+        id=usuario.id,
+        nome=usuario.nome,
+        username=usuario.username,
+        avatar_url=usuario.avatar_url,
+        bio=usuario.bio,
+        cidade=usuario.cidade,
+        estado=usuario.estado,
+        criado_em=usuario.criado_em,
+        total_projetos=total_projetos or 0,
+        total_seguidores=total_seguidores or 0,
+        total_seguindo=total_seguindo or 0,
+        seguido_por_mim=seguido_por_mim,
+    )
+
+
+@router.put("/{usuario_id}/seguir", status_code=status.HTTP_204_NO_CONTENT)
+def seguir_usuario(
+    usuario_id: UUID,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    if usuario_id == usuario_atual.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Voce nao pode seguir a si mesmo.",
+        )
+    _buscar_usuario_ativo(db, usuario_id)
+
+    if db.get(Seguidor, (usuario_atual.id, usuario_id)) is None:
+        db.add(Seguidor(seguidor_id=usuario_atual.id, seguido_id=usuario_id))
+        db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{usuario_id}/seguir", status_code=status.HTTP_204_NO_CONTENT)
+def deixar_de_seguir_usuario(
+    usuario_id: UUID,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    _buscar_usuario_ativo(db, usuario_id)
+    vinculo = db.get(Seguidor, (usuario_atual.id, usuario_id))
+    if vinculo is not None:
+        db.delete(vinculo)
+        db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{usuario_id}/carros", response_model=list[CarroPublico])

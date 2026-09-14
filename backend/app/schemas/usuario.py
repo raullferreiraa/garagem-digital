@@ -28,6 +28,13 @@ class PerfilPublico(UsuarioResumo):
     criado_em: datetime
 
 
+class PerfilSocial(PerfilPublico):
+    total_projetos: int
+    total_seguidores: int
+    total_seguindo: int
+    seguido_por_mim: bool
+
+
 class PerfilPrivado(PerfilPublico):
     email: EmailStr
 
