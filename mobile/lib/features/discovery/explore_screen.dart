@@ -53,16 +53,17 @@ final class _ExploreScreenState extends State<ExploreScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: SegmentedButton<_ExploreView>(
               expandedInsets: EdgeInsets.zero,
+              showSelectedIcon: false,
               segments: const [
-                ButtonSegment(
-                  value: _ExploreView.discover,
-                  icon: Icon(Icons.travel_explore_rounded),
-                  label: Text('Descobrir'),
-                ),
                 ButtonSegment(
                   value: _ExploreView.following,
                   icon: Icon(Icons.people_alt_outlined),
                   label: Text('Seguindo'),
+                ),
+                ButtonSegment(
+                  value: _ExploreView.discover,
+                  icon: Icon(Icons.travel_explore_rounded),
+                  label: Text('Descobrir'),
                 ),
               ],
               selected: {_view},
