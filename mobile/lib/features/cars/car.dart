@@ -22,6 +22,8 @@ final class Car {
     this.wheelSize,
     this.plate,
     this.plateVisible,
+    this.likesCount = 0,
+    this.commentsCount = 0,
   });
 
   factory Car.fromJson(Map<String, Object?> json) {
@@ -49,6 +51,8 @@ final class Car {
       wheelSize: json['aro_roda'] as int?,
       plate: json['placa'] as String?,
       plateVisible: json['placa_visivel'] as bool?,
+      likesCount: json['total_curtidas'] as int? ?? 0,
+      commentsCount: json['total_comentarios'] as int? ?? 0,
     );
   }
 
@@ -72,6 +76,8 @@ final class Car {
   final int? wheelSize;
   final String? plate;
   final bool? plateVisible;
+  final int likesCount;
+  final int commentsCount;
 }
 
 final class CarInput {

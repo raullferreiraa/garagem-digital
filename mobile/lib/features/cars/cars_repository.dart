@@ -2,13 +2,27 @@ import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 
+enum CarFeedOrder {
+  recent('recentes'),
+  trending('em_alta');
+
+  const CarFeedOrder(this.apiValue);
+
+  final String apiValue;
+}
+
 final class CarsRepository {
   CarsRepository(this._api);
 
   final ApiClient _api;
 
-  Future<List<Car>> feed() async {
-    final response = await _api.dio.get<Map<String, Object?>>('/carros');
+  Future<List<Car>> feed({
+    CarFeedOrder order = CarFeedOrder.recent,
+  }) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros',
+      queryParameters: {'ordem': order.apiValue},
+    );
     final items = response.data!['itens']! as List<Object?>;
     return items
         .cast<Map<String, Object?>>()

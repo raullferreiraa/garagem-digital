@@ -32,6 +32,58 @@ final class ExploreScreen extends StatefulWidget {
 
 final class _ExploreScreenState extends State<ExploreScreen> {
   _ExploreView _view = _ExploreView.discover;
+  CarFeedOrder _discoverOrder = CarFeedOrder.recent;
+
+  Widget _discoverProjects() {
+    return Column(
+      key: const ValueKey('discover-projects'),
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Row(
+            children: [
+              Text(
+                'Ordenar por',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const Spacer(),
+              ChoiceChip(
+                label: const Text('Recentes'),
+                avatar: const Icon(Icons.schedule_rounded, size: 18),
+                selected: _discoverOrder == CarFeedOrder.recent,
+                showCheckmark: false,
+                onSelected: (_) {
+                  setState(() => _discoverOrder = CarFeedOrder.recent);
+                },
+              ),
+              const SizedBox(width: 8),
+              ChoiceChip(
+                label: const Text('Em alta'),
+                avatar: const Icon(Icons.local_fire_department_outlined, size: 18),
+                selected: _discoverOrder == CarFeedOrder.trending,
+                showCheckmark: false,
+                onSelected: (_) {
+                  setState(() => _discoverOrder = CarFeedOrder.trending);
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: CarList(
+            key: ValueKey('discover-${_discoverOrder.name}'),
+            title: 'Explorar',
+            mode: CarListMode.explore,
+            embedded: true,
+            emptyMessage: 'Os primeiros projetos aparecerão aqui.',
+            loader: () => widget.carsRepository.feed(order: _discoverOrder),
+            onCarTap: widget.onCarTap,
+            onSearch: widget.onSearch,
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -76,16 +128,7 @@ final class _ExploreScreenState extends State<ExploreScreen> {
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 220),
               child: _view == _ExploreView.discover
-                  ? CarList(
-                      key: const ValueKey('discover-projects'),
-                      title: 'Explorar',
-                      mode: CarListMode.explore,
-                      embedded: true,
-                      emptyMessage: 'Os primeiros projetos aparecerão aqui.',
-                      loader: widget.carsRepository.feed,
-                      onCarTap: widget.onCarTap,
-                      onSearch: widget.onSearch,
-                    )
+                  ? _discoverProjects()
                   : FollowingFeed(
                       key: const ValueKey('following-evolutions'),
                       repository: widget.evolutionsRepository,

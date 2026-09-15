@@ -131,6 +131,8 @@ class CarroRespostaBase(CarroBase):
     foto_principal_url: str | None
     criado_em: datetime
     atualizado_em: datetime
+    total_curtidas: int = 0
+    total_comentarios: int = 0
 
 
 class CarroPublico(CarroRespostaBase):

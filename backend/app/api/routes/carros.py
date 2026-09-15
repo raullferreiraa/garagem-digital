@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from fastapi import (
@@ -60,9 +60,16 @@ def feed_carros(
     limite: Annotated[int, Query(ge=1, le=50)] = 20,
     cursor: str | None = None,
     busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
+    ordem: Annotated[Literal["recentes", "em_alta"], Query()] = "recentes",
 ) -> PaginaCarros:
     try:
-        return listar_feed(db, limite=limite, cursor=cursor, busca=busca)
+        return listar_feed(
+            db,
+            limite=limite,
+            cursor=cursor,
+            busca=busca,
+            ordem=ordem,
+        )
     except CursorInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 

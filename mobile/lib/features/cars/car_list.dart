@@ -315,6 +315,10 @@ final class _CarCard extends StatelessWidget {
       if (car.year != null) (Icons.calendar_today_outlined, '${car.year}'),
       if (car.engine != null) (Icons.settings_outlined, car.engine!),
       if (car.color != null) (Icons.palette_outlined, car.color!),
+      if (car.likesCount > 0)
+        (Icons.favorite_outline_rounded, '${car.likesCount}'),
+      if (car.commentsCount > 0)
+        (Icons.chat_bubble_outline_rounded, '${car.commentsCount}'),
     ];
     final ownerInitial =
         car.ownerName.isEmpty ? '?' : car.ownerName[0].toUpperCase();
