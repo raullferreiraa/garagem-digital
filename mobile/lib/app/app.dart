@@ -5,6 +5,7 @@ import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
+import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
@@ -13,6 +14,7 @@ final class GaragemApp extends StatelessWidget {
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.notificationsRepository,
     required this.teamsRepository,
     required this.usersRepository,
     super.key,
@@ -21,6 +23,7 @@ final class GaragemApp extends StatelessWidget {
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final NotificationsRepository notificationsRepository;
   final TeamsRepository teamsRepository;
   final UsersRepository usersRepository;
 
@@ -49,6 +52,7 @@ final class GaragemApp extends StatelessWidget {
               session: session,
               carsRepository: carsRepository,
               evolutionsRepository: evolutionsRepository,
+              notificationsRepository: notificationsRepository,
               teamsRepository: teamsRepository,
               usersRepository: usersRepository,
             ),

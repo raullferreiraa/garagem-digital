@@ -18,6 +18,7 @@ from app.schemas.equipe import (
     SolicitacaoEquipeResposta,
 )
 from app.schemas.usuario import UsuarioResumo
+from app.services.notificacoes import criar_notificacao
 
 
 class EquipeNaoEncontrada(ValueError):
@@ -189,7 +190,7 @@ def detalhar_equipe(
 def solicitar_entrada(
     db: Session, equipe_id: UUID, usuario: Usuario
 ) -> SolicitacaoEquipe:
-    obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id)
     if db.get(MembroEquipe, (equipe_id, usuario.id)) is not None:
         raise EstadoInvalido("Voce ja faz parte desta equipe.")
     pendente = db.scalar(
@@ -203,6 +204,14 @@ def solicitar_entrada(
         raise EstadoInvalido("Sua solicitacao ja esta pendente.")
     solicitacao = SolicitacaoEquipe(equipe_id=equipe_id, usuario_id=usuario.id)
     db.add(solicitacao)
+    criar_notificacao(
+        db,
+        destinatario_id=equipe.dono_id,
+        ator_id=usuario.id,
+        tipo="solicitacao_equipe",
+        mensagem=f"@{usuario.username} pediu para entrar em {equipe.nome}.",
+        equipe_id=equipe.id,
+    )
     db.commit()
     db.refresh(solicitacao)
     return solicitacao
@@ -215,6 +224,7 @@ def decidir_solicitacao(
     gestor: Usuario,
     decisao: str,
 ) -> None:
+    equipe = obter_equipe(db, equipe_id)
     papel = db.scalar(
         select(MembroEquipe.papel).where(
             MembroEquipe.equipe_id == equipe_id,
@@ -242,6 +252,22 @@ def decidir_solicitacao(
         solicitacao.status = "recusada"
     solicitacao.analisada_por = gestor.id
     solicitacao.analisada_em = datetime.now(timezone.utc)
+    criar_notificacao(
+        db,
+        destinatario_id=solicitacao.usuario_id,
+        ator_id=gestor.id,
+        tipo=(
+            "solicitacao_equipe_aprovada"
+            if decisao == "aprovar"
+            else "solicitacao_equipe_recusada"
+        ),
+        mensagem=(
+            f"Seu pedido para entrar em {equipe.nome} foi aceito."
+            if decisao == "aprovar"
+            else f"Seu pedido para entrar em {equipe.nome} não foi aceito."
+        ),
+        equipe_id=equipe.id,
+    )
     db.commit()
 
 

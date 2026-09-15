@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
@@ -6,6 +8,8 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
+import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
 import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
@@ -17,6 +21,7 @@ final class HomeShell extends StatefulWidget {
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.notificationsRepository,
     required this.teamsRepository,
     required this.usersRepository,
     super.key,
@@ -25,6 +30,7 @@ final class HomeShell extends StatefulWidget {
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final NotificationsRepository notificationsRepository;
   final TeamsRepository teamsRepository;
   final UsersRepository usersRepository;
 
@@ -37,6 +43,31 @@ final class _HomeShellState extends State<HomeShell> {
   int _feedRevision = 0;
   int _garageRevision = 0;
   int _profileRevision = 0;
+  int _notificationsRevision = 0;
+  int _unreadNotifications = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_refreshUnreadNotifications());
+  }
+
+  Future<void> _refreshUnreadNotifications() async {
+    try {
+      final count = await widget.notificationsRepository.unreadCount();
+      if (mounted && count != _unreadNotifications) {
+        setState(() => _unreadNotifications = count);
+      }
+    } catch (_) {
+      // A tela de atividade permite tentar novamente sem bloquear o app.
+    }
+  }
+
+  void _setUnreadNotifications(int count) {
+    if (mounted && count != _unreadNotifications) {
+      setState(() => _unreadNotifications = count);
+    }
+  }
 
   void _refreshCars() {
     setState(() {
@@ -128,6 +159,12 @@ final class _HomeShellState extends State<HomeShell> {
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
       ),
+      NotificationsScreen(
+        key: ValueKey('notifications-$_notificationsRevision'),
+        repository: widget.notificationsRepository,
+        onUnreadChanged: _setUnreadNotifications,
+        onProfileTap: _openPublicProfile,
+      ),
     ];
 
     return Scaffold(
@@ -138,28 +175,47 @@ final class _HomeShellState extends State<HomeShell> {
           setState(() {
             _index = value;
             if (value == 3) _profileRevision++;
+            if (value == 4) _notificationsRevision++;
           });
+          unawaited(_refreshUnreadNotifications());
         },
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore),
             label: 'Explorar',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.garage_outlined),
             selectedIcon: Icon(Icons.garage),
             label: 'Garagem',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.groups_outlined),
             selectedIcon: Icon(Icons.groups),
             label: 'Equipes',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.person_outline),
             selectedIcon: Icon(Icons.person),
             label: 'Perfil',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: _unreadNotifications > 0,
+              label: Text(
+                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+              ),
+              child: const Icon(Icons.notifications_outlined),
+            ),
+            selectedIcon: Badge(
+              isLabelVisible: _unreadNotifications > 0,
+              label: Text(
+                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
+              ),
+              child: const Icon(Icons.notifications),
+            ),
+            label: 'Avisos',
           ),
         ],
       ),

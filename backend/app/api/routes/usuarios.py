@@ -33,6 +33,7 @@ from app.services.media import (
     remover_media,
     salvar_avatar,
 )
+from app.services.notificacoes import criar_notificacao
 
 
 router = APIRouter()
@@ -156,10 +157,17 @@ def seguir_usuario(
             status_code=400,
             detail="Voce nao pode seguir a si mesmo.",
         )
-    _buscar_usuario_ativo(db, usuario_id)
+    seguido = _buscar_usuario_ativo(db, usuario_id)
 
     if db.get(Seguidor, (usuario_atual.id, usuario_id)) is None:
         db.add(Seguidor(seguidor_id=usuario_atual.id, seguido_id=usuario_id))
+        criar_notificacao(
+            db,
+            destinatario_id=seguido.id,
+            ator_id=usuario_atual.id,
+            tipo="novo_seguidor",
+            mensagem=f"@{usuario_atual.username} começou a seguir você.",
+        )
         db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

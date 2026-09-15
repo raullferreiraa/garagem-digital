@@ -34,6 +34,7 @@ from app.services.media import (
     remover_media,
     salvar_foto_evolucao,
 )
+from app.services.notificacoes import criar_notificacao
 
 
 router = APIRouter()
@@ -376,7 +377,8 @@ def comentar_evolucao(
     usuario: UsuarioAtual,
     db: DbSession,
 ) -> ComentarioEvolucaoResposta:
-    if obter_evolucao(db, evolucao_id, carro_id) is None:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
 
     comentario = ComentarioEvolucao(
@@ -385,6 +387,15 @@ def comentar_evolucao(
         conteudo=dados.conteudo,
     )
     db.add(comentario)
+    criar_notificacao(
+        db,
+        destinatario_id=evolucao.autor_id,
+        ator_id=usuario.id,
+        tipo="comentario_evolucao",
+        mensagem=f"@{usuario.username} comentou em {evolucao.titulo}.",
+        carro_id=carro_id,
+        evolucao_id=evolucao_id,
+    )
     db.commit()
     db.refresh(comentario)
     return _comentario_resposta(comentario)
@@ -403,7 +414,8 @@ def responder_comentario(
     usuario: UsuarioAtual,
     db: DbSession,
 ) -> ComentarioEvolucaoResposta:
-    if obter_evolucao(db, evolucao_id, carro_id) is None:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
 
     comentario_pai = _obter_comentario(db, evolucao_id, comentario_id)
@@ -422,6 +434,18 @@ def responder_comentario(
         conteudo=dados.conteudo,
     )
     db.add(resposta)
+    criar_notificacao(
+        db,
+        destinatario_id=comentario_pai.autor_id,
+        ator_id=usuario.id,
+        tipo="resposta_comentario",
+        mensagem=(
+            f"@{usuario.username} respondeu ao seu comentário "
+            f"em {evolucao.titulo}."
+        ),
+        carro_id=carro_id,
+        evolucao_id=evolucao_id,
+    )
     db.commit()
     db.refresh(resposta)
     return _comentario_resposta(resposta)
