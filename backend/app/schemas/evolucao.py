@@ -117,7 +117,11 @@ class ComentarioEvolucaoResposta(BaseModel):
     id: UUID
     evolucao_id: UUID
     autor: UsuarioResumo
+    comentario_pai_id: UUID | None = None
     conteudo: str
+    total_curtidas: int = 0
+    curtido_por_mim: bool = False
+    respostas: list["ComentarioEvolucaoResposta"] = Field(default_factory=list)
     criado_em: datetime
 
 

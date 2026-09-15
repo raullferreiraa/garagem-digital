@@ -25,10 +25,13 @@ final class EvolutionDetailScreen extends StatefulWidget {
 
 final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   final _commentController = TextEditingController();
+  final _commentFocusNode = FocusNode();
   late Future<EvolutionInteractions> _future;
   EvolutionInteractions? _interactions;
+  EvolutionComment? _replyingTo;
   bool _changingLike = false;
   bool _sendingComment = false;
+  final Set<String> _changingCommentLikes = {};
   final Set<String> _deletingComments = {};
 
   @override
@@ -40,6 +43,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   @override
   void dispose() {
     _commentController.dispose();
+    _commentFocusNode.dispose();
     super.dispose();
   }
 
@@ -127,6 +131,118 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     }
   }
 
+
+
+  EvolutionComment? _findComment(
+    List<EvolutionComment> comments,
+    String commentId,
+  ) {
+    for (final comment in comments) {
+      if (comment.id == commentId) return comment;
+      for (final reply in comment.replies) {
+        if (reply.id == commentId) return reply;
+      }
+    }
+    return null;
+  }
+
+  List<EvolutionComment> _replaceCommentIn(
+    List<EvolutionComment> comments,
+    EvolutionComment updated,
+  ) {
+    return [
+      for (final comment in comments)
+        if (comment.id == updated.id)
+          updated
+        else
+          comment.copyWith(
+            replies: [
+              for (final reply in comment.replies)
+                if (reply.id == updated.id) updated else reply,
+            ],
+          ),
+    ];
+  }
+
+  Future<void> _toggleCommentLike(EvolutionComment comment) async {
+    final previous = _interactions;
+    if (previous == null || _changingCommentLikes.contains(comment.id)) return;
+
+    final shouldLike = !comment.likedByMe;
+    final optimistic = comment.copyWith(
+      likedByMe: shouldLike,
+      totalLikes: shouldLike
+          ? comment.totalLikes + 1
+          : (comment.totalLikes > 0 ? comment.totalLikes - 1 : 0),
+    );
+    setState(() {
+      _changingCommentLikes.add(comment.id);
+      _interactions = previous.copyWith(
+        comments: _replaceCommentIn(previous.comments, optimistic),
+      );
+    });
+
+    try {
+      if (shouldLike) {
+        await widget.repository.likeComment(
+          widget.evolution.carId,
+          widget.evolution.id,
+          comment.id,
+        );
+      } else {
+        await widget.repository.unlikeComment(
+          widget.evolution.carId,
+          widget.evolution.id,
+          comment.id,
+        );
+      }
+      final confirmed = await widget.repository.interactions(
+        widget.evolution.carId,
+        widget.evolution.id,
+      );
+      if (!mounted) return;
+      setState(() {
+        _interactions = confirmed;
+        _changingCommentLikes.remove(comment.id);
+      });
+    } catch (error) {
+      try {
+        final confirmed = await widget.repository.interactions(
+          widget.evolution.carId,
+          widget.evolution.id,
+        );
+        if (!mounted) return;
+        final saved = _findComment(confirmed.comments, comment.id);
+        final completed = saved?.likedByMe == shouldLike;
+        setState(() {
+          _interactions = completed ? confirmed : previous;
+          _changingCommentLikes.remove(comment.id);
+        });
+        if (completed) return;
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _interactions = previous;
+          _changingCommentLikes.remove(comment.id);
+        });
+      }
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    }
+  }
+
+  void _startReply(EvolutionComment comment) {
+    setState(() => _replyingTo = comment);
+    _commentFocusNode.requestFocus();
+  }
+
+  void _cancelReply() {
+    setState(() => _replyingTo = null);
+  }
+
   Future<void> _sendComment() async {
     final content = _commentController.text.trim();
     final current = _interactions;
@@ -135,17 +251,34 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _sendingComment = true);
     try {
-      final comment = await widget.repository.comment(
-        widget.evolution.carId,
-        widget.evolution.id,
-        content,
-      );
+      final replyingTo = _replyingTo;
+      final comment = replyingTo == null
+          ? await widget.repository.comment(
+              widget.evolution.carId,
+              widget.evolution.id,
+              content,
+            )
+          : await widget.repository.reply(
+              widget.evolution.carId,
+              widget.evolution.id,
+              replyingTo.id,
+              content,
+            );
       if (!mounted) return;
       _commentController.clear();
       setState(() {
         _interactions = current.copyWith(
-          comments: [...current.comments, comment],
+          comments: replyingTo == null
+              ? [...current.comments, comment]
+              : [
+                  for (final root in current.comments)
+                    if (root.id == replyingTo.id)
+                      root.copyWith(replies: [...root.replies, comment])
+                    else
+                      root,
+                ],
         );
+        _replyingTo = null;
         _sendingComment = false;
       });
     } catch (error) {
@@ -194,11 +327,19 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       if (!mounted) return;
       setState(() {
         _deletingComments.remove(comment.id);
-        _interactions = _interactions?.copyWith(
-          comments: _interactions!.comments
-              .where((item) => item.id != comment.id)
-              .toList(growable: false),
+        final current = _interactions!;
+        _interactions = current.copyWith(
+          comments: [
+            for (final root in current.comments)
+              if (root.id != comment.id)
+                root.copyWith(
+                  replies: root.replies
+                      .where((reply) => reply.id != comment.id)
+                      .toList(growable: false),
+                ),
+          ],
         );
+        if (_replyingTo?.id == comment.id) _replyingTo = null;
       });
     } catch (error) {
       if (!mounted) return;
@@ -227,6 +368,48 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           ? null
           : NetworkImage(comment.authorAvatarUrl!),
       child: comment.authorAvatarUrl == null ? Text(fallback) : null,
+    );
+  }
+
+
+  Widget _buildComment(EvolutionComment comment, {bool isReply = false}) {
+    return _CommentTile(
+      comment: comment,
+      avatar: _avatar(comment),
+      date: _formatDate(comment.createdAt),
+      canDelete: comment.authorId == widget.currentUserId,
+      deleting: _deletingComments.contains(comment.id),
+      changingLike: _changingCommentLikes.contains(comment.id),
+      onAuthorTap: widget.onProfileTap == null
+          ? null
+          : () => widget.onProfileTap!(comment.authorId),
+      onLike: () => _toggleCommentLike(comment),
+      onReply: isReply ? null : () => _startReply(comment),
+      onDelete: () => _confirmDeleteComment(comment),
+    );
+  }
+
+  Widget _buildCommentThread(EvolutionComment comment) {
+    final colors = Theme.of(context).colorScheme;
+    return Column(
+      children: [
+        _buildComment(comment),
+        for (final reply in comment.replies)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(34, 0, 0, 8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  left: BorderSide(
+                    color: colors.primary.withValues(alpha: 0.35),
+                    width: 2,
+                  ),
+                ),
+              ),
+              child: _buildComment(reply, isReply: true),
+            ),
+          ),
+      ],
     );
   }
 
@@ -370,9 +553,9 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      interactions.comments.length == 1
+                      interactions.totalComments == 1
                           ? '1 comentário'
-                          : '${interactions.comments.length} comentários',
+                          : '${interactions.totalComments} comentários',
                     ),
                   ],
                 ),
@@ -399,26 +582,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                         for (var index = 0;
                             index < interactions.comments.length;
                             index++) ...[
-                          _CommentTile(
-                            comment: interactions.comments[index],
-                            avatar: _avatar(interactions.comments[index]),
-                            date: _formatDate(
-                              interactions.comments[index].createdAt,
-                            ),
-                            canDelete: interactions.comments[index].authorId ==
-                                widget.currentUserId,
-                            deleting: _deletingComments.contains(
-                              interactions.comments[index].id,
-                            ),
-                            onAuthorTap: widget.onProfileTap == null
-                                ? null
-                                : () => widget.onProfileTap!(
-                                      interactions.comments[index].authorId,
-                                    ),
-                            onDelete: () => _confirmDeleteComment(
-                              interactions.comments[index],
-                            ),
-                          ),
+                          _buildCommentThread(interactions.comments[index]),
                           if (index < interactions.comments.length - 1)
                             const Divider(height: 1),
                         ],
@@ -444,33 +608,65 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                     12,
                     MediaQuery.viewInsetsOf(context).bottom + 10,
                   ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController,
-                          minLines: 1,
-                          maxLines: 4,
-                          maxLength: 1000,
-                          textCapitalization: TextCapitalization.sentences,
-                          decoration: const InputDecoration(
-                            hintText: 'Escreva um comentário...',
-                            counterText: '',
-                          ),
-                          onSubmitted: (_) => _sendComment(),
+                      if (_replyingTo != null)
+                        Row(
+                          children: [
+                            const Icon(Icons.reply_rounded, size: 18),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                'Respondendo a @${_replyingTo!.authorUsername}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context).textTheme.labelLarge,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: _cancelReply,
+                              tooltip: 'Cancelar resposta',
+                              icon: const Icon(Icons.close),
+                            ),
+                          ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        onPressed: _sendingComment ? null : _sendComment,
-                        tooltip: 'Publicar comentário',
-                        icon: _sendingComment
-                            ? const SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.send_rounded),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: TextField(
+                              controller: _commentController,
+                              focusNode: _commentFocusNode,
+                              minLines: 1,
+                              maxLines: 4,
+                              maxLength: 1000,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: InputDecoration(
+                                hintText: _replyingTo == null
+                                    ? 'Escreva um comentário...'
+                                    : 'Escreva uma resposta...',
+                                counterText: '',
+                              ),
+                              onSubmitted: (_) => _sendComment(),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          IconButton.filled(
+                            onPressed: _sendingComment ? null : _sendComment,
+                            tooltip: _replyingTo == null
+                                ? 'Publicar comentário'
+                                : 'Publicar resposta',
+                            icon: _sendingComment
+                                ? const SizedBox.square(
+                                    dimension: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(Icons.send_rounded),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -488,7 +684,10 @@ final class _CommentTile extends StatelessWidget {
     required this.date,
     required this.canDelete,
     required this.deleting,
+    required this.changingLike,
+    required this.onLike,
     required this.onDelete,
+    this.onReply,
     this.onAuthorTap,
   });
 
@@ -497,7 +696,10 @@ final class _CommentTile extends StatelessWidget {
   final String date;
   final bool canDelete;
   final bool deleting;
+  final bool changingLike;
+  final VoidCallback onLike;
   final VoidCallback onDelete;
+  final VoidCallback? onReply;
   final VoidCallback? onAuthorTap;
 
   @override
@@ -547,6 +749,36 @@ final class _CommentTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(comment.content),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: changingLike ? null : onLike,
+                      icon: changingLike
+                          ? const SizedBox.square(
+                              dimension: 15,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Icon(
+                              comment.likedByMe
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              size: 17,
+                            ),
+                      label: Text(
+                        comment.totalLikes == 0
+                            ? 'Curtir'
+                            : '${comment.totalLikes}',
+                      ),
+                    ),
+                    if (onReply != null)
+                      TextButton.icon(
+                        onPressed: onReply,
+                        icon: const Icon(Icons.reply_rounded, size: 18),
+                        label: const Text('Responder'),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),

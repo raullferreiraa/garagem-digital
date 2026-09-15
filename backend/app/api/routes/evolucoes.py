@@ -9,6 +9,7 @@ from app.api.dependencies.auth import UsuarioAtual
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.comentario_evolucao import ComentarioEvolucao
+from app.models.curtida_comentario_evolucao import CurtidaComentarioEvolucao
 from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.midia_evolucao import MidiaEvolucao
 from app.schemas.evolucao import (
@@ -38,6 +39,101 @@ from app.services.media import (
 router = APIRouter()
 DbSession = Annotated[Session, Depends(get_db)]
 MAX_FOTOS_POR_EVOLUCAO = 8
+
+
+def _obter_comentario(
+    db: Session,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+) -> ComentarioEvolucao | None:
+    return db.scalar(
+        select(ComentarioEvolucao).where(
+            ComentarioEvolucao.id == comentario_id,
+            ComentarioEvolucao.evolucao_id == evolucao_id,
+        )
+    )
+
+
+def _comentario_resposta(
+    comentario: ComentarioEvolucao,
+    *,
+    total_curtidas: int = 0,
+    curtido_por_mim: bool = False,
+    respostas: list[ComentarioEvolucaoResposta] | None = None,
+) -> ComentarioEvolucaoResposta:
+    return ComentarioEvolucaoResposta(
+        id=comentario.id,
+        evolucao_id=comentario.evolucao_id,
+        autor=comentario.autor,
+        comentario_pai_id=comentario.comentario_pai_id,
+        conteudo=comentario.conteudo,
+        total_curtidas=total_curtidas,
+        curtido_por_mim=curtido_por_mim,
+        respostas=respostas or [],
+        criado_em=comentario.criado_em,
+    )
+
+
+def _listar_comentarios_resposta(
+    db: Session,
+    evolucao_id: UUID,
+    usuario_id: UUID,
+) -> list[ComentarioEvolucaoResposta]:
+    comentarios = list(
+        db.scalars(
+            select(ComentarioEvolucao)
+            .where(ComentarioEvolucao.evolucao_id == evolucao_id)
+            .order_by(
+                ComentarioEvolucao.criado_em,
+                ComentarioEvolucao.id,
+            )
+        ).unique()
+    )
+    if not comentarios:
+        return []
+
+    ids = [comentario.id for comentario in comentarios]
+    totais = dict(
+        db.execute(
+            select(
+                CurtidaComentarioEvolucao.comentario_id,
+                func.count(),
+            )
+            .where(CurtidaComentarioEvolucao.comentario_id.in_(ids))
+            .group_by(CurtidaComentarioEvolucao.comentario_id)
+        ).all()
+    )
+    curtidos = set(
+        db.scalars(
+            select(CurtidaComentarioEvolucao.comentario_id).where(
+                CurtidaComentarioEvolucao.comentario_id.in_(ids),
+                CurtidaComentarioEvolucao.usuario_id == usuario_id,
+            )
+        )
+    )
+    respostas_por_pai: dict[UUID, list[ComentarioEvolucaoResposta]] = {}
+    for comentario in comentarios:
+        if comentario.comentario_pai_id is None:
+            continue
+        respostas_por_pai.setdefault(comentario.comentario_pai_id, []).append(
+            _comentario_resposta(
+                comentario,
+                total_curtidas=totais.get(comentario.id, 0),
+                curtido_por_mim=comentario.id in curtidos,
+            )
+        )
+
+    return [
+        _comentario_resposta(
+            comentario,
+            total_curtidas=totais.get(comentario.id, 0),
+            curtido_por_mim=comentario.id in curtidos,
+            respostas=respostas_por_pai.get(comentario.id, []),
+        )
+        for comentario in comentarios
+        if comentario.comentario_pai_id is None
+    ]
+
 
 
 @router.get("/{carro_id}/evolucoes", response_model=list[EvolucaoResposta])
@@ -214,23 +310,14 @@ def obter_interacoes(
         CurtidaEvolucao,
         (evolucao_id, usuario.id),
     ) is not None
-    comentarios = list(
-        db.scalars(
-            select(ComentarioEvolucao)
-            .where(ComentarioEvolucao.evolucao_id == evolucao_id)
-            .order_by(
-                ComentarioEvolucao.criado_em,
-                ComentarioEvolucao.id,
-            )
-        ).unique()
-    )
     return InteracoesEvolucaoResposta(
         total_curtidas=total_curtidas,
         curtido_por_mim=curtido_por_mim,
-        comentarios=[
-            ComentarioEvolucaoResposta.model_validate(comentario)
-            for comentario in comentarios
-        ],
+        comentarios=_listar_comentarios_resposta(
+            db,
+            evolucao_id,
+            usuario.id,
+        ),
     )
 
 
@@ -300,7 +387,93 @@ def comentar_evolucao(
     db.add(comentario)
     db.commit()
     db.refresh(comentario)
-    return ComentarioEvolucaoResposta.model_validate(comentario)
+    return _comentario_resposta(comentario)
+
+
+@router.post(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios/{comentario_id}/respostas",
+    response_model=ComentarioEvolucaoResposta,
+    status_code=status.HTTP_201_CREATED,
+)
+def responder_comentario(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+    dados: ComentarioEvolucaoCriacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> ComentarioEvolucaoResposta:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+
+    comentario_pai = _obter_comentario(db, evolucao_id, comentario_id)
+    if comentario_pai is None:
+        raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+    if comentario_pai.comentario_pai_id is not None:
+        raise HTTPException(
+            status_code=422,
+            detail="Respostas podem ter apenas um nivel.",
+        )
+
+    resposta = ComentarioEvolucao(
+        evolucao_id=evolucao_id,
+        autor_id=usuario.id,
+        comentario_pai_id=comentario_pai.id,
+        conteudo=dados.conteudo,
+    )
+    db.add(resposta)
+    db.commit()
+    db.refresh(resposta)
+    return _comentario_resposta(resposta)
+
+
+@router.put(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios/{comentario_id}/curtida",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def curtir_comentario(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> None:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    if _obter_comentario(db, evolucao_id, comentario_id) is None:
+        raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+
+    chave = (comentario_id, usuario.id)
+    if db.get(CurtidaComentarioEvolucao, chave) is None:
+        db.add(
+            CurtidaComentarioEvolucao(
+                comentario_id=comentario_id,
+                usuario_id=usuario.id,
+            )
+        )
+        db.commit()
+
+
+@router.delete(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios/{comentario_id}/curtida",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def remover_curtida_comentario(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> None:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    if _obter_comentario(db, evolucao_id, comentario_id) is None:
+        raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+
+    curtida = db.get(CurtidaComentarioEvolucao, (comentario_id, usuario.id))
+    if curtida is not None:
+        db.delete(curtida)
+        db.commit()
 
 
 @router.delete(

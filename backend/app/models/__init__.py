@@ -1,5 +1,6 @@
 from app.models.carro import Carro
 from app.models.comentario_evolucao import ComentarioEvolucao
+from app.models.curtida_comentario_evolucao import CurtidaComentarioEvolucao
 from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.evolucao_projeto import EvolucaoProjeto
 from app.models.equipe import CarroEquipe, Equipe, MembroEquipe, SolicitacaoEquipe
@@ -11,6 +12,7 @@ from app.models.usuario import Usuario
 __all__ = [
     "Carro",
     "ComentarioEvolucao",
+    "CurtidaComentarioEvolucao",
     "CurtidaEvolucao",
     "EvolucaoProjeto",
     "Equipe",

@@ -30,6 +30,12 @@ class ComentarioEvolucao(Base):
         ForeignKey("usuarios.id", ondelete="CASCADE"),
         index=True,
     )
+    comentario_pai_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("comentarios_evolucao.id", ondelete="CASCADE"),
+        index=True,
+        nullable=True,
+    )
     conteudo: Mapped[str] = mapped_column(Text)
     criado_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -69,6 +69,60 @@ def test_curtidas_e_comentarios_da_evolucao(client: TestClient) -> None:
     comentario = comentario_response.json()
     assert comentario["conteudo"] == "Ficou muito bom!"
     assert comentario["autor"]["username"] == "visitante.social"
+    assert comentario["total_curtidas"] == 0
+    assert comentario["curtido_por_mim"] is False
+    assert comentario["respostas"] == []
+
+    resposta_url = f"{base}/comentarios/{comentario['id']}/respostas"
+    resposta_response = client.post(
+        resposta_url,
+        headers=auth_header(outro),
+        json={"conteudo": "Também gostei desse resultado."},
+    )
+    assert resposta_response.status_code == 201
+    resposta = resposta_response.json()
+    assert resposta["comentario_pai_id"] == comentario["id"]
+    assert resposta["autor"]["username"] == "outro.social"
+
+    resposta_aninhada = client.post(
+        f"{base}/comentarios/{resposta['id']}/respostas",
+        headers=auth_header(dono),
+        json={"conteudo": "Uma resposta de segundo nível."},
+    )
+    assert resposta_aninhada.status_code == 422
+
+    curtida_comentario_url = f"{base}/comentarios/{comentario['id']}/curtida"
+    assert (
+        client.put(curtida_comentario_url, headers=auth_header(dono)).status_code
+        == 204
+    )
+    assert (
+        client.put(curtida_comentario_url, headers=auth_header(dono)).status_code
+        == 204
+    )
+    assert (
+        client.put(curtida_comentario_url, headers=auth_header(outro)).status_code
+        == 204
+    )
+
+    curtida_resposta_url = f"{base}/comentarios/{resposta['id']}/curtida"
+    assert (
+        client.put(curtida_resposta_url, headers=auth_header(visitante)).status_code
+        == 204
+    )
+
+    interacoes_visitante = client.get(
+        f"{base}/interacoes",
+        headers=auth_header(visitante),
+    ).json()
+    comentario_atual = interacoes_visitante["comentarios"][0]
+    assert comentario_atual["total_curtidas"] == 2
+    assert comentario_atual["curtido_por_mim"] is False
+    assert [item["id"] for item in comentario_atual["respostas"]] == [
+        resposta["id"]
+    ]
+    assert comentario_atual["respostas"][0]["total_curtidas"] == 1
+    assert comentario_atual["respostas"][0]["curtido_por_mim"] is True
 
     interacoes_dono = client.get(
         f"{base}/interacoes",

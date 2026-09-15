@@ -102,6 +102,39 @@ final class EvolutionsRepository {
     return EvolutionComment.fromJson(response.data!);
   }
 
+  Future<EvolutionComment> reply(
+    String carId,
+    String evolutionId,
+    String commentId,
+    String content,
+  ) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId/respostas',
+      data: {'conteudo': content.trim()},
+    );
+    return EvolutionComment.fromJson(response.data!);
+  }
+
+  Future<void> likeComment(
+    String carId,
+    String evolutionId,
+    String commentId,
+  ) async {
+    await _api.dio.put<void>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId/curtida',
+    );
+  }
+
+  Future<void> unlikeComment(
+    String carId,
+    String evolutionId,
+    String commentId,
+  ) async {
+    await _api.dio.delete<void>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId/curtida',
+    );
+  }
+
   Future<void> deleteComment(
     String carId,
     String evolutionId,
