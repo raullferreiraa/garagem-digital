@@ -7,6 +7,7 @@ import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class TeamDetailScreen extends StatefulWidget {
@@ -72,6 +73,49 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       );
     }
     if (mounted) setState(() => _acting = false);
+  }
+
+  Future<void> _inviteMember(TeamDetail team) async {
+    final invited = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      showDragHandle: true,
+      builder: (_) => TeamInviteSheet(
+        team: team,
+        repository: widget.repository,
+        usersRepository: widget.usersRepository,
+      ),
+    );
+    if (invited == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Convite enviado.')),
+      );
+    }
+  }
+
+  Future<void> _respondInvite(TeamDetail team, {required bool accept}) async {
+    setState(() => _acting = true);
+    try {
+      await widget.repository.decideInvite(team.id, accept: accept);
+      if (!mounted) return;
+      if (accept) {
+        await _reload();
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Você entrou na equipe.')),
+        );
+        setState(() => _acting = false);
+      } else {
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
   }
 
   Future<void> _chooseCar(TeamDetail team) async {
@@ -191,7 +235,51 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       children: [
         _TeamHero(team: team),
         const SizedBox(height: 16),
-        if (team.myRole == null && team.myRequest != 'pendente')
+        if (team.myRole == null && team.myInvite == 'pendente') ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Row(
+              children: [
+                Icon(Icons.mail_outline_rounded),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Você foi convidado para participar desta equipe.',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _acting
+                      ? null
+                      : () => _respondInvite(team, accept: false),
+                  child: const Text('Recusar'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _acting
+                      ? null
+                      : () => _respondInvite(team, accept: true),
+                  child: const Text('Aceitar convite'),
+                ),
+              ),
+            ],
+          ),
+        ],
+        if (team.myRole == null &&
+            team.myRequest != 'pendente' &&
+            team.myInvite != 'pendente')
           FilledButton.icon(
             onPressed: _acting
                 ? null
@@ -231,6 +319,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   : 'Escolher meu carro para a equipe',
             ),
           ),
+        if (team.myRole == 'dono' || team.myRole == 'administrador') ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            onPressed: _acting ? null : () => _inviteMember(team),
+            icon: const Icon(Icons.person_add_alt_1_rounded),
+            label: const Text('Convidar integrante'),
+          ),
+        ],
         if (team.pendingRequests.isNotEmpty) ...[
           const SizedBox(height: 24),
           _SectionHeader(

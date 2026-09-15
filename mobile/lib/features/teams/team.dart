@@ -13,6 +13,7 @@ final class Team {
     this.state,
     this.myRole,
     this.myRequest,
+    this.myInvite,
   });
 
   factory Team.fromJson(Map<String, Object?> json) => Team(
@@ -26,6 +27,7 @@ final class Team {
         state: json['estado'] as String?,
         myRole: json['meu_papel'] as String?,
         myRequest: json['minha_solicitacao'] as String?,
+        myInvite: json['meu_convite'] as String?,
       );
 
   final String id;
@@ -38,6 +40,7 @@ final class Team {
   final String? state;
   final String? myRole;
   final String? myRequest;
+  final String? myInvite;
 
   String? get location {
     final values = [city, state].whereType<String>().where((value) => value.isNotEmpty);
@@ -112,6 +115,7 @@ final class TeamDetail extends Team {
     super.state,
     super.myRole,
     super.myRequest,
+    super.myInvite,
   });
 
   factory TeamDetail.fromJson(Map<String, Object?> json) {
@@ -128,6 +132,7 @@ final class TeamDetail extends Team {
       state: summary.state,
       myRole: summary.myRole,
       myRequest: summary.myRequest,
+      myInvite: summary.myInvite,
       members: (json['membros']! as List<Object?>)
           .cast<Map<String, Object?>>()
           .map(TeamMember.fromJson)

@@ -39,6 +39,23 @@ final class TeamsRepository {
     return TeamDetail.fromJson(response.data!);
   }
 
+  Future<void> invite(String teamId, String userId) async {
+    await _api.dio.post<Object?>(
+      '/equipes/$teamId/convites',
+      data: {'usuario_id': userId},
+    );
+  }
+
+  Future<void> decideInvite(
+    String teamId, {
+    required bool accept,
+  }) async {
+    await _api.dio.patch<Object?>(
+      '/equipes/$teamId/meu-convite',
+      data: {'decisao': accept ? 'aceitar' : 'recusar'},
+    );
+  }
+
   Future<void> requestEntry(String teamId) async {
     await _api.dio.post<Object?>('/equipes/$teamId/solicitacoes');
   }

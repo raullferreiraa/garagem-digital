@@ -7,6 +7,8 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.auth import UsuarioAtual
 from app.core.database import get_db
 from app.schemas.equipe import (
+    ConviteCriacao,
+    ConviteDecisao,
     EscolhaCarro,
     EquipeCriacao,
     EquipeDetalhe,
@@ -17,7 +19,9 @@ from app.services.equipes import (
     AcaoNaoPermitida,
     EquipeNaoEncontrada,
     EstadoInvalido,
+    convidar_usuario,
     criar_equipe,
+    decidir_convite,
     decidir_solicitacao,
     detalhar_equipe,
     escolher_carro,
@@ -95,6 +99,34 @@ def analisar_pedido(
         decidir_solicitacao(
             db, equipe_id, solicitacao_id, usuario, dados.decisao
         )
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{equipe_id}/convites", status_code=status.HTTP_204_NO_CONTENT)
+def enviar_convite(
+    equipe_id: UUID,
+    dados: ConviteCriacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        convidar_usuario(db, equipe_id, dados.usuario_id, usuario)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch("/{equipe_id}/meu-convite", status_code=status.HTTP_204_NO_CONTENT)
+def responder_convite(
+    equipe_id: UUID,
+    dados: ConviteDecisao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        decidir_convite(db, equipe_id, usuario, dados.decisao)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)

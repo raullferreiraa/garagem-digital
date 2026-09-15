@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -87,6 +87,42 @@ class SolicitacaoEquipe(Base):
         DateTime(timezone=True), default=agora_utc, server_default=func.now()
     )
     analisada_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+
+
+class ConviteEquipe(Base):
+    __tablename__ = "convites_equipe"
+    __table_args__ = (
+        UniqueConstraint(
+            "equipe_id",
+            "usuario_id",
+            name="uq_convites_equipe_usuario",
+        ),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    equipe_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("equipes.id", ondelete="CASCADE"),
+        index=True,
+    )
+    usuario_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        index=True,
+    )
+    convidado_por: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+    )
+    status: Mapped[str] = mapped_column(String(20), default="pendente")
+    criada_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=agora_utc, server_default=func.now()
+    )
+    respondida_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
 

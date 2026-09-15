@@ -44,6 +44,7 @@ class EquipeResumo(BaseModel):
     total_membros: int
     meu_papel: str | None
     minha_solicitacao: str | None
+    meu_convite: str | None
 
 
 class MembroEquipeResposta(BaseModel):
@@ -68,6 +69,14 @@ class EquipeDetalhe(EquipeResumo):
 
 class SolicitacaoDecisao(BaseModel):
     decisao: Literal["aprovar", "recusar"]
+
+
+class ConviteCriacao(BaseModel):
+    usuario_id: UUID
+
+
+class ConviteDecisao(BaseModel):
+    decisao: Literal["aceitar", "recusar"]
 
 
 class EscolhaCarro(BaseModel):

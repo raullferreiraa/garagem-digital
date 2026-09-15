@@ -7,7 +7,13 @@ from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
-from app.models.equipe import CarroEquipe, Equipe, MembroEquipe, SolicitacaoEquipe
+from app.models.equipe import (
+    CarroEquipe,
+    ConviteEquipe,
+    Equipe,
+    MembroEquipe,
+    SolicitacaoEquipe,
+)
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
 from app.schemas.equipe import (
@@ -73,7 +79,7 @@ def obter_equipe(db: Session, equipe_id: UUID) -> Equipe:
 
 def _meu_estado(
     db: Session, equipe_id: UUID, usuario_id: UUID
-) -> tuple[str | None, str | None]:
+) -> tuple[str | None, str | None, str | None]:
     papel = db.scalar(
         select(MembroEquipe.papel).where(
             MembroEquipe.equipe_id == equipe_id,
@@ -89,7 +95,13 @@ def _meu_estado(
         .order_by(SolicitacaoEquipe.criada_em.desc())
         .limit(1)
     )
-    return papel, solicitacao
+    convite = db.scalar(
+        select(ConviteEquipe.status).where(
+            ConviteEquipe.equipe_id == equipe_id,
+            ConviteEquipe.usuario_id == usuario_id,
+        )
+    )
+    return papel, solicitacao, convite
 
 
 def _resumo(db: Session, equipe: Equipe, usuario_id: UUID) -> EquipeResumo:
@@ -98,7 +110,7 @@ def _resumo(db: Session, equipe: Equipe, usuario_id: UUID) -> EquipeResumo:
             MembroEquipe.equipe_id == equipe.id
         )
     )
-    papel, solicitacao = _meu_estado(db, equipe.id, usuario_id)
+    papel, solicitacao, convite = _meu_estado(db, equipe.id, usuario_id)
     return EquipeResumo(
         id=equipe.id,
         nome=equipe.nome,
@@ -110,6 +122,7 @@ def _resumo(db: Session, equipe: Equipe, usuario_id: UUID) -> EquipeResumo:
         total_membros=total or 0,
         meu_papel=papel,
         minha_solicitacao=solicitacao,
+        meu_convite=convite,
     )
 
 
@@ -124,6 +137,14 @@ def listar_equipes(
             Equipe.id.in_(
                 select(MembroEquipe.equipe_id).where(
                     MembroEquipe.usuario_id == usuario_id
+                )
+            )
+        )
+        | (
+            Equipe.id.in_(
+                select(ConviteEquipe.equipe_id).where(
+                    ConviteEquipe.usuario_id == usuario_id,
+                    ConviteEquipe.status == "pendente",
                 )
             )
         )
@@ -151,7 +172,11 @@ def detalhar_equipe(
 ) -> EquipeDetalhe:
     equipe = obter_equipe(db, equipe_id)
     resumo = _resumo(db, equipe, usuario_id)
-    if equipe.visibilidade == "privada" and resumo.meu_papel is None:
+    if (
+        equipe.visibilidade == "privada"
+        and resumo.meu_papel is None
+        and resumo.meu_convite != "pendente"
+    ):
         raise EquipeNaoEncontrada("Equipe nao encontrada.")
 
     linhas_membros = db.execute(
@@ -282,6 +307,118 @@ def decidir_solicitacao(
             f"Seu pedido para entrar em {equipe.nome} foi aceito."
             if decisao == "aprovar"
             else f"Seu pedido para entrar em {equipe.nome} não foi aceito."
+        ),
+        equipe_id=equipe.id,
+    )
+    db.commit()
+
+
+
+def convidar_usuario(
+    db: Session,
+    equipe_id: UUID,
+    usuario_id: UUID,
+    gestor: Usuario,
+) -> ConviteEquipe:
+    equipe = obter_equipe(db, equipe_id)
+    papel = db.scalar(
+        select(MembroEquipe.papel).where(
+            MembroEquipe.equipe_id == equipe_id,
+            MembroEquipe.usuario_id == gestor.id,
+        )
+    )
+    if papel not in {"dono", "administrador"}:
+        raise AcaoNaoPermitida("Apenas a gestão da equipe pode enviar convites.")
+    convidado = db.get(Usuario, usuario_id)
+    if convidado is None:
+        raise EquipeNaoEncontrada("Usuário não encontrado.")
+    if db.get(MembroEquipe, (equipe_id, usuario_id)) is not None:
+        raise EstadoInvalido("Este usuário já faz parte da equipe.")
+    solicitacao = db.scalar(
+        select(SolicitacaoEquipe.id).where(
+            SolicitacaoEquipe.equipe_id == equipe_id,
+            SolicitacaoEquipe.usuario_id == usuario_id,
+            SolicitacaoEquipe.status == "pendente",
+        )
+    )
+    if solicitacao is not None:
+        raise EstadoInvalido("Este usuário já possui um pedido pendente.")
+    convite = db.scalar(
+        select(ConviteEquipe).where(
+            ConviteEquipe.equipe_id == equipe_id,
+            ConviteEquipe.usuario_id == usuario_id,
+        )
+    )
+    if convite is not None and convite.status == "pendente":
+        raise EstadoInvalido("Este convite já está pendente.")
+    if convite is None:
+        convite = ConviteEquipe(
+            equipe_id=equipe_id,
+            usuario_id=usuario_id,
+            convidado_por=gestor.id,
+        )
+        db.add(convite)
+    else:
+        convite.status = "pendente"
+        convite.convidado_por = gestor.id
+        convite.criada_em = datetime.now(timezone.utc)
+        convite.respondida_em = None
+    criar_notificacao(
+        db,
+        destinatario_id=usuario_id,
+        ator_id=gestor.id,
+        tipo="convite_equipe",
+        mensagem=f"@{gestor.username} convidou você para {equipe.nome}.",
+        equipe_id=equipe.id,
+    )
+    db.commit()
+    db.refresh(convite)
+    return convite
+
+
+def decidir_convite(
+    db: Session,
+    equipe_id: UUID,
+    usuario: Usuario,
+    decisao: str,
+) -> None:
+    equipe = obter_equipe(db, equipe_id)
+    convite = db.scalar(
+        select(ConviteEquipe).where(
+            ConviteEquipe.equipe_id == equipe_id,
+            ConviteEquipe.usuario_id == usuario.id,
+        )
+    )
+    if convite is None:
+        raise EquipeNaoEncontrada("Convite não encontrado.")
+    if convite.status != "pendente":
+        raise EstadoInvalido("Este convite já foi respondido.")
+    if decisao == "aceitar":
+        if db.get(MembroEquipe, (equipe_id, usuario.id)) is None:
+            db.add(
+                MembroEquipe(
+                    equipe_id=equipe_id,
+                    usuario_id=usuario.id,
+                    papel="membro",
+                )
+            )
+        convite.status = "aceito"
+    else:
+        convite.status = "recusado"
+    convite.respondida_em = datetime.now(timezone.utc)
+    criar_notificacao(
+        db,
+        destinatario_id=convite.convidado_por,
+        ator_id=usuario.id,
+        tipo=(
+            "convite_equipe_aceito"
+            if decisao == "aceitar"
+            else "convite_equipe_recusado"
+        ),
+        mensagem=(
+            f"@{usuario.username} aceitou o convite para {equipe.nome}."
+            if decisao == "aceitar"
+            else f"@{usuario.username} recusou o convite para {equipe.nome}."
         ),
         equipe_id=equipe.id,
     )

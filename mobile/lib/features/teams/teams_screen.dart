@@ -8,7 +8,7 @@ import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
-enum _TeamView { all, mine, pending }
+enum _TeamView { all, mine, pending, invites }
 
 final class TeamsScreen extends StatefulWidget {
   const TeamsScreen({
@@ -128,6 +128,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
       _TeamView.pending => allTeams
           .where((team) => team.myRequest == 'pendente')
           .toList(),
+      _TeamView.invites => allTeams
+          .where((team) => team.myInvite == 'pendente')
+          .toList(),
     };
     return RefreshIndicator(
       onRefresh: _reload,
@@ -164,6 +167,13 @@ class _TeamsScreenState extends State<TeamsScreen> {
                   icon: Icons.schedule,
                   selected: _view == _TeamView.pending,
                   onSelected: () => setState(() => _view = _TeamView.pending),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Convites',
+                  icon: Icons.mail_outline_rounded,
+                  selected: _view == _TeamView.invites,
+                  onSelected: () => setState(() => _view = _TeamView.invites),
                 ),
               ],
             ),
@@ -202,6 +212,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         _TeamView.all => 'Comunidades para explorar',
         _TeamView.mine => 'Suas equipes',
         _TeamView.pending => 'Pedidos enviados',
+        _TeamView.invites => 'Convites recebidos',
       };
 }
 
@@ -464,6 +475,12 @@ final class _TeamCard extends StatelessWidget {
                             label: 'Pedido pendente',
                             highlighted: true,
                           ),
+                        if (team.myInvite == 'pendente')
+                          const _MetaPill(
+                            icon: Icons.mail_outline_rounded,
+                            label: 'Convite recebido',
+                            highlighted: true,
+                          ),
                       ],
                     ),
                   ],
@@ -523,6 +540,7 @@ final class _FilteredEmpty extends StatelessWidget {
       _TeamView.all => 'Nenhuma equipe foi criada ainda.',
       _TeamView.mine => 'Você ainda não participa de uma equipe.',
       _TeamView.pending => 'Você não tem pedidos pendentes.',
+      _TeamView.invites => 'Você não tem convites pendentes.',
     };
     return Container(
       padding: const EdgeInsets.all(28),
@@ -535,7 +553,7 @@ final class _FilteredEmpty extends StatelessWidget {
           const Icon(Icons.flag_outlined, size: 42),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
-          if (view != _TeamView.pending) ...[
+          if (view != _TeamView.pending && view != _TeamView.invites) ...[
             const SizedBox(height: 16),
             TextButton.icon(
               onPressed: onCreate,
