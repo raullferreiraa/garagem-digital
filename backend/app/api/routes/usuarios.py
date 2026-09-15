@@ -102,7 +102,7 @@ def buscar_usuarios(
     db: DbSession,
     busca: Annotated[str, Query(min_length=2, max_length=100)],
 ) -> list[UsuarioResumo]:
-    termo = busca.strip()
+    termo = busca.strip().removeprefix("@")
     if len(termo) < 2:
         raise HTTPException(
             status_code=422,

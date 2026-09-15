@@ -77,13 +77,7 @@ def listar_feed(
 
     if busca:
         padrao = f"%{busca.strip()}%"
-        consulta = consulta.join(Usuario).where(
-            or_(
-                Carro.modelo.ilike(padrao),
-                Usuario.nome.ilike(padrao),
-                Usuario.username.ilike(padrao),
-            )
-        )
+        consulta = consulta.where(Carro.modelo.ilike(padrao))
 
     consulta = consulta.order_by(Carro.criado_em.desc(), Carro.id.desc())
 

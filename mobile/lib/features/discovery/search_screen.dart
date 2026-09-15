@@ -65,8 +65,13 @@ final class _SearchScreenState extends State<SearchScreen> {
       });
       return;
     }
+    setState(() {
+      _lastQuery = query;
+      _loading = true;
+      _error = null;
+    });
     _debounce = Timer(
-      const Duration(milliseconds: 350),
+      const Duration(milliseconds: 250),
       () => _search(query),
     );
   }

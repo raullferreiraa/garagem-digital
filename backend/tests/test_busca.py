@@ -45,6 +45,24 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     assert pessoas.status_code == 200
     assert [item["username"] for item in pessoas.json()] == ["raul.omega"]
 
+    pessoas_com_arroba = client.get(
+        "/api/v1/usuarios",
+        params={"busca": "@raul"},
+        headers=auth(visitante),
+    )
+    assert pessoas_com_arroba.status_code == 200
+    assert [item["username"] for item in pessoas_com_arroba.json()] == [
+        "raul.omega"
+    ]
+
+    projetos_por_proprietario = client.get(
+        "/api/v1/carros",
+        params={"busca": "raul"},
+        headers=auth(visitante),
+    )
+    assert projetos_por_proprietario.status_code == 200
+    assert projetos_por_proprietario.json()["itens"] == []
+
     projetos = client.get(
         "/api/v1/carros",
         params={"busca": "omega"},
