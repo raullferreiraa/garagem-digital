@@ -3,7 +3,7 @@ import unicodedata
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import delete, func, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
@@ -113,19 +113,36 @@ def _resumo(db: Session, equipe: Equipe, usuario_id: UUID) -> EquipeResumo:
     )
 
 
-def listar_equipes(db: Session, usuario_id: UUID) -> list[EquipeResumo]:
-    equipes = db.scalars(
-        select(Equipe)
-        .where(
-            (Equipe.visibilidade == "publica")
-            | (Equipe.id.in_(
+def listar_equipes(
+    db: Session,
+    usuario_id: UUID,
+    busca: str | None = None,
+) -> list[EquipeResumo]:
+    consulta = select(Equipe).where(
+        (Equipe.visibilidade == "publica")
+        | (
+            Equipe.id.in_(
                 select(MembroEquipe.equipe_id).where(
                     MembroEquipe.usuario_id == usuario_id
                 )
-            ))
+            )
         )
-        .order_by(Equipe.criado_em.desc(), Equipe.id.desc())
-    ).all()
+    )
+    if busca:
+        padrao = f"%{busca.strip()}%"
+        consulta = consulta.where(
+            or_(
+                Equipe.nome.ilike(padrao),
+                Equipe.slug.ilike(padrao),
+                Equipe.descricao.ilike(padrao),
+                Equipe.cidade.ilike(padrao),
+                Equipe.estado.ilike(padrao),
+            )
+        )
+    consulta = consulta.order_by(Equipe.criado_em.desc(), Equipe.id.desc())
+    if busca:
+        consulta = consulta.limit(20)
+    equipes = db.scalars(consulta).all()
     return [_resumo(db, equipe, usuario_id) for equipe in equipes]
 
 

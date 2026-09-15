@@ -6,11 +6,12 @@ from fastapi import (
     Depends,
     File,
     HTTPException,
+    Query,
     Response,
     UploadFile,
     status,
 )
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
@@ -93,6 +94,35 @@ def remover_avatar(
     db.refresh(usuario)
     remover_media(url_anterior)
     return PerfilPrivado.model_validate(usuario)
+
+
+@router.get("", response_model=list[UsuarioResumo])
+def buscar_usuarios(
+    usuario: UsuarioAtual,
+    db: DbSession,
+    busca: Annotated[str, Query(min_length=2, max_length=100)],
+) -> list[UsuarioResumo]:
+    termo = busca.strip()
+    if len(termo) < 2:
+        raise HTTPException(
+            status_code=422,
+            detail="Digite pelo menos 2 caracteres para buscar.",
+        )
+    padrao = f"%{termo}%"
+    usuarios = db.scalars(
+        select(Usuario)
+        .where(
+            Usuario.ativo.is_(True),
+            Usuario.id != usuario.id,
+            or_(
+                Usuario.username.ilike(padrao),
+                Usuario.nome.ilike(padrao),
+            ),
+        )
+        .order_by(Usuario.username)
+        .limit(20)
+    ).all()
+    return [UsuarioResumo.model_validate(item) for item in usuarios]
 
 
 def _buscar_usuario_ativo(db: Session, usuario_id: UUID) -> Usuario:

@@ -59,9 +59,10 @@ def feed_carros(
     db: DbSession,
     limite: Annotated[int, Query(ge=1, le=50)] = 20,
     cursor: str | None = None,
+    busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
 ) -> PaginaCarros:
     try:
-        return listar_feed(db, limite=limite, cursor=cursor)
+        return listar_feed(db, limite=limite, cursor=cursor, busca=busca)
     except CursorInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 

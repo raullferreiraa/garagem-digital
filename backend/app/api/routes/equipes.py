@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
@@ -40,8 +40,12 @@ def _erro(error: ValueError) -> HTTPException:
 
 
 @router.get("", response_model=list[EquipeResumo])
-def equipes(usuario: UsuarioAtual, db: DbSession) -> list[EquipeResumo]:
-    return listar_equipes(db, usuario.id)
+def equipes(
+    usuario: UsuarioAtual,
+    db: DbSession,
+    busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
+) -> list[EquipeResumo]:
+    return listar_equipes(db, usuario.id, busca=busca)
 
 
 @router.post("", response_model=EquipeDetalhe, status_code=status.HTTP_201_CREATED)

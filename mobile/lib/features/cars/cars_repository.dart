@@ -16,6 +16,18 @@ final class CarsRepository {
         .toList(growable: false);
   }
 
+  Future<List<Car>> search(String query) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros',
+      queryParameters: {'busca': query},
+    );
+    final items = response.data!['itens']! as List<Object?>;
+    return items
+        .cast<Map<String, Object?>>()
+        .map(Car.fromJson)
+        .toList(growable: false);
+  }
+
   Future<List<Car>> mine() async {
     final response = await _api.dio.get<List<Object?>>('/carros/meus');
     return response.data!

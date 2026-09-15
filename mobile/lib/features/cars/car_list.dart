@@ -13,6 +13,7 @@ final class CarList extends StatefulWidget {
     this.mode = CarListMode.explore,
     this.primaryActionLabel,
     this.onPrimaryAction,
+    this.onSearch,
     super.key,
   }) : assert(onPrimaryAction == null || primaryActionLabel != null);
 
@@ -23,6 +24,7 @@ final class CarList extends StatefulWidget {
   final CarListMode mode;
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
+  final VoidCallback? onSearch;
 
   @override
   State<CarList> createState() => _CarListState();
@@ -50,6 +52,12 @@ class _CarListState extends State<CarList> {
       appBar: AppBar(
         title: Text(widget.title),
         actions: [
+          if (widget.onSearch != null)
+            IconButton(
+              onPressed: widget.onSearch,
+              tooltip: 'Buscar',
+              icon: const Icon(Icons.search_rounded),
+            ),
           if (widget.onPrimaryAction != null)
             IconButton(
               onPressed: widget.onPrimaryAction,
@@ -85,6 +93,7 @@ class _CarListState extends State<CarList> {
                   mode: widget.mode,
                   carCount: cars.length,
                   onCreate: widget.onPrimaryAction,
+                  onSearch: widget.onSearch,
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -147,11 +156,13 @@ final class _CarsHero extends StatelessWidget {
     required this.mode,
     required this.carCount,
     this.onCreate,
+    this.onSearch,
   });
 
   final CarListMode mode;
   final int carCount;
   final VoidCallback? onCreate;
+  final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -204,6 +215,38 @@ final class _CarsHero extends StatelessWidget {
                   height: 1.45,
                 ),
           ),
+          if (!isGarage && onSearch != null) ...[
+            const SizedBox(height: 18),
+            Material(
+              color: colors.surface.withValues(alpha: 0.72),
+              borderRadius: BorderRadius.circular(18),
+              child: InkWell(
+                onTap: onSearch,
+                borderRadius: BorderRadius.circular(18),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 15,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search_rounded, color: colors.primary),
+                      const SizedBox(width: 11),
+                      Expanded(
+                        child: Text(
+                          'Buscar projetos, pessoas e equipes',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: colors.onSurfaceVariant,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
           const SizedBox(height: 20),
           Row(
             children: [

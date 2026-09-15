@@ -9,6 +9,7 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garagem_mobile/features/discovery/search_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
@@ -16,6 +17,7 @@ import 'package:garagem_mobile/features/notifications/notifications_screen.dart'
 import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
@@ -165,6 +167,39 @@ final class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  Future<void> _openTeam(Team team) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => TeamDetailScreen(
+          teamId: team.id,
+          repository: widget.teamsRepository,
+          carsRepository: widget.carsRepository,
+          evolutionsRepository: widget.evolutionsRepository,
+          currentUserId: widget.session.user!.id,
+          usersRepository: widget.usersRepository,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openSearch() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SearchScreen(
+          carsRepository: widget.carsRepository,
+          usersRepository: widget.usersRepository,
+          teamsRepository: widget.teamsRepository,
+          onCarTap: (car) => _openCar(
+            car,
+            canManage: car.ownerId == widget.session.user!.id,
+          ),
+          onUserTap: _openPublicProfile,
+          onTeamTap: _openTeam,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openCar(Car car, {required bool canManage}) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -194,6 +229,7 @@ final class _HomeShellState extends State<HomeShell> {
         emptyMessage: 'Os primeiros projetos aparecerão aqui.',
         loader: widget.carsRepository.feed,
         onCarTap: (car) => _openCar(car, canManage: false),
+        onSearch: _openSearch,
       ),
       CarList(
         key: ValueKey('garage-$_garageRevision'),

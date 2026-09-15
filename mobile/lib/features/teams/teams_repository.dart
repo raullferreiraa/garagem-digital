@@ -14,6 +14,17 @@ final class TeamsRepository {
         .toList(growable: false);
   }
 
+  Future<List<Team>> search(String query) async {
+    final response = await _api.dio.get<List<Object?>>(
+      '/equipes',
+      queryParameters: {'busca': query},
+    );
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(Team.fromJson)
+        .toList(growable: false);
+  }
+
   Future<TeamDetail> detail(String teamId) async {
     final response =
         await _api.dio.get<Map<String, Object?>>('/equipes/$teamId');

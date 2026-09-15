@@ -67,8 +67,25 @@ def listar_carros_do_usuario(db: Session, usuario_id: UUID) -> list[Carro]:
     )
 
 
-def listar_feed(db: Session, limite: int, cursor: str | None) -> PaginaCarros:
-    consulta = select(Carro).order_by(Carro.criado_em.desc(), Carro.id.desc())
+def listar_feed(
+    db: Session,
+    limite: int,
+    cursor: str | None,
+    busca: str | None = None,
+) -> PaginaCarros:
+    consulta = select(Carro)
+
+    if busca:
+        padrao = f"%{busca.strip()}%"
+        consulta = consulta.join(Usuario).where(
+            or_(
+                Carro.modelo.ilike(padrao),
+                Usuario.nome.ilike(padrao),
+                Usuario.username.ilike(padrao),
+            )
+        )
+
+    consulta = consulta.order_by(Carro.criado_em.desc(), Carro.id.desc())
 
     if cursor:
         criado_em, carro_id = _decodificar_cursor(cursor)

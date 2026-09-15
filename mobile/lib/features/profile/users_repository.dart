@@ -7,6 +7,17 @@ final class UsersRepository {
 
   final ApiClient _api;
 
+  Future<List<SocialUser>> search(String query) async {
+    final response = await _api.dio.get<List<Object?>>(
+      '/usuarios',
+      queryParameters: {'busca': query},
+    );
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(SocialUser.fromJson)
+        .toList(growable: false);
+  }
+
   Future<PublicProfile> profile(String userId) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/usuarios/$userId',
