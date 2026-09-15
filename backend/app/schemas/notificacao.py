@@ -16,6 +16,7 @@ class NotificacaoResposta(BaseModel):
     carro_id: UUID | None
     evolucao_id: UUID | None
     equipe_id: UUID | None
+    comentario_id: UUID | None
     lida_em: datetime | None
     criada_em: datetime
 

@@ -1,18 +1,22 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/notifications/app_notification.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
 import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
 
@@ -105,6 +109,62 @@ final class _HomeShellState extends State<HomeShell> {
     );
   }
 
+
+
+  Future<void> _openNotification(AppNotification notification) async {
+    try {
+      if (notification.type == 'solicitacao_equipe_recusada') {
+        if (mounted) setState(() => _index = 2);
+        return;
+      }
+      if (notification.teamId != null) {
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => TeamDetailScreen(
+              teamId: notification.teamId!,
+              repository: widget.teamsRepository,
+              carsRepository: widget.carsRepository,
+              evolutionsRepository: widget.evolutionsRepository,
+              currentUserId: widget.session.user!.id,
+              usersRepository: widget.usersRepository,
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (notification.carId != null && notification.evolutionId != null) {
+        final car = await widget.carsRepository.detail(notification.carId!);
+        final evolution = await widget.evolutionsRepository.detail(
+          notification.carId!,
+          notification.evolutionId!,
+        );
+        if (!mounted) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => EvolutionDetailScreen(
+              evolution: evolution,
+              repository: widget.evolutionsRepository,
+              currentUserId: widget.session.user!.id,
+              highlightCommentId: notification.commentId,
+              onProfileTap: _openPublicProfile,
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (notification.actorId != null) {
+        await _openPublicProfile(notification.actorId!);
+      }
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
+  }
+
   Future<void> _openCar(Car car, {required bool canManage}) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -163,7 +223,7 @@ final class _HomeShellState extends State<HomeShell> {
         key: ValueKey('notifications-$_notificationsRevision'),
         repository: widget.notificationsRepository,
         onUnreadChanged: _setUnreadNotifications,
-        onProfileTap: _openPublicProfile,
+        onOpen: _openNotification,
       ),
     ];
 

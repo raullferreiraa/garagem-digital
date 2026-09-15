@@ -147,6 +147,21 @@ def diario_do_carro(carro_id: UUID, db: DbSession) -> list[EvolucaoResposta]:
     ]
 
 
+@router.get(
+    "/{carro_id}/evolucoes/{evolucao_id}",
+    response_model=EvolucaoResposta,
+)
+def detalhe_evolucao(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    db: DbSession,
+) -> EvolucaoResposta:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    return EvolucaoResposta.model_validate(evolucao)
+
+
 @router.post(
     "/{carro_id}/evolucoes",
     response_model=EvolucaoResposta,
@@ -332,7 +347,8 @@ def curtir_evolucao(
     usuario: UsuarioAtual,
     db: DbSession,
 ) -> None:
-    if obter_evolucao(db, evolucao_id, carro_id) is None:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
 
     chave = (evolucao_id, usuario.id)
@@ -342,6 +358,15 @@ def curtir_evolucao(
                 evolucao_id=evolucao_id,
                 usuario_id=usuario.id,
             )
+        )
+        criar_notificacao(
+            db,
+            destinatario_id=evolucao.autor_id,
+            ator_id=usuario.id,
+            tipo="curtida_evolucao",
+            mensagem=f"@{usuario.username} curtiu {evolucao.titulo}.",
+            carro_id=carro_id,
+            evolucao_id=evolucao_id,
         )
         db.commit()
 
@@ -387,6 +412,7 @@ def comentar_evolucao(
         conteudo=dados.conteudo,
     )
     db.add(comentario)
+    db.flush()
     criar_notificacao(
         db,
         destinatario_id=evolucao.autor_id,
@@ -395,6 +421,7 @@ def comentar_evolucao(
         mensagem=f"@{usuario.username} comentou em {evolucao.titulo}.",
         carro_id=carro_id,
         evolucao_id=evolucao_id,
+        comentario_id=comentario.id,
     )
     db.commit()
     db.refresh(comentario)
@@ -434,6 +461,7 @@ def responder_comentario(
         conteudo=dados.conteudo,
     )
     db.add(resposta)
+    db.flush()
     criar_notificacao(
         db,
         destinatario_id=comentario_pai.autor_id,
@@ -445,6 +473,7 @@ def responder_comentario(
         ),
         carro_id=carro_id,
         evolucao_id=evolucao_id,
+        comentario_id=resposta.id,
     )
     db.commit()
     db.refresh(resposta)
@@ -462,9 +491,11 @@ def curtir_comentario(
     usuario: UsuarioAtual,
     db: DbSession,
 ) -> None:
-    if obter_evolucao(db, evolucao_id, carro_id) is None:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
-    if _obter_comentario(db, evolucao_id, comentario_id) is None:
+    comentario = _obter_comentario(db, evolucao_id, comentario_id)
+    if comentario is None:
         raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
 
     chave = (comentario_id, usuario.id)
@@ -474,6 +505,16 @@ def curtir_comentario(
                 comentario_id=comentario_id,
                 usuario_id=usuario.id,
             )
+        )
+        criar_notificacao(
+            db,
+            destinatario_id=comentario.autor_id,
+            ator_id=usuario.id,
+            tipo="curtida_comentario",
+            mensagem=f"@{usuario.username} curtiu seu comentário.",
+            carro_id=carro_id,
+            evolucao_id=evolucao_id,
+            comentario_id=comentario.id,
         )
         db.commit()
 

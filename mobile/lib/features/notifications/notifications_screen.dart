@@ -7,13 +7,13 @@ final class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({
     required this.repository,
     required this.onUnreadChanged,
-    required this.onProfileTap,
+    required this.onOpen,
     super.key,
   });
 
   final NotificationsRepository repository;
   final ValueChanged<int> onUnreadChanged;
-  final Future<void> Function(String) onProfileTap;
+  final Future<void> Function(AppNotification) onOpen;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -73,9 +73,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
         return;
       }
     }
-    if (item.actorId != null && mounted) {
-      await widget.onProfileTap(item.actorId!);
-    }
+    if (mounted) await widget.onOpen(item);
   }
 
   Future<void> _markAllRead() async {
@@ -118,6 +116,8 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       'novo_seguidor' => Icons.person_add_alt_1,
       'comentario_evolucao' => Icons.mode_comment_outlined,
       'resposta_comentario' => Icons.reply_rounded,
+      'curtida_evolucao' => Icons.favorite,
+      'curtida_comentario' => Icons.favorite_border,
       'solicitacao_equipe' => Icons.group_add_outlined,
       'solicitacao_equipe_aprovada' => Icons.verified_outlined,
       'solicitacao_equipe_recusada' => Icons.person_remove_outlined,

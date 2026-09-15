@@ -17,6 +17,7 @@ def criar_notificacao(
     carro_id: UUID | None = None,
     evolucao_id: UUID | None = None,
     equipe_id: UUID | None = None,
+    comentario_id: UUID | None = None,
 ) -> Notificacao | None:
     if ator_id == destinatario_id:
         return None
@@ -28,6 +29,7 @@ def criar_notificacao(
         carro_id=carro_id,
         evolucao_id=evolucao_id,
         equipe_id=equipe_id,
+        comentario_id=comentario_id,
     )
     db.add(notificacao)
     return notificacao

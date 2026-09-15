@@ -18,6 +18,13 @@ final class EvolutionsRepository {
         .toList(growable: false);
   }
 
+  Future<Evolution> detail(String carId, String evolutionId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId',
+    );
+    return Evolution.fromJson(response.data!);
+  }
+
   Future<Evolution> create(String carId, EvolutionInput input) async {
     final response = await _api.dio.post<Map<String, Object?>>(
       '/carros/$carId/evolucoes',

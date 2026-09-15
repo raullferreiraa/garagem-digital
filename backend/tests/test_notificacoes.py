@@ -95,6 +95,13 @@ def test_central_de_notificacoes(client: TestClient) -> None:
         ).json()
     ]
     assert tipos_dono[:2] == ["comentario_evolucao", "novo_seguidor"]
+    aviso_comentario = client.get(
+        "/api/v1/notificacoes",
+        headers=auth_header(dono),
+    ).json()[0]
+    assert aviso_comentario["comentario_id"] == comentario["id"]
+    assert aviso_comentario["carro_id"] == carro["id"]
+    assert aviso_comentario["evolucao_id"] == evolucao["id"]
 
     resposta = client.post(
         f"{base}/comentarios/{comentario['id']}/respostas",
@@ -110,6 +117,38 @@ def test_central_de_notificacoes(client: TestClient) -> None:
         ).json()
     ]
     assert tipos_visitante == ["resposta_comentario"]
+    aviso_resposta = client.get(
+        "/api/v1/notificacoes",
+        headers=auth_header(visitante),
+    ).json()[0]
+    assert aviso_resposta["comentario_id"] == resposta.json()["id"]
+
+    assert (
+        client.put(
+            f"{base}/comentarios/{comentario['id']}/curtida",
+            headers=auth_header(dono),
+        ).status_code
+        == 204
+    )
+    assert (
+        client.put(
+            f"{base}/curtida",
+            headers=auth_header(visitante),
+        ).status_code
+        == 204
+    )
+    avisos_visitante = client.get(
+        "/api/v1/notificacoes",
+        headers=auth_header(visitante),
+    ).json()
+    assert avisos_visitante[0]["tipo"] == "curtida_comentario"
+    assert avisos_visitante[0]["comentario_id"] == comentario["id"]
+    avisos_dono = client.get(
+        "/api/v1/notificacoes",
+        headers=auth_header(dono),
+    ).json()
+    assert avisos_dono[0]["tipo"] == "curtida_evolucao"
+    assert avisos_dono[0]["evolucao_id"] == evolucao["id"]
 
     equipe = client.post(
         "/api/v1/equipes",
@@ -144,8 +183,9 @@ def test_central_de_notificacoes(client: TestClient) -> None:
             headers=auth_header(visitante),
         ).json()
     ]
-    assert tipos_visitante[:2] == [
+    assert tipos_visitante[:3] == [
         "solicitacao_equipe_aprovada",
+        "curtida_comentario",
         "resposta_comentario",
     ]
 

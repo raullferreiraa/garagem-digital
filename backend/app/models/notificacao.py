@@ -44,6 +44,10 @@ class Notificacao(Base):
         PostgresUUID(as_uuid=True),
         nullable=True,
     )
+    comentario_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        nullable=True,
+    )
     lida_em: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True,

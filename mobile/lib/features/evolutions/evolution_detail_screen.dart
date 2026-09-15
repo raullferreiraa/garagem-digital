@@ -10,6 +10,7 @@ final class EvolutionDetailScreen extends StatefulWidget {
     required this.evolution,
     required this.repository,
     required this.currentUserId,
+    this.highlightCommentId,
     this.onProfileTap,
     super.key,
   });
@@ -17,6 +18,7 @@ final class EvolutionDetailScreen extends StatefulWidget {
   final Evolution evolution;
   final EvolutionsRepository repository;
   final String currentUserId;
+  final String? highlightCommentId;
   final ValueChanged<String>? onProfileTap;
 
   @override
@@ -26,11 +28,14 @@ final class EvolutionDetailScreen extends StatefulWidget {
 final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   final _commentController = TextEditingController();
   final _commentFocusNode = FocusNode();
+  final _scrollController = ScrollController();
+  final Map<String, GlobalKey> _commentKeys = {};
   late Future<EvolutionInteractions> _future;
   EvolutionInteractions? _interactions;
   EvolutionComment? _replyingTo;
   bool _changingLike = false;
   bool _sendingComment = false;
+  bool _highlightScheduled = false;
   final Set<String> _changingCommentLikes = {};
   final Set<String> _deletingComments = {};
 
@@ -44,6 +49,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   void dispose() {
     _commentController.dispose();
     _commentFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -54,10 +60,42 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     );
     if (mounted) {
       setState(() => _interactions = interactions);
+      _scheduleHighlightedComment();
     } else {
       _interactions = interactions;
     }
     return interactions;
+  }
+
+
+
+  GlobalKey _commentKey(String commentId) {
+    return _commentKeys.putIfAbsent(commentId, GlobalKey.new);
+  }
+
+  void _scheduleHighlightedComment() {
+    final commentId = widget.highlightCommentId;
+    if (commentId == null || _highlightScheduled) return;
+    _highlightScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      var targetContext = _commentKey(commentId).currentContext;
+      if (targetContext == null && _scrollController.hasClients) {
+        await _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.easeOut,
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 80));
+        targetContext = _commentKey(commentId).currentContext;
+      }
+      if (!mounted || targetContext == null) return;
+      await Scrollable.ensureVisible(
+        targetContext,
+        alignment: 0.32,
+        duration: const Duration(milliseconds: 420),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Future<void> _reload() async {
@@ -380,6 +418,8 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       canDelete: comment.authorId == widget.currentUserId,
       deleting: _deletingComments.contains(comment.id),
       changingLike: _changingCommentLikes.contains(comment.id),
+      highlighted: widget.highlightCommentId == comment.id,
+      key: _commentKey(comment.id),
       onAuthorTap: widget.onProfileTap == null
           ? null
           : () => widget.onProfileTap!(comment.authorId),
@@ -448,6 +488,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
+              controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
                 Text(
@@ -685,10 +726,12 @@ final class _CommentTile extends StatelessWidget {
     required this.canDelete,
     required this.deleting,
     required this.changingLike,
+    required this.highlighted,
     required this.onLike,
     required this.onDelete,
     this.onReply,
     this.onAuthorTap,
+    super.key,
   });
 
   final EvolutionComment comment;
@@ -697,6 +740,7 @@ final class _CommentTile extends StatelessWidget {
   final bool canDelete;
   final bool deleting;
   final bool changingLike;
+  final bool highlighted;
   final VoidCallback onLike;
   final VoidCallback onDelete;
   final VoidCallback? onReply;
@@ -704,9 +748,14 @@ final class _CommentTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(14),
-      child: Row(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      color: highlighted
+          ? Theme.of(context).colorScheme.primary.withValues(alpha: 0.18)
+          : Colors.transparent,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           avatar,
@@ -793,7 +842,8 @@ final class _CommentTile extends StatelessWidget {
                     )
                   : const Icon(Icons.delete_outline),
             ),
-        ],
+          ],
+        ),
       ),
     );
   }
