@@ -79,5 +79,9 @@ class ConviteDecisao(BaseModel):
     decisao: Literal["aceitar", "recusar"]
 
 
+class PapelMembroAtualizacao(BaseModel):
+    papel: Literal["membro", "moderador", "administrador"]
+
+
 class EscolhaCarro(BaseModel):
     carro_id: UUID

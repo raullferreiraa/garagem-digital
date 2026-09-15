@@ -98,24 +98,70 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     setState(() => _acting = true);
     try {
       await widget.repository.decideInvite(team.id, accept: accept);
-      if (!mounted) return;
-      if (accept) {
-        await _reload();
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Você entrou na equipe.')),
-        );
-        setState(() => _acting = false);
-      } else {
-        Navigator.of(context).pop();
-      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _acting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(apiErrorMessage(error))),
       );
+      return;
     }
+
+    if (!mounted) return;
+    if (!accept) {
+      Navigator.of(context).pop();
+      return;
+    }
+    try {
+      await _reload();
+    } catch (error, stackTrace) {
+      debugPrint('Convite aceito, mas a equipe não recarregou: $error\n$stackTrace');
+    }
+    if (!mounted) return;
+    setState(() => _acting = false);
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Você entrou na equipe.')),
+    );
+  }
+
+  Future<void> _changeRole(TeamDetail team, TeamMember member) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text('@${member.username}'),
+              subtitle: const Text('Escolha o cargo deste integrante'),
+            ),
+            for (final role in const [
+              ('membro', 'Membro', Icons.person_outline),
+              ('moderador', 'Moderador', Icons.gavel_outlined),
+              ('administrador', 'Administrador', Icons.shield_outlined),
+            ])
+              RadioListTile<String>(
+                value: role.$1,
+                groupValue: member.role,
+                title: Text(role.$2),
+                secondary: Icon(role.$3),
+                onChanged: (value) => Navigator.of(context).pop(value),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (selected == null || selected == member.role) return;
+    await _act(
+      () => widget.repository.updateMemberRole(
+        team.id,
+        member.userId,
+        selected,
+      ),
+      'Cargo atualizado.',
+    );
   }
 
   Future<void> _chooseCar(TeamDetail team) async {
@@ -432,7 +478,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               for (var index = 0; index < team.members.length; index++) ...[
                 _MemberTile(
                   member: team.members[index],
+                  canManageRole: team.myRole == 'dono' &&
+                      team.members[index].role != 'dono',
                   onTap: () => _openProfile(team.members[index].userId),
+                  onRoleTap: () => _changeRole(team, team.members[index]),
                 ),
                 if (index != team.members.length - 1)
                   Divider(height: 1, color: colors.outlineVariant),
@@ -771,10 +820,17 @@ final class _RequestCard extends StatelessWidget {
 }
 
 final class _MemberTile extends StatelessWidget {
-  const _MemberTile({required this.member, required this.onTap});
+  const _MemberTile({
+    required this.member,
+    required this.canManageRole,
+    required this.onTap,
+    required this.onRoleTap,
+  });
 
   final TeamMember member;
+  final bool canManageRole;
   final VoidCallback onTap;
+  final VoidCallback onRoleTap;
 
   @override
   Widget build(BuildContext context) {
@@ -790,10 +846,29 @@ final class _MemberTile extends StatelessWidget {
       ),
       title: Text(member.name),
       subtitle: Text('@${member.username}'),
-      trailing: _StatusPill(
-        icon: member.role == 'dono' ? Icons.star_outline : Icons.person_outline,
-        label: _roleName(member.role),
-        highlighted: member.role == 'dono',
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _StatusPill(
+            icon: member.role == 'dono'
+                ? Icons.star_outline
+                : member.role == 'administrador'
+                    ? Icons.shield_outlined
+                    : member.role == 'moderador'
+                        ? Icons.gavel_outlined
+                        : Icons.person_outline,
+            label: _roleName(member.role),
+            highlighted: member.role != 'membro',
+          ),
+          if (canManageRole) ...[
+            const SizedBox(width: 4),
+            IconButton(
+              tooltip: 'Alterar cargo',
+              onPressed: onRoleTap,
+              icon: const Icon(Icons.manage_accounts_outlined),
+            ),
+          ],
+        ],
       ),
     );
   }

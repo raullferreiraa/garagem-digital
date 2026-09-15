@@ -71,6 +71,17 @@ final class TeamsRepository {
     );
   }
 
+  Future<void> updateMemberRole(
+    String teamId,
+    String userId,
+    String role,
+  ) async {
+    await _api.dio.patch<Object?>(
+      '/equipes/$teamId/membros/$userId/papel',
+      data: {'papel': role},
+    );
+  }
+
   Future<void> selectCar(String teamId, String carId) async {
     await _api.dio.put<Object?>(
       '/equipes/$teamId/meu-carro',

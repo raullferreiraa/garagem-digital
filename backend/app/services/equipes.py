@@ -425,6 +425,36 @@ def decidir_convite(
     db.commit()
 
 
+
+def alterar_papel_membro(
+    db: Session,
+    equipe_id: UUID,
+    membro_id: UUID,
+    papel: str,
+    gestor: Usuario,
+) -> None:
+    equipe = obter_equipe(db, equipe_id)
+    if equipe.dono_id != gestor.id:
+        raise AcaoNaoPermitida("Apenas o dono pode alterar cargos.")
+    membro = db.get(MembroEquipe, (equipe_id, membro_id))
+    if membro is None:
+        raise EquipeNaoEncontrada("Integrante não encontrado.")
+    if membro.usuario_id == equipe.dono_id:
+        raise EstadoInvalido("O cargo do dono não pode ser alterado.")
+    if membro.papel == papel:
+        return
+    membro.papel = papel
+    criar_notificacao(
+        db,
+        destinatario_id=membro.usuario_id,
+        ator_id=gestor.id,
+        tipo="papel_equipe_alterado",
+        mensagem=f"Seu cargo em {equipe.nome} agora é {papel}.",
+        equipe_id=equipe.id,
+    )
+    db.commit()
+
+
 def escolher_carro(
     db: Session, equipe_id: UUID, carro_id: UUID, usuario: Usuario
 ) -> None:

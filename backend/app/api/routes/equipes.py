@@ -13,6 +13,7 @@ from app.schemas.equipe import (
     EquipeCriacao,
     EquipeDetalhe,
     EquipeResumo,
+    PapelMembroAtualizacao,
     SolicitacaoDecisao,
 )
 from app.services.equipes import (
@@ -26,6 +27,7 @@ from app.services.equipes import (
     detalhar_equipe,
     escolher_carro,
     listar_equipes,
+    alterar_papel_membro,
     remover_carro_escolhido,
     solicitar_entrada,
 )
@@ -127,6 +129,24 @@ def responder_convite(
 ) -> Response:
     try:
         decidir_convite(db, equipe_id, usuario, dados.decisao)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.patch(
+    "/{equipe_id}/membros/{membro_id}/papel",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def atualizar_papel_membro(
+    equipe_id: UUID,
+    membro_id: UUID,
+    dados: PapelMembroAtualizacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        alterar_papel_membro(db, equipe_id, membro_id, dados.papel, usuario)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)
