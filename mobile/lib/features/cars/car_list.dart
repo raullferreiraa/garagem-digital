@@ -14,6 +14,7 @@ final class CarList extends StatefulWidget {
     this.primaryActionLabel,
     this.onPrimaryAction,
     this.onSearch,
+    this.embedded = false,
     super.key,
   }) : assert(onPrimaryAction == null || primaryActionLabel != null);
 
@@ -25,6 +26,7 @@ final class CarList extends StatefulWidget {
   final String? primaryActionLabel;
   final VoidCallback? onPrimaryAction;
   final VoidCallback? onSearch;
+  final bool embedded;
 
   @override
   State<CarList> createState() => _CarListState();
@@ -48,26 +50,7 @@ class _CarListState extends State<CarList> {
   @override
   Widget build(BuildContext context) {
     final isGarage = widget.mode == CarListMode.garage;
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          if (widget.onSearch != null)
-            IconButton(
-              onPressed: widget.onSearch,
-              tooltip: 'Buscar',
-              icon: const Icon(Icons.search_rounded),
-            ),
-          if (widget.onPrimaryAction != null)
-            IconButton(
-              onPressed: widget.onPrimaryAction,
-              tooltip: widget.primaryActionLabel,
-              icon: const Icon(Icons.add_circle_outline),
-            ),
-          if (widget.onPrimaryAction != null) const SizedBox(width: 8),
-        ],
-      ),
-      body: FutureBuilder<List<Car>>(
+    final body = FutureBuilder<List<Car>>(
         future: _cars,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -146,7 +129,28 @@ class _CarListState extends State<CarList> {
             ),
           );
         },
+      );
+    if (widget.embedded) return body;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: [
+          if (widget.onSearch != null)
+            IconButton(
+              onPressed: widget.onSearch,
+              tooltip: 'Buscar',
+              icon: const Icon(Icons.search_rounded),
+            ),
+          if (widget.onPrimaryAction != null)
+            IconButton(
+              onPressed: widget.onPrimaryAction,
+              tooltip: widget.primaryActionLabel,
+              icon: const Icon(Icons.add_circle_outline),
+            ),
+          if (widget.onPrimaryAction != null) const SizedBox(width: 8),
+        ],
       ),
+      body: body,
     );
   }
 }

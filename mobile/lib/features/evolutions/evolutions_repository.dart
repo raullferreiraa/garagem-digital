@@ -2,11 +2,20 @@ import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
+import 'package:garagem_mobile/features/evolutions/following_feed_item.dart';
 
 final class EvolutionsRepository {
   EvolutionsRepository(this._api);
 
   final ApiClient _api;
+
+  Future<List<FollowingFeedItem>> followingFeed() async {
+    final response = await _api.dio.get<List<Object?>>('/feed/seguindo');
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(FollowingFeedItem.fromJson)
+        .toList(growable: false);
+  }
 
   Future<List<Evolution>> byCar(String carId) async {
     final response = await _api.dio.get<List<Object?>>(

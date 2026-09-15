@@ -8,7 +8,9 @@ import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garagem_mobile/features/discovery/explore_screen.dart';
 import 'package:garagem_mobile/features/discovery/search_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
@@ -167,6 +169,19 @@ final class _HomeShellState extends State<HomeShell> {
     }
   }
 
+  Future<void> _openEvolution(Evolution evolution) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => EvolutionDetailScreen(
+          evolution: evolution,
+          repository: widget.evolutionsRepository,
+          currentUserId: widget.session.user!.id,
+          onProfileTap: _openPublicProfile,
+        ),
+      ),
+    );
+  }
+
   Future<void> _openTeam(Team team) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -222,13 +237,13 @@ final class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final pages = [
-      CarList(
+      ExploreScreen(
         key: ValueKey('feed-$_feedRevision'),
-        title: 'Explorar',
-        mode: CarListMode.explore,
-        emptyMessage: 'Os primeiros projetos aparecerão aqui.',
-        loader: widget.carsRepository.feed,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
         onCarTap: (car) => _openCar(car, canManage: false),
+        onEvolutionTap: _openEvolution,
+        onProfileTap: _openPublicProfile,
         onSearch: _openSearch,
       ),
       CarList(
