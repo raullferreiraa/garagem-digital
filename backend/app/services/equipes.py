@@ -17,6 +17,7 @@ from app.models.equipe import (
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
 from app.schemas.equipe import (
+    EquipeAtualizacao,
     EquipeCriacao,
     EquipeDetalhe,
     EquipeResumo,
@@ -68,6 +69,17 @@ def criar_equipe(db: Session, usuario: Usuario, dados: EquipeCriacao) -> Equipe:
     db.commit()
     db.refresh(equipe)
     return equipe
+
+
+def atualizar_equipe(
+    db: Session, equipe_id: UUID, usuario: Usuario, dados: EquipeAtualizacao
+) -> None:
+    equipe = obter_equipe(db, equipe_id)
+    if equipe.dono_id != usuario.id:
+        raise AcaoNaoPermitida("Apenas o dono pode editar a equipe.")
+    for campo, valor in dados.model_dump().items():
+        setattr(equipe, campo, valor)
+    db.commit()
 
 
 def obter_equipe(db: Session, equipe_id: UUID) -> Equipe:

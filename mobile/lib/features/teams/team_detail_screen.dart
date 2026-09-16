@@ -7,6 +7,7 @@ import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
@@ -73,6 +74,19 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       );
     }
     if (mounted) setState(() => _acting = false);
+  }
+
+  Future<void> _editTeam(TeamDetail team) async {
+    final updated = await Navigator.of(context).push<TeamDetail>(
+      MaterialPageRoute(
+        builder: (_) => TeamFormScreen(repository: widget.repository, team: team),
+      ),
+    );
+    if (!mounted || updated == null) return;
+    setState(() => _team = Future.value(updated));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Equipe atualizada.')),
+    );
   }
 
   Future<void> _inviteMember(TeamDetail team) async {
@@ -373,6 +387,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           appBar: AppBar(
             title: Text(team?.name ?? 'Equipe'),
             scrolledUnderElevation: 0,
+            actions: [
+              if (team?.myRole == 'dono')
+                IconButton(
+                  tooltip: 'Editar equipe',
+                  onPressed: _acting ? null : () => _editTeam(team!),
+                  icon: const Icon(Icons.edit_outlined),
+                ),
+            ],
           ),
           body: snapshot.connectionState == ConnectionState.waiting &&
                   team == null

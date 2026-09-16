@@ -4,9 +4,10 @@ import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class TeamFormScreen extends StatefulWidget {
-  const TeamFormScreen({required this.repository, super.key});
+  const TeamFormScreen({required this.repository, this.team, super.key});
 
   final TeamsRepository repository;
+  final TeamDetail? team;
 
   @override
   State<TeamFormScreen> createState() => _TeamFormScreenState();
@@ -22,6 +23,18 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
   bool _saving = false;
 
   @override
+  void initState() {
+    super.initState();
+    final team = widget.team;
+    if (team == null) return;
+    _name.text = team.name;
+    _description.text = team.description ?? '';
+    _city.text = team.city ?? '';
+    _state.text = team.state ?? '';
+    _visibility = team.visibility;
+  }
+
+  @override
   void dispose() {
     _name.dispose();
     _description.dispose();
@@ -34,15 +47,16 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
     try {
-      final team = await widget.repository.create(
-        TeamInput(
-          name: _name.text,
-          description: _description.text,
-          city: _city.text,
-          state: _state.text,
-          visibility: _visibility,
-        ),
+      final input = TeamInput(
+        name: _name.text,
+        description: _description.text,
+        city: _city.text,
+        state: _state.text,
+        visibility: _visibility,
       );
+      final team = widget.team == null
+          ? await widget.repository.create(input)
+          : await widget.repository.update(widget.team!.id, input);
       if (mounted) Navigator.of(context).pop(team);
     } catch (error) {
       if (!mounted) return;
@@ -56,18 +70,20 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Criar equipe')),
+      appBar: AppBar(title: Text(widget.team == null ? 'Criar equipe' : 'Editar equipe')),
       body: Form(
         key: _formKey,
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
             Text(
-              'Monte seu espaço',
+              widget.team == null ? 'Monte seu espaço' : 'Dados da equipe',
               style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
-            const Text('Reúna pessoas e os projetos escolhidos por cada integrante.'),
+            Text(widget.team == null
+                ? 'Reúna pessoas e os projetos escolhidos por cada integrante.'
+                : 'Atualize como sua equipe aparece para a comunidade.'),
             const SizedBox(height: 24),
             TextFormField(
               controller: _name,
@@ -128,8 +144,8 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
                       dimension: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.add),
-              label: const Text('Criar equipe'),
+                  : Icon(widget.team == null ? Icons.add : Icons.save_outlined),
+              label: Text(widget.team == null ? 'Criar equipe' : 'Salvar alterações'),
             ),
           ],
         ),

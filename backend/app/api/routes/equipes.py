@@ -10,6 +10,7 @@ from app.schemas.equipe import (
     ConviteCriacao,
     ConviteDecisao,
     EscolhaCarro,
+    EquipeAtualizacao,
     EquipeCriacao,
     EquipeDetalhe,
     EquipeResumo,
@@ -28,6 +29,7 @@ from app.services.equipes import (
     escolher_carro,
     listar_equipes,
     alterar_papel_membro,
+    atualizar_equipe,
     remover_carro_escolhido,
     remover_membro,
     solicitar_entrada,
@@ -61,6 +63,17 @@ def cadastrar_equipe(
 ) -> EquipeDetalhe:
     equipe = criar_equipe(db, usuario, dados)
     return detalhar_equipe(db, equipe.id, usuario.id)
+
+
+@router.patch("/{equipe_id}", response_model=EquipeDetalhe)
+def editar_equipe(
+    equipe_id: UUID, dados: EquipeAtualizacao, usuario: UsuarioAtual, db: DbSession
+) -> EquipeDetalhe:
+    try:
+        atualizar_equipe(db, equipe_id, usuario, dados)
+        return detalhar_equipe(db, equipe_id, usuario.id)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
 
 
 @router.get("/{equipe_id}", response_model=EquipeDetalhe)

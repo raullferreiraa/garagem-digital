@@ -39,6 +39,14 @@ final class TeamsRepository {
     return TeamDetail.fromJson(response.data!);
   }
 
+  Future<TeamDetail> update(String teamId, TeamInput input) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/equipes/$teamId',
+      data: input.toJson(),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
   Future<void> invite(String teamId, String userId) async {
     await _api.dio.post<Object?>(
       '/equipes/$teamId/convites',

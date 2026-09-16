@@ -31,6 +31,10 @@ class EquipeCriacao(BaseModel):
         return value.strip() or None
 
 
+class EquipeAtualizacao(EquipeCriacao):
+    """Complete replacement of editable team fields; its slug stays stable."""
+
+
 class EquipeResumo(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

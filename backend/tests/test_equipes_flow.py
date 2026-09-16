@@ -112,3 +112,58 @@ def test_fluxo_de_equipe_pedido_e_carro_escolhido(client: TestClient) -> None:
         f"/api/v1/equipes/{equipe['id']}", headers=auth(membro)
     ).json()
     assert detalhe_sem_carro["carros"] == []
+
+
+def test_apenas_dono_edita_dados_da_equipe(client: TestClient) -> None:
+    dono = cadastrar(client, "dono.edita")
+    integrante = cadastrar(client, "membro.edita")
+    visitante = cadastrar(client, "visitante.edita")
+    criada = client.post(
+        "/api/v1/equipes",
+        headers=auth(dono),
+        json={"nome": "Equipe Antiga", "descricao": "Antes", "cidade": "Vila Velha"},
+    )
+    assert criada.status_code == 201
+    equipe = criada.json()
+    caminho = f"/api/v1/equipes/{equipe['id']}"
+
+    pedido = client.post(f"{caminho}/solicitacoes", headers=auth(integrante))
+    assert pedido.status_code == 204
+    detalhe_dono = client.get(caminho, headers=auth(dono)).json()
+    solicitacao = detalhe_dono["solicitacoes_pendentes"][0]["id"]
+    aprovada = client.patch(
+        f"{caminho}/solicitacoes/{solicitacao}",
+        headers=auth(dono),
+        json={"decisao": "aprovar"},
+    )
+    assert aprovada.status_code == 204
+
+    alteracoes = {
+        "nome": "Equipe Nova",
+        "descricao": "",
+        "cidade": "Vitória",
+        "estado": "ES",
+        "visibilidade": "privada",
+    }
+    for usuario in (integrante, visitante):
+        negada = client.patch(caminho, headers=auth(usuario), json=alteracoes)
+        assert negada.status_code == 403
+
+    editada = client.patch(caminho, headers=auth(dono), json=alteracoes)
+    assert editada.status_code == 200
+    dados = editada.json()
+    assert dados["nome"] == "Equipe Nova"
+    assert dados["slug"] == equipe["slug"]
+    assert dados["descricao"] is None
+    assert dados["cidade"] == "Vitória"
+    assert dados["estado"] == "ES"
+    assert dados["visibilidade"] == "privada"
+    assert dados["total_membros"] == 2
+    assert client.get(caminho, headers=auth(integrante)).status_code == 200
+    assert client.get(caminho, headers=auth(visitante)).status_code == 404
+
+    invalida = client.patch(
+        caminho, headers=auth(dono), json={**alteracoes, "nome": " "}
+    )
+    assert invalida.status_code == 422
+    assert client.get(caminho, headers=auth(dono)).json()["nome"] == "Equipe Nova"
