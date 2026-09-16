@@ -455,6 +455,52 @@ def alterar_papel_membro(
     db.commit()
 
 
+
+def remover_membro(
+    db: Session,
+    equipe_id: UUID,
+    membro_id: UUID,
+    usuario: Usuario,
+) -> None:
+    equipe = obter_equipe(db, equipe_id)
+    membro = db.get(MembroEquipe, (equipe_id, membro_id))
+    if membro is None:
+        raise EquipeNaoEncontrada("Integrante não encontrado.")
+    if membro.usuario_id == equipe.dono_id:
+        raise EstadoInvalido("O dono não pode sair nem ser removido da equipe.")
+
+    saindo = usuario.id == membro_id
+    if not saindo and equipe.dono_id != usuario.id:
+        raise AcaoNaoPermitida("Apenas o dono pode remover integrantes.")
+
+    db.execute(
+        delete(CarroEquipe).where(
+            CarroEquipe.equipe_id == equipe_id,
+            CarroEquipe.adicionado_por == membro_id,
+        )
+    )
+    db.delete(membro)
+    if saindo:
+        criar_notificacao(
+            db,
+            destinatario_id=equipe.dono_id,
+            ator_id=usuario.id,
+            tipo="membro_saiu_equipe",
+            mensagem=f"@{usuario.username} saiu de {equipe.nome}.",
+            equipe_id=equipe.id,
+        )
+    else:
+        criar_notificacao(
+            db,
+            destinatario_id=membro_id,
+            ator_id=usuario.id,
+            tipo="membro_removido_equipe",
+            mensagem=f"Você foi removido de {equipe.nome}.",
+            equipe_id=equipe.id,
+        )
+    db.commit()
+
+
 def escolher_carro(
     db: Session, equipe_id: UUID, carro_id: UUID, usuario: Usuario
 ) -> None:

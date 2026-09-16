@@ -82,6 +82,10 @@ final class TeamsRepository {
     );
   }
 
+  Future<void> removeMember(String teamId, String userId) async {
+    await _api.dio.delete<Object?>('/equipes/$teamId/membros/$userId');
+  }
+
   Future<void> selectCar(String teamId, String carId) async {
     await _api.dio.put<Object?>(
       '/equipes/$teamId/meu-carro',

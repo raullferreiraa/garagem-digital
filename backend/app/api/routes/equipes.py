@@ -29,6 +29,7 @@ from app.services.equipes import (
     listar_equipes,
     alterar_papel_membro,
     remover_carro_escolhido,
+    remover_membro,
     solicitar_entrada,
 )
 
@@ -147,6 +148,23 @@ def atualizar_papel_membro(
 ) -> Response:
     try:
         alterar_papel_membro(db, equipe_id, membro_id, dados.papel, usuario)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete(
+    "/{equipe_id}/membros/{membro_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def excluir_membro(
+    equipe_id: UUID,
+    membro_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        remover_membro(db, equipe_id, membro_id, usuario)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)

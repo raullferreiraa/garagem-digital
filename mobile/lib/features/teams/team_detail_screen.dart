@@ -124,8 +124,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     );
   }
 
-  Future<void> _changeRole(TeamDetail team, TeamMember member) async {
-    final selected = await showModalBottomSheet<String>(
+  Future<void> _manageMember(
+    TeamDetail team,
+    TeamMember member,
+  ) async {
+    final action = await showModalBottomSheet<String>(
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
@@ -134,7 +137,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           children: [
             ListTile(
               title: Text('@${member.username}'),
-              subtitle: const Text('Escolha o cargo deste integrante'),
+              subtitle: const Text('Gerenciar integrante'),
             ),
             for (final role in const [
               ('membro', 'Membro', Icons.person_outline),
@@ -148,20 +151,92 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                 secondary: Icon(role.$3),
                 onChanged: (value) => Navigator.of(context).pop(value),
               ),
+            const Divider(),
+            ListTile(
+              leading: Icon(
+                Icons.person_remove_outlined,
+                color: Theme.of(context).colorScheme.error,
+              ),
+              title: Text(
+                'Remover da equipe',
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+              onTap: () => Navigator.of(context).pop('remover'),
+            ),
             const SizedBox(height: 8),
           ],
         ),
       ),
     );
-    if (selected == null || selected == member.role) return;
+    if (!mounted || action == null || action == member.role) return;
+    if (action == 'remover') {
+      final confirmed = await _confirmMembershipAction(
+        title: 'Remover @${member.username}?',
+        message:
+            'A pessoa e o carro escolhido por ela serão removidos desta equipe.',
+        confirmLabel: 'Remover',
+      );
+      if (!confirmed) return;
+      await _act(
+        () => widget.repository.removeMember(team.id, member.userId),
+        'Integrante removido.',
+      );
+      return;
+    }
     await _act(
       () => widget.repository.updateMemberRole(
         team.id,
         member.userId,
-        selected,
+        action,
       ),
       'Cargo atualizado.',
     );
+  }
+
+  Future<bool> _confirmMembershipAction({
+    required String title,
+    required String message,
+    required String confirmLabel,
+  }) async {
+    return await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(title),
+            content: Text(message),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(confirmLabel),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+  }
+
+  Future<void> _leaveTeam(TeamDetail team) async {
+    final confirmed = await _confirmMembershipAction(
+      title: 'Sair da equipe?',
+      message:
+          'Seu carro também deixará de aparecer na garagem coletiva desta equipe.',
+      confirmLabel: 'Sair',
+    );
+    if (!confirmed) return;
+    setState(() => _acting = true);
+    try {
+      await widget.repository.removeMember(team.id, widget.currentUserId);
+      if (mounted) Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
   }
 
   Future<void> _chooseCar(TeamDetail team) async {
@@ -374,6 +449,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             label: const Text('Convidar integrante'),
           ),
         ],
+        if (team.myRole != null && team.myRole != 'dono') ...[
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: _acting ? null : () => _leaveTeam(team),
+            icon: const Icon(Icons.logout_rounded),
+            label: const Text('Sair da equipe'),
+          ),
+        ],
         if (team.pendingRequests.isNotEmpty) ...[
           const SizedBox(height: 24),
           _SectionHeader(
@@ -482,7 +565,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   canManageRole: team.myRole == 'dono' &&
                       team.members[index].role != 'dono',
                   onTap: () => _openProfile(team.members[index].userId),
-                  onRoleTap: () => _changeRole(team, team.members[index]),
+                  onRoleTap: () => _manageMember(team, team.members[index]),
                 ),
                 if (index != team.members.length - 1)
                   Divider(height: 1, color: colors.outlineVariant),
