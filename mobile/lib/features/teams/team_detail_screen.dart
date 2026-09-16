@@ -124,6 +124,53 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     );
   }
 
+  Future<void> _removeMember(
+    TeamDetail team,
+    TeamMember member,
+  ) async {
+    setState(() => _acting = true);
+    try {
+      await widget.repository.removeMember(team.id, member.userId);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    final updated = TeamDetail(
+      id: team.id,
+      name: team.name,
+      slug: team.slug,
+      visibility: team.visibility,
+      memberCount: team.memberCount > 0 ? team.memberCount - 1 : 0,
+      ownerId: team.ownerId,
+      members: team.members
+          .where((item) => item.userId != member.userId)
+          .toList(growable: false),
+      cars: team.cars
+          .where((car) => car.ownerId != member.userId)
+          .toList(growable: false),
+      pendingRequests: team.pendingRequests,
+      description: team.description,
+      city: team.city,
+      state: team.state,
+      myRole: team.myRole,
+      myRequest: team.myRequest,
+      myInvite: team.myInvite,
+    );
+    setState(() {
+      _team = Future.value(updated);
+      _acting = false;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Integrante removido.')),
+    );
+  }
+
   Future<void> _manageMember(
     TeamDetail team,
     TeamMember member,
@@ -177,10 +224,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         confirmLabel: 'Remover',
       );
       if (!confirmed) return;
-      await _act(
-        () => widget.repository.removeMember(team.id, member.userId),
-        'Integrante removido.',
-      );
+      await _removeMember(team, member);
       return;
     }
     await _act(
@@ -551,26 +595,32 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           trailing: '${team.memberCount}',
         ),
         const SizedBox(height: 12),
-        Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceContainer,
-            borderRadius: BorderRadius.circular(22),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Column(
-            children: [
-              for (var index = 0; index < team.members.length; index++) ...[
-                _MemberTile(
-                  member: team.members[index],
-                  canManageRole: team.myRole == 'dono' &&
-                      team.members[index].role != 'dono',
-                  onTap: () => _openProfile(team.members[index].userId),
-                  onRoleTap: () => _manageMember(team, team.members[index]),
-                ),
-                if (index != team.members.length - 1)
-                  Divider(height: 1, color: colors.outlineVariant),
+        AnimatedSize(
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.topCenter,
+          child: Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceContainer,
+              borderRadius: BorderRadius.circular(22),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var index = 0; index < team.members.length; index++) ...[
+                  _MemberTile(
+                    key: ValueKey(team.members[index].userId),
+                    member: team.members[index],
+                    canManageRole: team.myRole == 'dono' &&
+                        team.members[index].role != 'dono',
+                    onTap: () => _openProfile(team.members[index].userId),
+                    onRoleTap: () => _manageMember(team, team.members[index]),
+                  ),
+                  if (index != team.members.length - 1)
+                    Divider(height: 1, color: colors.outlineVariant),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ],
@@ -909,6 +959,7 @@ final class _MemberTile extends StatelessWidget {
     required this.canManageRole,
     required this.onTap,
     required this.onRoleTap,
+    super.key,
   });
 
   final TeamMember member;
