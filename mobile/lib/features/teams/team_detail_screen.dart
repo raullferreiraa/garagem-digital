@@ -255,9 +255,10 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             title: Text(team?.name ?? 'Equipe'),
             scrolledUnderElevation: 0,
           ),
-          body: snapshot.connectionState == ConnectionState.waiting
+          body: snapshot.connectionState == ConnectionState.waiting &&
+                  team == null
               ? const Center(child: CircularProgressIndicator())
-              : snapshot.hasError
+              : snapshot.hasError && team == null
                   ? Center(
                       child: FilledButton(
                         onPressed: _reload,
