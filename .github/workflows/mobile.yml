@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - refactor/mobile-foundation
     paths:
       - "mobile/**"
       - ".github/workflows/mobile.yml"

@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - refactor/mobile-foundation
     paths:
       - "backend/**"
       - "database/**"

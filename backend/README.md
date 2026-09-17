@@ -25,7 +25,7 @@ As duas versoes tem bancos separados e nao compartilham automaticamente os dados
 Na raiz do repositorio:
 
 ```bash
-cp .env.compose.example .env
+cp .env.example .env
 # Preencha POSTGRES_PASSWORD e JWT_SECRET com valores locais fortes.
 # Para a senha local do PostgreSQL, use letras e numeros para evitar codificacao na URL.
 docker compose up --build
@@ -46,8 +46,11 @@ em um ambiente que contenha dados importantes.
 
 ### Opcao manual
 
-1. Copie `.env.example` para `.env`.
-2. Inicie o PostgreSQL com PostGIS e execute `database/schema.sql`.
+Execute os comandos desta opção a partir de `backend/`.
+
+1. Copie `.env.example` para `.env` e configure `DATABASE_URL` e
+   `JWT_SECRET`.
+2. Inicie o PostgreSQL com PostGIS.
 3. Crie um ambiente virtual e instale as dependencias:
 
 ```bash
@@ -56,17 +59,13 @@ python -m venv .venv
 pip install -r requirements.txt -r requirements-dev.txt
 ```
 
-4. Inicie a API:
-
-```bash
-uvicorn app.main:app --reload
-```
-
-5. Verifique `http://127.0.0.1:8000/api/v1/health`.
+4. Aplique todas as migrations: `alembic upgrade head`.
+5. Inicie a API: `uvicorn app.main:app --reload`.
+6. Verifique `http://127.0.0.1:8000/api/v1/health`.
 
 ## Banco e migrations
 
-`database/schema.sql` e o snapshot imutavel da primeira versao do banco. Mudancas
+`../database/schema.sql` e o snapshot inicial da primeira versao do banco. Mudancas
 posteriores devem ser criadas como novas revisions em `backend/alembic/versions`.
 
 ```bash
@@ -80,7 +79,10 @@ Para criar uma migration futura:
 alembic revision -m "descreva a mudanca"
 ```
 
-## Contratos disponiveis
+## Algumas rotas disponíveis
+
+A documentação completa e atualizada da API em execução fica em
+`http://127.0.0.1:8000/docs`. A lista abaixo mostra apenas as rotas principais.
 
 ### Autenticacao
 

@@ -23,7 +23,7 @@ Requisitos: Docker Desktop em execução, Flutter configurado e um emulador Andr
 Na raiz do repositório, prepare as variáveis locais:
 
 ```powershell
-Copy-Item .env.compose.example .env
+Copy-Item .env.example .env
 ```
 
 Abra `.env` e defina valores **não vazios** para `POSTGRES_PASSWORD` e `JWT_SECRET`. Não inclua esse arquivo em commits. Inicie o banco e a API:
@@ -42,7 +42,7 @@ flutter run
 
 O emulador Android acessa a API do computador por `http://10.0.2.2:8000/api/v1` por padrão. Para testar em um celular físico, use `flutter run --dart-define=API_BASE_URL=http://IP_DO_COMPUTADOR:8000/api/v1` e configure a rede para permitir o acesso à porta 8000. A API oferece um health check em `http://localhost:8000/api/v1/health`.
 
-Instruções complementares: [aplicativo](mobile/README.md) e [backend](backend/README.md).
+Instruções complementares: [aplicativo](mobile/README.md), [backend](backend/README.md) e [arquitetura atual](docs/architecture-v2.md).
 
 ## Funcionalidades da primeira versão mobile
 
