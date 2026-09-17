@@ -1,42 +1,45 @@
-# Arquitetura v2
-
-## Objetivo
-
-Transformar o projeto em um produto mobile sem carregar as limitacoes do frontend
-web atual. O sistema legado permanece como referencia de regras e comportamento.
+# Arquitetura atual (mobile)
 
 ## Componentes
 
-```text
-Flutter -> API FastAPI -> PostgreSQL/PostGIS
-                    \-> armazenamento de midia
-```
+- [`mobile/`](../mobile/): aplicativo Flutter para Android; armazena tokens no
+  armazenamento seguro e acessa a API por HTTP no ambiente local de depuração.
+- [`backend/`](../backend/): API FastAPI em `/api/v1`, com autenticação,
+  regras de acesso e SQLAlchemy.
+- PostgreSQL/PostGIS: dados relacionais, com migrations em
+  [`backend/alembic/versions/`](../backend/alembic/versions/).
+- Imagens: salvas em `MEDIA_ROOT`. No Compose local, o volume `media_data`
+  mantém os arquivos em `/data/media` e a API os serve em `/media`.
 
-O aplicativo nunca acessa o banco diretamente. Identidade, autorizacao, propriedade
-de carros e permissoes de equipe sao verificadas pela API.
+O aplicativo não acessa o banco diretamente. A API verifica identidade,
+propriedade dos carros e permissões das equipes. O arquivo
+[`database/schema.sql`](../database/schema.sql) é o snapshot inicial do banco;
+as mudanças seguintes são aplicadas pelas migrations.
 
-## Regras confirmadas
+A [versão web legada](../legacy/web/) usa Flask e MySQL/MariaDB, com banco
+independente. Seu estado anterior à migração está preservado na branch
+[`legacy/web-v1`](https://github.com/raullferreiraa/garagem-digital/tree/legacy/web-v1).
 
-1. Um carro e um perfil permanente, nao uma publicacao descartavel.
-2. Evolucoes formam o diario e alimentam o feed social.
-3. Entrar em uma equipe nao adiciona carros automaticamente a garagem coletiva.
-4. O proprietario escolhe quais carros quer associar a cada equipe.
-5. O vocabulario tecnico e visual usa `equipe`, nunca `clube`.
-6. Localizacao e opcional e serve para eventos e comunidades, nao rastreamento.
-7. Email nunca faz parte do perfil publico.
-8. Placas ficam privadas por padrao e exigem consentimento explicito para exibicao.
-9. Edicao e exclusao de carros usam o proprietario autenticado pelo token.
-10. Feeds usam cursor estavel composto por data e identificador, nao paginas por
-   deslocamento.
+## Regras do produto
 
-## Limites da primeira fundacao
+1. Cada carro representa um projeto com ficha e histórico de evoluções.
+2. Entrar em uma equipe não adiciona automaticamente os carros do integrante:
+   ele escolhe qual carro representa seu projeto na garagem coletiva.
+3. O aplicativo e a API usam o termo `equipe`.
+4. E-mail não faz parte do perfil público. A placa só aparece quando o
+   proprietário habilita a exibição de forma explícita.
+5. Edição e exclusão de carros exigem autenticação e vínculo com o proprietário.
+6. O catálogo de carros aceita paginação por cursor. O feed de pessoas seguidas
+   tem seu próprio limite de itens.
 
-- Autenticacao usa access token JWT curto e refresh token opaco, rotativo e
-  revogavel. Apenas o hash do refresh token e armazenado no banco.
-- Rotas protegidas obtem a identidade pelo token; nao aceitam `usuario_id` como
-  prova de identidade.
-- O provedor de armazenamento de imagens sera decidido antes do primeiro upload.
-- O frontend Flutter sera criado depois que os contratos iniciais da API estiverem
-  autenticados e testados.
-- Participacao em uma ou varias equipes permanece flexivel no banco. A regra final
-  pode ser aplicada na API sem nova migracao estrutural.
+## Estado de desenvolvimento
+
+- Login usa access token JWT e refresh token opaco, rotativo e revogável;
+  apenas o hash do refresh token fica no banco.
+- Uploads de carros, evoluções, perfis e equipes já usam o armazenamento local
+  descrito acima. Uma implantação futura deverá definir armazenamento durável,
+  backup e URLs públicas adequadas ao ambiente de produção.
+- Apenas a estrutura Android está versionada em `mobile/`. A configuração de
+  iOS e os testes nessa plataforma ficam para uma etapa própria.
+
+Para executar localmente, consulte o [README principal](../README.md).
