@@ -369,12 +369,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               ('moderador', 'Moderador', Icons.gavel_outlined),
               ('administrador', 'Administrador', Icons.shield_outlined),
             ])
-              RadioListTile<String>(
-                value: role.$1,
-                groupValue: member.role,
+              ListTile(
+                leading: Icon(role.$3),
                 title: Text(role.$2),
-                secondary: Icon(role.$3),
-                onChanged: (value) => Navigator.of(context).pop(value),
+                selected: member.role == role.$1,
+                trailing: member.role == role.$1
+                    ? const Icon(Icons.check)
+                    : null,
+                onTap: () => Navigator.of(context).pop(role.$1),
               ),
             const Divider(),
             ListTile(
