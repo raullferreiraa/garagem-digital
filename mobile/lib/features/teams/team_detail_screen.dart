@@ -35,6 +35,7 @@ final class TeamDetailScreen extends StatefulWidget {
 
 class _TeamDetailScreenState extends State<TeamDetailScreen> {
   late Future<TeamDetail> _team;
+  TeamDetail? _currentTeam;
   bool _acting = false;
 
   @override
@@ -46,7 +47,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   Future<void> _reload() async {
     final updated = await widget.repository.detail(widget.teamId);
     if (!mounted) return;
-    setState(() => _team = Future.value(updated));
+    setState(() => _currentTeam = updated);
   }
 
   Future<void> _act(Future<void> Function() action, String success) async {
@@ -83,7 +84,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       ),
     );
     if (!mounted || updated == null) return;
-    setState(() => _team = Future.value(updated));
+    setState(() => _currentTeam = updated);
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Equipe atualizada.')),
     );
@@ -177,7 +178,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       myInvite: team.myInvite,
     );
     setState(() {
-      _team = Future.value(updated);
+      _currentTeam = updated;
       _acting = false;
     });
     ScaffoldMessenger.of(context).showSnackBar(
@@ -382,7 +383,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     return FutureBuilder<TeamDetail>(
       future: _team,
       builder: (context, snapshot) {
-        final team = snapshot.data;
+        final team = _currentTeam ?? snapshot.data;
         return Scaffold(
           appBar: AppBar(
             title: Text(team?.name ?? 'Equipe'),
