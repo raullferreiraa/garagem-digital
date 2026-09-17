@@ -12,9 +12,9 @@ A Garagem Digital é um projeto social para registrar carros, acompanhar suas ev
 | [`backend/`](backend/) | API FastAPI e migrations Alembic |
 | [`database/`](database/) | Snapshot inicial do esquema PostgreSQL |
 | [`compose.yaml`](compose.yaml) | Ambiente local da API e do banco |
-| `app.py`, `index.html`, `script.js`, `style.css`, `garagem_digital.sql` | Versão web anterior, mantida na raiz como referência histórica |
+| [`legacy/web/`](legacy/web/) | Versão web anterior (Flask, MySQL, HTML, CSS e JavaScript), com código e capturas de tela |
 
-A versão web completa, com seu README e capturas de tela originais, está preservada na branch [`legacy/web-v1`](https://github.com/raullferreiraa/garagem-digital/tree/legacy/web-v1). Ela usa Flask, MySQL/MariaDB e JavaScript; não se conecta automaticamente ao banco ou à API da versão mobile. O desenvolvimento ativo é feito no aplicativo e no novo backend.
+A [versão web legada](legacy/web/README.md) está organizada em `legacy/web/`, inclusive com as capturas de tela. Seu estado original antes da versão mobile também está preservado na branch [`legacy/web-v1`](https://github.com/raullferreiraa/garagem-digital/tree/legacy/web-v1). Ela usa Flask e MySQL/MariaDB; não se conecta automaticamente ao banco ou à API mobile. O desenvolvimento ativo acontece no aplicativo e no novo backend.
 
 ## Rodar localmente (Windows / PowerShell)
 

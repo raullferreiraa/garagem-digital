@@ -13,8 +13,9 @@ Nova API do projeto, criada para atender o aplicativo Flutter.
 - A garagem coletiva usa uma associacao explicita: entrar em uma equipe nao publica
   automaticamente todos os carros do integrante.
 
-O backend Flask na raiz pertence a versao web anterior. Consulte a branch
-`legacy/web-v1` para o snapshot original; o desenvolvimento ativo usa esta API.
+O backend Flask em [`legacy/web/`](../legacy/web/) pertence a versao web anterior.
+Consulte a branch `legacy/web-v1` para o snapshot original; o desenvolvimento
+ativo usa esta API.
 As duas versoes tem bancos separados e nao compartilham automaticamente os dados.
 
 ## Execucao local
