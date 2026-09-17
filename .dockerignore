@@ -1,0 +1,12 @@
+.git
+.env
+.pytest_cache
+.ruff_cache
+backend/.env
+backend/.pytest_cache
+backend/.ruff_cache
+backend/.venv
+backend/**/__pycache__
+mobile
+screenshots
+uploads

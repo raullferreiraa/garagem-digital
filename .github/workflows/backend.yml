@@ -1,0 +1,65 @@
+name: Backend
+
+on:
+  push:
+    branches:
+      - main
+      - refactor/mobile-foundation
+    paths:
+      - "backend/**"
+      - "database/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "backend/**"
+      - "database/**"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:17-3.5
+        env:
+          POSTGRES_DB: projeto_automotivo_test
+          POSTGRES_USER: app
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d projeto_automotivo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://app@localhost:5432/projeto_automotivo_test
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements*.txt
+
+      - name: Dependencias
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Segredo efemero de teste
+        run: echo "JWT_SECRET=$(python -c 'import secrets; print(secrets.token_urlsafe(48))')" >> "$GITHUB_ENV"
+
+      - name: Migrations
+        run: alembic upgrade head
+
+      - name: Testes
+        run: python -m pytest -q tests

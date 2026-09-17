@@ -1,0 +1,129 @@
+import 'package:dio/dio.dart';
+import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/features/teams/team.dart';
+
+final class TeamsRepository {
+  TeamsRepository(this._api);
+
+  final ApiClient _api;
+
+  Future<List<Team>> list() async {
+    final response = await _api.dio.get<List<Object?>>('/equipes');
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(Team.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<List<Team>> search(String query) async {
+    final response = await _api.dio.get<List<Object?>>(
+      '/equipes',
+      queryParameters: {'busca': query},
+    );
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(Team.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<TeamDetail> detail(String teamId) async {
+    final response =
+        await _api.dio.get<Map<String, Object?>>('/equipes/$teamId');
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> create(TeamInput input) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/equipes',
+      data: input.toJson(),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> update(String teamId, TeamInput input) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/equipes/$teamId',
+      data: input.toJson(),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> uploadImage(
+    String teamId,
+    String type, {
+    required List<int> bytes,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/equipes/$teamId/imagens/$type',
+      data: FormData.fromMap({
+        'arquivo': MultipartFile.fromBytes(bytes, filename: '$type.jpg'),
+      }),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> removeImage(String teamId, String type) async {
+    final response = await _api.dio.delete<Map<String, Object?>>(
+      '/equipes/$teamId/imagens/$type',
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<void> invite(String teamId, String userId) async {
+    await _api.dio.post<Object?>(
+      '/equipes/$teamId/convites',
+      data: {'usuario_id': userId},
+    );
+  }
+
+  Future<void> decideInvite(
+    String teamId, {
+    required bool accept,
+  }) async {
+    await _api.dio.patch<Object?>(
+      '/equipes/$teamId/meu-convite',
+      data: {'decisao': accept ? 'aceitar' : 'recusar'},
+    );
+  }
+
+  Future<void> requestEntry(String teamId) async {
+    await _api.dio.post<Object?>('/equipes/$teamId/solicitacoes');
+  }
+
+  Future<void> decideRequest(
+    String teamId,
+    String requestId, {
+    required bool approve,
+  }) async {
+    await _api.dio.patch<Object?>(
+      '/equipes/$teamId/solicitacoes/$requestId',
+      data: {'decisao': approve ? 'aprovar' : 'recusar'},
+    );
+  }
+
+  Future<void> updateMemberRole(
+    String teamId,
+    String userId,
+    String role,
+  ) async {
+    await _api.dio.patch<Object?>(
+      '/equipes/$teamId/membros/$userId/papel',
+      data: {'papel': role},
+    );
+  }
+
+  Future<void> removeMember(String teamId, String userId) async {
+    await _api.dio.delete<Object?>('/equipes/$teamId/membros/$userId');
+  }
+
+  Future<void> selectCar(String teamId, String carId) async {
+    await _api.dio.put<Object?>(
+      '/equipes/$teamId/meu-carro',
+      data: {'carro_id': carId},
+    );
+  }
+
+  Future<void> removeSelectedCar(String teamId) async {
+    await _api.dio.delete<Object?>('/equipes/$teamId/meu-carro');
+  }
+}

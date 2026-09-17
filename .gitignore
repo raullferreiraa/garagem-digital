@@ -10,3 +10,13 @@ Thumbs.db
 
 .vscode/
 .idea/
+
+# Backend v2
+backend/.venv/
+backend/.env
+.pytest_cache/
+.ruff_cache/
+
+# Flutter
+mobile/.dart_tool/
+mobile/build/
