@@ -415,12 +415,23 @@ final class _TeamCard extends StatelessWidget {
                       : colors.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Text(
-                  team.name.substring(0, 1).toUpperCase(),
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                clipBehavior: Clip.antiAlias,
+                child: team.avatarUrl == null
+                    ? Text(
+                        team.name.substring(0, 1).toUpperCase(),
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w800,
+                            ),
+                      )
+                    : Image.network(
+                        team.avatarUrl!,
+                        width: 58,
+                        height: 58,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(
+                          team.name.substring(0, 1).toUpperCase(),
+                        ),
                       ),
-                ),
               ),
               const SizedBox(width: 14),
               Expanded(

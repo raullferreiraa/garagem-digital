@@ -45,6 +45,8 @@ class EquipeResumo(BaseModel):
     cidade: str | None
     estado: str | None
     visibilidade: str
+    avatar_url: str | None
+    capa_url: str | None
     total_membros: int
     meu_papel: str | None
     minha_solicitacao: str | None

@@ -1,11 +1,13 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
+from app.core.config import settings
 from app.core.database import get_db
+from app.models.equipe import Equipe
 from app.schemas.equipe import (
     ConviteCriacao,
     ConviteDecisao,
@@ -28,11 +30,19 @@ from app.services.equipes import (
     detalhar_equipe,
     escolher_carro,
     listar_equipes,
+    obter_equipe,
     alterar_papel_membro,
     atualizar_equipe,
     remover_carro_escolhido,
     remover_membro,
     solicitar_entrada,
+)
+
+from app.services.media import (
+    ArquivoMuitoGrande,
+    ImagemInvalida,
+    remover_media,
+    salvar_imagem_equipe,
 )
 
 
@@ -74,6 +84,63 @@ def editar_equipe(
         return detalhar_equipe(db, equipe_id, usuario.id)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
+
+
+def _equipe_do_dono(db: Session, equipe_id: UUID, usuario: UsuarioAtual) -> Equipe:
+    try:
+        equipe = obter_equipe(db, equipe_id)
+    except EquipeNaoEncontrada as error:
+        raise _erro(error) from error
+    if equipe.dono_id != usuario.id:
+        raise HTTPException(status_code=403, detail="Apenas o dono pode alterar imagens.")
+    return equipe
+
+
+@router.post("/{equipe_id}/imagens/{tipo}", response_model=EquipeDetalhe)
+async def enviar_imagem_equipe(
+    equipe_id: UUID,
+    tipo: Literal["avatar", "capa"],
+    usuario: UsuarioAtual,
+    db: DbSession,
+    arquivo: Annotated[UploadFile, File()],
+) -> EquipeDetalhe:
+    equipe = _equipe_do_dono(db, equipe_id, usuario)
+    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    try:
+        nova_url = salvar_imagem_equipe(equipe_id, tipo, conteudo)
+    except ArquivoMuitoGrande as error:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="A foto deve ter no maximo 10 MB.",
+        ) from error
+    except ImagemInvalida as error:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Envie uma imagem JPEG, PNG ou WebP valida.",
+        ) from error
+
+    campo = "avatar_url" if tipo == "avatar" else "capa_url"
+    url_anterior = getattr(equipe, campo)
+    setattr(equipe, campo, nova_url)
+    db.commit()
+    remover_media(url_anterior)
+    return detalhar_equipe(db, equipe_id, usuario.id)
+
+
+@router.delete("/{equipe_id}/imagens/{tipo}", response_model=EquipeDetalhe)
+def remover_imagem_equipe(
+    equipe_id: UUID,
+    tipo: Literal["avatar", "capa"],
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> EquipeDetalhe:
+    equipe = _equipe_do_dono(db, equipe_id, usuario)
+    campo = "avatar_url" if tipo == "avatar" else "capa_url"
+    url_anterior = getattr(equipe, campo)
+    setattr(equipe, campo, None)
+    db.commit()
+    remover_media(url_anterior)
+    return detalhar_equipe(db, equipe_id, usuario.id)
 
 
 @router.get("/{equipe_id}", response_model=EquipeDetalhe)

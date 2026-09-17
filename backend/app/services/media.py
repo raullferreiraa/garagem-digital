@@ -84,6 +84,12 @@ def salvar_foto_evolucao(
     )
 
 
+def salvar_imagem_equipe(equipe_id: UUID, tipo: str, conteudo: bytes) -> str:
+    diretorio = settings.media_root / "equipes" / str(equipe_id) / tipo
+    destino = _salvar_imagem(diretorio, conteudo)
+    return f"${settings.media_url_prefix}/equipes/{equipe_id}/{tipo}/{destino.name}"
+
+
 def remover_media(url: str | None) -> None:
     if not url:
         return

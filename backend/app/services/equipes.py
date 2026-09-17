@@ -131,6 +131,8 @@ def _resumo(db: Session, equipe: Equipe, usuario_id: UUID) -> EquipeResumo:
         cidade=equipe.cidade,
         estado=equipe.estado,
         visibilidade=equipe.visibilidade,
+        avatar_url=equipe.avatar_url,
+        capa_url=equipe.capa_url,
         total_membros=total or 0,
         meu_papel=papel,
         minha_solicitacao=solicitacao,

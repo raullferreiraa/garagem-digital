@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 
@@ -43,6 +44,27 @@ final class TeamsRepository {
     final response = await _api.dio.patch<Map<String, Object?>>(
       '/equipes/$teamId',
       data: input.toJson(),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> uploadImage(
+    String teamId,
+    String type, {
+    required List<int> bytes,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/equipes/$teamId/imagens/$type',
+      data: FormData.fromMap({
+        'arquivo': MultipartFile.fromBytes(bytes, filename: '$type.jpg'),
+      }),
+    );
+    return TeamDetail.fromJson(response.data!);
+  }
+
+  Future<TeamDetail> removeImage(String teamId, String type) async {
+    final response = await _api.dio.delete<Map<String, Object?>>(
+      '/equipes/$teamId/imagens/$type',
     );
     return TeamDetail.fromJson(response.data!);
   }

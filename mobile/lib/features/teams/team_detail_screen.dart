@@ -1,7 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
+import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
@@ -10,6 +14,8 @@ import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
+
+enum _TeamImageAction { avatar, cover, removeAvatar, removeCover }
 
 final class TeamDetailScreen extends StatefulWidget {
   const TeamDetailScreen({
@@ -88,6 +94,161 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Equipe atualizada.')),
     );
+  }
+
+  Future<void> _showImageOptions(TeamDetail team) async {
+    final action = await showModalBottomSheet<_TeamImageAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ListTile(title: Text('Imagens da equipe')),
+            ListTile(
+              leading: const Icon(Icons.account_circle_outlined),
+              title: const Text('Alterar foto da equipe'),
+              onTap: () => Navigator.of(context).pop(_TeamImageAction.avatar),
+            ),
+            ListTile(
+              leading: const Icon(Icons.panorama_outlined),
+              title: const Text('Alterar capa'),
+              onTap: () => Navigator.of(context).pop(_TeamImageAction.cover),
+            ),
+            if (team.avatarUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remover foto da equipe'),
+                onTap: () =>
+                    Navigator.of(context).pop(_TeamImageAction.removeAvatar),
+              ),
+            if (team.coverUrl != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline),
+                title: const Text('Remover capa'),
+                onTap: () =>
+                    Navigator.of(context).pop(_TeamImageAction.removeCover),
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || action == null) return;
+    switch (action) {
+      case _TeamImageAction.avatar:
+      case _TeamImageAction.cover:
+        final source = await showModalBottomSheet<ImageSource>(
+          context: context,
+          showDragHandle: true,
+          builder: (context) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Escolher da galeria'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Usar câmera'),
+                  onTap: () => Navigator.of(context).pop(ImageSource.camera),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (source == null || !mounted) return;
+        await _pickAndUploadTeamImage(
+          team,
+          action == _TeamImageAction.avatar ? 'avatar' : 'capa',
+          source,
+        );
+        break;
+      case _TeamImageAction.removeAvatar:
+      case _TeamImageAction.removeCover:
+        await _removeTeamImage(
+          team,
+          action == _TeamImageAction.removeAvatar ? 'avatar' : 'capa',
+        );
+        break;
+    }
+  }
+
+  Future<void> _pickAndUploadTeamImage(
+    TeamDetail team,
+    String type,
+    ImageSource source,
+  ) async {
+    try {
+      final photo = await ImagePicker().pickImage(
+        source: source,
+        maxWidth: 2048,
+        maxHeight: 2048,
+        imageQuality: 90,
+      );
+      if (photo == null || !mounted) return;
+      final bytes = await photo.readAsBytes();
+      if (!mounted) return;
+      final cropped = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(
+          builder: (_) => PhotoCropScreen(
+            image: bytes,
+            aspectRatio: type == 'avatar' ? 1 : 16 / 9,
+            title: type == 'avatar' ? 'Enquadrar foto' : 'Enquadrar capa',
+          ),
+        ),
+      );
+      if (cropped == null || !mounted) return;
+      setState(() => _acting = true);
+      final updated = await widget.repository.uploadImage(
+        team.id,
+        type,
+        bytes: cropped,
+      );
+      if (!mounted) return;
+      setState(() {
+        _currentTeam = updated;
+        _acting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(type == 'avatar' ? 'Foto atualizada.' : 'Capa atualizada.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
+  }
+
+  Future<void> _removeTeamImage(TeamDetail team, String type) async {
+    final confirmed = await _confirmMembershipAction(
+      title: type == 'avatar' ? 'Remover foto da equipe?' : 'Remover capa?',
+      message: 'A imagem atual será removida da equipe.',
+      confirmLabel: 'Remover',
+    );
+    if (!confirmed || !mounted) return;
+    setState(() => _acting = true);
+    try {
+      final updated = await widget.repository.removeImage(team.id, type);
+      if (!mounted) return;
+      setState(() {
+        _currentTeam = updated;
+        _acting = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imagem removida.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
   }
 
   Future<void> _inviteMember(TeamDetail team) async {
@@ -171,6 +332,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           .toList(growable: false),
       pendingRequests: team.pendingRequests,
       description: team.description,
+      avatarUrl: team.avatarUrl,
+      coverUrl: team.coverUrl,
       city: team.city,
       state: team.state,
       myRole: team.myRole,
@@ -394,6 +557,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   tooltip: 'Editar equipe',
                   onPressed: _acting ? null : () => _editTeam(team!),
                   icon: const Icon(Icons.edit_outlined),
+                ),
+              if (team?.myRole == 'dono')
+                IconButton(
+                  tooltip: 'Imagens da equipe',
+                  onPressed: _acting ? null : () => _showImageOptions(team!),
+                  icon: const Icon(Icons.add_photo_alternate_outlined),
                 ),
             ],
           ),
@@ -676,6 +845,24 @@ final class _TeamHero extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (team.coverUrl != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: Image.network(
+                team.coverUrl!,
+                width: double.infinity,
+                height: 150,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => SizedBox(
+                  height: 150,
+                  child: Center(
+                    child: Icon(Icons.panorama_outlined, color: colors.onSurface),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+          ],
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -690,12 +877,23 @@ final class _TeamHero extends StatelessWidget {
                     color: colors.primary.withValues(alpha: 0.3),
                   ),
                 ),
-                child: Text(
-                  team.name.substring(0, 1).toUpperCase(),
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
+                clipBehavior: Clip.antiAlias,
+                child: team.avatarUrl == null
+                    ? Text(
+                        team.name.substring(0, 1).toUpperCase(),
+                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                      )
+                    : Image.network(
+                        team.avatarUrl!,
+                        width: 72,
+                        height: 72,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Text(
+                          team.name.substring(0, 1).toUpperCase(),
+                        ),
                       ),
-                ),
               ),
               const SizedBox(width: 16),
               Expanded(

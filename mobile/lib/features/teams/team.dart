@@ -9,6 +9,8 @@ final class Team {
     required this.visibility,
     required this.memberCount,
     this.description,
+    this.avatarUrl,
+    this.coverUrl,
     this.city,
     this.state,
     this.myRole,
@@ -23,6 +25,8 @@ final class Team {
         visibility: json['visibilidade']! as String,
         memberCount: json['total_membros']! as int,
         description: json['descricao'] as String?,
+        avatarUrl: AppConfig.resolveApiUrl(json['avatar_url'] as String?),
+        coverUrl: AppConfig.resolveApiUrl(json['capa_url'] as String?),
         city: json['cidade'] as String?,
         state: json['estado'] as String?,
         myRole: json['meu_papel'] as String?,
@@ -36,6 +40,8 @@ final class Team {
   final String visibility;
   final int memberCount;
   final String? description;
+  final String? avatarUrl;
+  final String? coverUrl;
   final String? city;
   final String? state;
   final String? myRole;
@@ -111,6 +117,8 @@ final class TeamDetail extends Team {
     required this.cars,
     required this.pendingRequests,
     super.description,
+    super.avatarUrl,
+    super.coverUrl,
     super.city,
     super.state,
     super.myRole,
@@ -128,6 +136,8 @@ final class TeamDetail extends Team {
       memberCount: summary.memberCount,
       ownerId: json['dono_id']! as String,
       description: summary.description,
+      avatarUrl: summary.avatarUrl,
+      coverUrl: summary.coverUrl,
       city: summary.city,
       state: summary.state,
       myRole: summary.myRole,
