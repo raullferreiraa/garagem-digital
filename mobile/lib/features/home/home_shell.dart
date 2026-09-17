@@ -138,7 +138,6 @@ final class _HomeShellState extends State<HomeShell> {
       }
 
       if (notification.carId != null && notification.evolutionId != null) {
-        final car = await widget.carsRepository.detail(notification.carId!);
         final evolution = await widget.evolutionsRepository.detail(
           notification.carId!,
           notification.evolutionId!,
