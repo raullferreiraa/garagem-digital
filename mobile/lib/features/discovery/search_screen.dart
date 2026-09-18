@@ -9,7 +9,7 @@ import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
-enum _SearchFilter { projects, people, teams }
+enum SearchCategory { projects, people, teams }
 
 final class SearchScreen extends StatefulWidget {
   const SearchScreen({
@@ -19,6 +19,7 @@ final class SearchScreen extends StatefulWidget {
     required this.onCarTap,
     required this.onUserTap,
     required this.onTeamTap,
+    this.initialCategory = SearchCategory.projects,
     super.key,
   });
 
@@ -28,6 +29,7 @@ final class SearchScreen extends StatefulWidget {
   final Future<void> Function(Car) onCarTap;
   final Future<void> Function(String) onUserTap;
   final Future<void> Function(Team) onTeamTap;
+  final SearchCategory initialCategory;
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -36,16 +38,22 @@ final class SearchScreen extends StatefulWidget {
 final class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
-  _SearchFilter _filter = _SearchFilter.projects;
+  late SearchCategory _filter;
   List<Car> _cars = const [];
   List<SocialUser> _users = const [];
   List<Team> _teams = const [];
   String _lastQuery = '';
   String? _resultsQuery;
-  _SearchFilter? _resultsFilter;
+  SearchCategory? _resultsFilter;
   int _searchRequest = 0;
   Object? _error;
   bool _loading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filter = widget.initialCategory;
+  }
 
   @override
   void dispose() {
@@ -55,7 +63,7 @@ final class _SearchScreenState extends State<SearchScreen> {
   }
 
   bool _canSearch(String query) {
-    final term = _filter == _SearchFilter.people && query.startsWith('@')
+    final term = _filter == SearchCategory.people && query.startsWith('@')
         ? query.substring(1)
         : query;
     return term.length >= 2;
@@ -99,21 +107,21 @@ final class _SearchScreenState extends State<SearchScreen> {
     });
     try {
       final results = await switch (filter) {
-        _SearchFilter.projects => widget.carsRepository.search(query),
-        _SearchFilter.people => widget.usersRepository.search(query),
-        _SearchFilter.teams => widget.teamsRepository.search(query),
+        SearchCategory.projects => widget.carsRepository.search(query),
+        SearchCategory.people => widget.usersRepository.search(query),
+        SearchCategory.teams => widget.teamsRepository.search(query),
       };
       if (!mounted || request != _searchRequest ||
           _controller.text.trim() != query || _filter != filter) return;
       setState(() {
         switch (filter) {
-          case _SearchFilter.projects:
+          case SearchCategory.projects:
             _cars = results as List<Car>;
             break;
-          case _SearchFilter.people:
+          case SearchCategory.people:
             _users = results as List<SocialUser>;
             break;
-          case _SearchFilter.teams:
+          case SearchCategory.teams:
             _teams = results as List<Team>;
             break;
         }
@@ -131,7 +139,7 @@ final class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _selectFilter(_SearchFilter filter) {
+  void _selectFilter(SearchCategory filter) {
     if (_filter == filter) return;
     _debounce?.cancel();
     _searchRequest++;
@@ -165,24 +173,24 @@ final class _SearchScreenState extends State<SearchScreen> {
   }
 
   bool get _hasResults => switch (_filter) {
-        _SearchFilter.projects => _cars.isNotEmpty,
-        _SearchFilter.people => _users.isNotEmpty,
-        _SearchFilter.teams => _teams.isNotEmpty,
+        SearchCategory.projects => _cars.isNotEmpty,
+        SearchCategory.people => _users.isNotEmpty,
+        SearchCategory.teams => _teams.isNotEmpty,
       };
 
-  int? _countFor(_SearchFilter filter, String query) {
+  int? _countFor(SearchCategory filter, String query) {
     if (_resultsQuery != query || _resultsFilter != filter) return null;
     return switch (filter) {
-      _SearchFilter.projects => _cars.length,
-      _SearchFilter.people => _users.length,
-      _SearchFilter.teams => _teams.length,
+      SearchCategory.projects => _cars.length,
+      SearchCategory.people => _users.length,
+      SearchCategory.teams => _teams.length,
     };
   }
 
   String get _categoryLabel => switch (_filter) {
-        _SearchFilter.projects => 'Projetos',
-        _SearchFilter.people => 'Pessoas',
-        _SearchFilter.teams => 'Equipes',
+        SearchCategory.projects => 'Projetos',
+        SearchCategory.people => 'Pessoas',
+        SearchCategory.teams => 'Equipes',
       };
 
   @override
@@ -208,9 +216,9 @@ final class _SearchScreenState extends State<SearchScreen> {
               },
               decoration: InputDecoration(
                 hintText: switch (_filter) {
-                  _SearchFilter.projects => 'Modelo do projeto (ex.: Omega)',
-                  _SearchFilter.people => 'Nome ou @usuário',
-                  _SearchFilter.teams => 'Nome ou localização da equipe',
+                  SearchCategory.projects => 'Modelo do projeto (ex.: Omega)',
+                  SearchCategory.people => 'Nome ou @usuário',
+                  SearchCategory.teams => 'Nome ou localização da equipe',
                 },
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: query.isEmpty
@@ -240,25 +248,25 @@ final class _SearchScreenState extends State<SearchScreen> {
                 _FilterChip(
                   label: 'Projetos',
                   icon: Icons.directions_car_outlined,
-                  count: _countFor(_SearchFilter.projects, query),
-                  selected: _filter == _SearchFilter.projects,
-                  onTap: () => _selectFilter(_SearchFilter.projects),
+                  count: _countFor(SearchCategory.projects, query),
+                  selected: _filter == SearchCategory.projects,
+                  onTap: () => _selectFilter(SearchCategory.projects),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Pessoas',
                   icon: Icons.people_outline_rounded,
-                  count: _countFor(_SearchFilter.people, query),
-                  selected: _filter == _SearchFilter.people,
-                  onTap: () => _selectFilter(_SearchFilter.people),
+                  count: _countFor(SearchCategory.people, query),
+                  selected: _filter == SearchCategory.people,
+                  onTap: () => _selectFilter(SearchCategory.people),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
                   label: 'Equipes',
                   icon: Icons.groups_outlined,
-                  count: _countFor(_SearchFilter.teams, query),
-                  selected: _filter == _SearchFilter.teams,
-                  onTap: () => _selectFilter(_SearchFilter.teams),
+                  count: _countFor(SearchCategory.teams, query),
+                  selected: _filter == SearchCategory.teams,
+                  onTap: () => _selectFilter(SearchCategory.teams),
                 ),
               ],
             ),
@@ -329,7 +337,7 @@ final class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        if (_filter == _SearchFilter.projects && _cars.isNotEmpty)
+        if (_filter == SearchCategory.projects && _cars.isNotEmpty)
           _ResultSection(
             title: 'Projetos',
             count: _cars.length,
@@ -341,7 +349,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
-        if (_filter == _SearchFilter.people && _users.isNotEmpty)
+        if (_filter == SearchCategory.people && _users.isNotEmpty)
           _ResultSection(
             title: 'Pessoas',
             count: _users.length,
@@ -353,7 +361,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
-        if (_filter == _SearchFilter.teams && _teams.isNotEmpty)
+        if (_filter == SearchCategory.teams && _teams.isNotEmpty)
           _ResultSection(
             title: 'Equipes',
             count: _teams.length,
