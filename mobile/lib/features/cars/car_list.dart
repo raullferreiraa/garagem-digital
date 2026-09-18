@@ -15,6 +15,7 @@ final class CarList extends StatefulWidget {
     this.onPrimaryAction,
     this.onSearch,
     this.embedded = false,
+    this.refreshRevision = 0,
     super.key,
   }) : assert(onPrimaryAction == null || primaryActionLabel != null);
 
@@ -27,6 +28,7 @@ final class CarList extends StatefulWidget {
   final VoidCallback? onPrimaryAction;
   final VoidCallback? onSearch;
   final bool embedded;
+  final int refreshRevision;
 
   @override
   State<CarList> createState() => _CarListState();
@@ -34,17 +36,36 @@ final class CarList extends StatefulWidget {
 
 class _CarListState extends State<CarList> {
   late Future<List<Car>> _cars;
+  List<Car>? _lastCars;
+  int _loadRequest = 0;
+
+  Future<List<Car>> _load() async {
+    final request = ++_loadRequest;
+    final cars = await widget.loader();
+    if (request == _loadRequest) _lastCars = cars;
+    return cars;
+  }
 
   @override
   void initState() {
     super.initState();
-    _cars = widget.loader();
+    _cars = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant CarList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshRevision != oldWidget.refreshRevision) _cars = _load();
   }
 
   Future<void> _reload() async {
-    final next = widget.loader();
+    final next = _load();
     setState(() => _cars = next);
-    await next;
+    try {
+      await next;
+    } catch (_) {
+      // O FutureBuilder mostra a falha e mantém os últimos cards carregados.
+    }
   }
 
   @override
@@ -53,10 +74,11 @@ class _CarListState extends State<CarList> {
     final body = FutureBuilder<List<Car>>(
         future: _cars,
         builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+          if (snapshot.connectionState == ConnectionState.waiting &&
+              _lastCars == null) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError) {
+          if (snapshot.hasError && _lastCars == null) {
             return _MessageState(
               icon: Icons.cloud_off_outlined,
               message: apiErrorMessage(snapshot.error!),
@@ -65,13 +87,17 @@ class _CarListState extends State<CarList> {
             );
           }
 
-          final cars = snapshot.data ?? const <Car>[];
+          final cars = snapshot.data ?? _lastCars ?? const <Car>[];
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
+                if (snapshot.hasError) ...[
+                  _RefreshError(onRetry: _reload),
+                  const SizedBox(height: 12),
+                ],
                 _CarsHero(
                   mode: widget.mode,
                   carCount: cars.length,
@@ -151,6 +177,26 @@ class _CarListState extends State<CarList> {
         ],
       ),
       body: body,
+    );
+  }
+}
+
+final class _RefreshError extends StatelessWidget {
+  const _RefreshError({required this.onRetry});
+
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.cloud_off_outlined),
+        title: const Text('Não foi possível atualizar a lista.'),
+        trailing: TextButton(
+          onPressed: onRetry,
+          child: const Text('Tentar novamente'),
+        ),
+      ),
     );
   }
 }
