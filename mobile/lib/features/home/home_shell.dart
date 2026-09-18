@@ -46,7 +46,8 @@ final class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-final class _HomeShellState extends State<HomeShell> {
+final class _HomeShellState extends State<HomeShell>
+    with WidgetsBindingObserver {
   int _index = 0;
   int _feedRevision = 0;
   int _garageRevision = 0;
@@ -54,17 +55,45 @@ final class _HomeShellState extends State<HomeShell> {
   int _profileRevision = 0;
   int _notificationsRevision = 0;
   int _unreadNotifications = 0;
+  int _unreadRequest = 0;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshUnreadNotifications());
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      unawaited(_refreshUnreadNotifications());
+      setState(() {
+        _feedRevision++;
+        _garageRevision++;
+        _teamsRevision++;
+        _notificationsRevision++;
+      });
+    }
+  }
+
   Future<void> _refreshUnreadNotifications() async {
+    final request = ++_unreadRequest;
     try {
       final count = await widget.notificationsRepository.unreadCount();
-      if (mounted && count != _unreadNotifications) {
+      if (mounted && request == _unreadRequest &&
+          count != _unreadNotifications) {
         setState(() => _unreadNotifications = count);
       }
     } catch (_) {
@@ -73,6 +102,7 @@ final class _HomeShellState extends State<HomeShell> {
   }
 
   void _setUnreadNotifications(int count) {
+    _unreadRequest++;
     if (mounted && count != _unreadNotifications) {
       setState(() => _unreadNotifications = count);
     }
@@ -278,7 +308,7 @@ final class _HomeShellState extends State<HomeShell> {
         usersRepository: widget.usersRepository,
       ),
       NotificationsScreen(
-        key: ValueKey('notifications-$_notificationsRevision'),
+        refreshRevision: _notificationsRevision,
         repository: widget.notificationsRepository,
         onUnreadChanged: _setUnreadNotifications,
         onOpen: _openNotification,
