@@ -41,6 +41,8 @@ final class _SearchScreenState extends State<SearchScreen> {
   List<SocialUser> _users = const [];
   List<Team> _teams = const [];
   String _lastQuery = '';
+  String? _resultsQuery;
+  int _searchRequest = 0;
   Object? _error;
   bool _loading = false;
 
@@ -53,6 +55,7 @@ final class _SearchScreenState extends State<SearchScreen> {
 
   void _queryChanged(String value) {
     _debounce?.cancel();
+    _searchRequest++;
     final query = value.trim();
     if (query.length < 2) {
       setState(() {
@@ -60,6 +63,7 @@ final class _SearchScreenState extends State<SearchScreen> {
         _cars = const [];
         _users = const [];
         _teams = const [];
+        _resultsQuery = null;
         _error = null;
         _loading = false;
       });
@@ -77,6 +81,7 @@ final class _SearchScreenState extends State<SearchScreen> {
   }
 
   Future<void> _search(String query) async {
+    final request = ++_searchRequest;
     setState(() {
       _lastQuery = query;
       _loading = true;
@@ -88,15 +93,18 @@ final class _SearchScreenState extends State<SearchScreen> {
         widget.usersRepository.search(query),
         widget.teamsRepository.search(query),
       ]);
-      if (!mounted || _controller.text.trim() != query) return;
+      if (!mounted || request != _searchRequest ||
+          _controller.text.trim() != query) return;
       setState(() {
         _cars = results[0] as List<Car>;
         _users = results[1] as List<SocialUser>;
         _teams = results[2] as List<Team>;
+        _resultsQuery = query;
         _loading = false;
       });
     } catch (error) {
-      if (!mounted || _controller.text.trim() != query) return;
+      if (!mounted || request != _searchRequest ||
+          _controller.text.trim() != query) return;
       setState(() {
         _error = error;
         _loading = false;
@@ -106,6 +114,26 @@ final class _SearchScreenState extends State<SearchScreen> {
 
   void _toggleFilter(_SearchFilter filter) {
     setState(() => _filter = _filter == filter ? null : filter);
+  }
+
+  Future<void> _openCar(Car car) async {
+    await widget.onCarTap(car);
+    if (mounted) await _refreshResults();
+  }
+
+  Future<void> _openUser(String userId) async {
+    await widget.onUserTap(userId);
+    if (mounted) await _refreshResults();
+  }
+
+  Future<void> _openTeam(Team team) async {
+    await widget.onTeamTap(team);
+    if (mounted) await _refreshResults();
+  }
+
+  Future<void> _refreshResults() async {
+    final query = _controller.text.trim();
+    if (query.length >= 2) await _search(query);
   }
 
   bool get _hasResults =>
@@ -207,10 +235,12 @@ final class _SearchScreenState extends State<SearchScreen> {
         message: 'Use pelo menos 2 caracteres para iniciar a busca.',
       );
     }
-    if (_loading && _lastQuery == query) {
+    if (_loading && _lastQuery == query &&
+        (_resultsQuery != query || !_hasResults)) {
       return const Center(child: CircularProgressIndicator());
     }
-    if (_error != null && _lastQuery == query) {
+    if (_error != null && _lastQuery == query &&
+        (_resultsQuery != query || !_hasResults)) {
       return _SearchMessage(
         icon: Icons.cloud_off_outlined,
         title: 'Não foi possível buscar',
@@ -231,6 +261,23 @@ final class _SearchScreenState extends State<SearchScreen> {
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
       children: [
+        if (_loading) ...[
+          const LinearProgressIndicator(),
+          const SizedBox(height: 12),
+        ],
+        if (_error != null) ...[
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.cloud_off_outlined),
+              title: const Text('Não foi possível atualizar a busca.'),
+              trailing: TextButton(
+                onPressed: () => _search(query),
+                child: const Text('Tentar novamente'),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
         if ((_filter == null || _filter == _SearchFilter.projects) &&
             _cars.isNotEmpty)
           _ResultSection(
@@ -240,7 +287,7 @@ final class _SearchScreenState extends State<SearchScreen> {
               for (final car in _cars)
                 _CarResult(
                   car: car,
-                  onTap: () => widget.onCarTap(car),
+                  onTap: () => _openCar(car),
                 ),
             ],
           ),
@@ -253,7 +300,7 @@ final class _SearchScreenState extends State<SearchScreen> {
               for (final user in _users)
                 _UserResult(
                   user: user,
-                  onTap: () => widget.onUserTap(user.id),
+                  onTap: () => _openUser(user.id),
                 ),
             ],
           ),
@@ -266,7 +313,7 @@ final class _SearchScreenState extends State<SearchScreen> {
               for (final team in _teams)
                 _TeamResult(
                   team: team,
-                  onTap: () => widget.onTeamTap(team),
+                  onTap: () => _openTeam(team),
                 ),
             ],
           ),
