@@ -50,6 +50,7 @@ final class _HomeShellState extends State<HomeShell> {
   int _index = 0;
   int _feedRevision = 0;
   int _garageRevision = 0;
+  int _teamsRevision = 0;
   int _profileRevision = 0;
   int _notificationsRevision = 0;
   int _unreadNotifications = 0;
@@ -256,6 +257,7 @@ final class _HomeShellState extends State<HomeShell> {
         onPrimaryAction: _openCreateCar,
       ),
       TeamsScreen(
+        refreshRevision: _teamsRevision,
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
@@ -284,6 +286,7 @@ final class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (value) {
           setState(() {
             _index = value;
+            if (value == 2) _teamsRevision++;
             if (value == 3) _profileRevision++;
             if (value == 4) _notificationsRevision++;
           });
