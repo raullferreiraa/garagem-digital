@@ -233,10 +233,13 @@ final class _HomeShellState extends State<HomeShell>
     );
   }
 
-  Future<void> _openSearch() async {
+  Future<void> _openSearch({
+    SearchCategory initialCategory = SearchCategory.projects,
+  }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => SearchScreen(
+          initialCategory: initialCategory,
           carsRepository: widget.carsRepository,
           usersRepository: widget.usersRepository,
           teamsRepository: widget.teamsRepository,
@@ -280,7 +283,7 @@ final class _HomeShellState extends State<HomeShell>
         onCarTap: (car) => _openCar(car, canManage: false),
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
-        onSearch: _openSearch,
+        onSearch: () => _openSearch(),
       ),
       CarList(
         refreshRevision: _garageRevision,
@@ -294,6 +297,7 @@ final class _HomeShellState extends State<HomeShell>
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
+        onSearch: () => _openSearch(initialCategory: SearchCategory.teams),
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
