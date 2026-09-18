@@ -8,12 +8,14 @@ final class NotificationsScreen extends StatefulWidget {
     required this.repository,
     required this.onUnreadChanged,
     required this.onOpen,
+    required this.refreshRevision,
     super.key,
   });
 
   final NotificationsRepository repository;
   final ValueChanged<int> onUnreadChanged;
   final Future<void> Function(AppNotification) onOpen;
+  final int refreshRevision;
 
   @override
   State<NotificationsScreen> createState() => _NotificationsScreenState();
@@ -22,6 +24,7 @@ final class NotificationsScreen extends StatefulWidget {
 final class _NotificationsScreenState extends State<NotificationsScreen> {
   late Future<List<AppNotification>> _future;
   List<AppNotification>? _items;
+  int _fetchRequest = 0;
   final Set<String> _changing = {};
 
   @override
@@ -30,13 +33,18 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     _future = _fetch();
   }
 
+  @override
+  void didUpdateWidget(covariant NotificationsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshRevision != oldWidget.refreshRevision) _future = _fetch();
+  }
+
   Future<List<AppNotification>> _fetch() async {
+    final request = ++_fetchRequest;
     final items = await widget.repository.all();
-    if (mounted) {
+    if (mounted && request == _fetchRequest) {
       setState(() => _items = items);
       widget.onUnreadChanged(items.where((item) => !item.isRead).length);
-    } else {
-      _items = items;
     }
     return items;
   }
@@ -44,7 +52,11 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _reload() async {
     final future = _fetch();
     setState(() => _future = future);
-    await future;
+    try {
+      await future;
+    } catch (_) {
+      // A lista anterior continua na tela; o usuário pode tentar novamente.
+    }
   }
 
   Future<void> _open(AppNotification item) async {
@@ -55,6 +67,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
         final updated = await widget.repository.markRead(item.id);
         if (!mounted) return;
         setState(() {
+          _fetchRequest++;
           _changing.remove(item.id);
           _items = [
             for (final current in _items!)
@@ -84,6 +97,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       final now = DateTime.now();
       setState(() {
+        _fetchRequest++;
         _items = [
           for (final item in items)
             if (item.isRead) item else item.copyWith(readAt: now),
@@ -121,6 +135,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       'solicitacao_equipe' => Icons.group_add_outlined,
       'solicitacao_equipe_aprovada' => Icons.verified_outlined,
       'solicitacao_equipe_recusada' => Icons.person_remove_outlined,
+      'convite_equipe' => Icons.mail_outline_rounded,
+      'convite_equipe_aceito' => Icons.group_add_outlined,
+      'convite_equipe_recusado' => Icons.person_remove_outlined,
       _ => Icons.notifications_outlined,
     };
   }
@@ -156,95 +173,112 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             );
           }
-          return RefreshIndicator(
-            onRefresh: _reload,
-            child: items.isEmpty
-                ? ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    children: const [
-                      SizedBox(height: 190),
-                      Icon(Icons.notifications_none_rounded, size: 58),
-                      SizedBox(height: 14),
-                      Text(
-                        'Suas novidades aparecerão aqui.',
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  )
-                : ListView.separated(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
-                    itemCount: items.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 9),
-                    itemBuilder: (context, index) {
-                      final item = items[index];
-                      return Material(
-                        color: item.isRead
-                            ? colors.surfaceContainer
-                            : colors.primaryContainer,
-                        borderRadius: BorderRadius.circular(20),
-                        clipBehavior: Clip.antiAlias,
-                        child: InkWell(
-                          onTap: () => _open(item),
-                          child: Padding(
-                            padding: const EdgeInsets.all(15),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                CircleAvatar(
-                                  backgroundImage: item.actorAvatarUrl == null
-                                      ? null
-                                      : NetworkImage(item.actorAvatarUrl!),
-                                  child: item.actorAvatarUrl == null
-                                      ? Icon(_icon(item.type))
-                                      : null,
-                                ),
-                                const SizedBox(width: 13),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+          return Column(
+            children: [
+              if (snapshot.hasError)
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_off_outlined),
+                    title: const Text('Não foi possível atualizar os avisos.'),
+                    trailing: TextButton(
+                      onPressed: _reload,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ),
+                ),
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _reload,
+                  child: items.isEmpty
+                      ? ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          children: const [
+                            SizedBox(height: 190),
+                            Icon(Icons.notifications_none_rounded, size: 58),
+                            SizedBox(height: 14),
+                            Text(
+                              'Suas novidades aparecerão aqui.',
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        )
+                      : ListView.separated(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
+                          itemCount: items.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 9),
+                          itemBuilder: (context, index) {
+                            final item = items[index];
+                            return Material(
+                              color: item.isRead
+                                  ? colors.surfaceContainer
+                                  : colors.primaryContainer,
+                              borderRadius: BorderRadius.circular(20),
+                              clipBehavior: Clip.antiAlias,
+                              child: InkWell(
+                                onTap: () => _open(item),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(15),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        item.message,
-                                        style: TextStyle(
-                                          fontWeight: item.isRead
-                                              ? FontWeight.w500
-                                              : FontWeight.w800,
+                                      CircleAvatar(
+                                        backgroundImage: item.actorAvatarUrl == null
+                                            ? null
+                                            : NetworkImage(item.actorAvatarUrl!),
+                                        child: item.actorAvatarUrl == null
+                                            ? Icon(_icon(item.type))
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 13),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              item.message,
+                                              style: TextStyle(
+                                                fontWeight: item.isRead
+                                                    ? FontWeight.w500
+                                                    : FontWeight.w800,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 5),
+                                            Text(
+                                              _date(item.createdAt),
+                                              style:
+                                                  Theme.of(context).textTheme.labelMedium,
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        _date(item.createdAt),
-                                        style:
-                                            Theme.of(context).textTheme.labelMedium,
-                                      ),
+                                      if (_changing.contains(item.id))
+                                        const SizedBox.square(
+                                          dimension: 18,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        )
+                                      else if (!item.isRead)
+                                        Container(
+                                          width: 9,
+                                          height: 9,
+                                          decoration: BoxDecoration(
+                                            color: colors.primary,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
                                     ],
                                   ),
                                 ),
-                                if (_changing.contains(item.id))
-                                  const SizedBox.square(
-                                    dimension: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                else if (!item.isRead)
-                                  Container(
-                                    width: 9,
-                                    height: 9,
-                                    decoration: BoxDecoration(
-                                      color: colors.primary,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         ),
-                      );
-                    },
-                  ),
+                ),
+              ),
+            ],
           );
         },
       ),
