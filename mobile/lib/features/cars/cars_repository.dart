@@ -11,6 +11,13 @@ enum CarFeedOrder {
   final String apiValue;
 }
 
+final class CarPage {
+  const CarPage({required this.items, this.nextCursor});
+
+  final List<Car> items;
+  final String? nextCursor;
+}
+
 final class CarsRepository {
   CarsRepository(this._api);
 
@@ -18,16 +25,27 @@ final class CarsRepository {
 
   Future<List<Car>> feed({
     CarFeedOrder order = CarFeedOrder.recent,
+  }) async => (await feedPage(order: order)).items;
+
+  Future<CarPage> feedPage({
+    CarFeedOrder order = CarFeedOrder.recent,
+    String? cursor,
   }) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/carros',
-      queryParameters: {'ordem': order.apiValue},
+      queryParameters: {
+        'ordem': order.apiValue,
+        if (cursor != null) 'cursor': cursor,
+      },
     );
     final items = response.data!['itens']! as List<Object?>;
-    return items
-        .cast<Map<String, Object?>>()
-        .map(Car.fromJson)
-        .toList(growable: false);
+    return CarPage(
+      items: items
+          .cast<Map<String, Object?>>()
+          .map(Car.fromJson)
+          .toList(growable: false),
+      nextCursor: response.data!['proximo_cursor'] as String?,
+    );
   }
 
   Future<List<Car>> search(String query) async {
