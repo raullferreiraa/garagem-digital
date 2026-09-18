@@ -17,6 +17,7 @@ final class TeamsScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.currentUserId,
     required this.usersRepository,
+    required this.refreshRevision,
     super.key,
   });
 
@@ -25,6 +26,7 @@ final class TeamsScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
   final UsersRepository usersRepository;
+  final int refreshRevision;
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
@@ -34,6 +36,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   List<Team>? _teams;
   Object? _loadError;
   bool _loading = true;
+  int _reloadRequest = 0;
   _TeamView _view = _TeamView.all;
 
   @override
@@ -42,17 +45,24 @@ class _TeamsScreenState extends State<TeamsScreen> {
     _reload();
   }
 
+  @override
+  void didUpdateWidget(covariant TeamsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshRevision != oldWidget.refreshRevision) _reload();
+  }
+
   Future<void> _reload() async {
+    final request = ++_reloadRequest;
     try {
       final updated = await widget.repository.list();
-      if (!mounted) return;
+      if (!mounted || request != _reloadRequest) return;
       setState(() {
         _teams = updated;
         _loadError = null;
         _loading = false;
       });
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted || request != _reloadRequest) return;
       setState(() {
         _loadError = error;
         _loading = false;
