@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
+import 'package:garagem_mobile/features/cars/cars_repository.dart';
 
 enum CarListMode { explore, garage }
 
@@ -10,6 +11,7 @@ final class CarList extends StatefulWidget {
     required this.emptyMessage,
     required this.loader,
     required this.onCarTap,
+    this.pageLoader,
     this.mode = CarListMode.explore,
     this.primaryActionLabel,
     this.onPrimaryAction,
@@ -22,6 +24,7 @@ final class CarList extends StatefulWidget {
   final String title;
   final String emptyMessage;
   final Future<List<Car>> Function() loader;
+  final Future<CarPage> Function(String? cursor)? pageLoader;
   final ValueChanged<Car> onCarTap;
   final CarListMode mode;
   final String? primaryActionLabel;
@@ -38,12 +41,53 @@ class _CarListState extends State<CarList> {
   late Future<List<Car>> _cars;
   List<Car>? _lastCars;
   int _loadRequest = 0;
+  String? _nextCursor;
+  bool _loadingMore = false;
+  bool _loadMoreFailed = false;
 
   Future<List<Car>> _load() async {
     final request = ++_loadRequest;
-    final cars = await widget.loader();
-    if (request == _loadRequest) _lastCars = cars;
+    _nextCursor = null;
+    _loadingMore = false;
+    _loadMoreFailed = false;
+    final page = await widget.pageLoader?.call(null);
+    final cars = page?.items ?? await widget.loader();
+    if (request == _loadRequest) {
+      _lastCars = cars;
+      _nextCursor = page?.nextCursor;
+    }
     return cars;
+  }
+
+  Future<void> _loadMore() async {
+    final cursor = _nextCursor;
+    final pageLoader = widget.pageLoader;
+    if (cursor == null || pageLoader == null || _loadingMore) return;
+    final request = _loadRequest;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final page = await pageLoader(cursor);
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        final existing = _lastCars ?? const <Car>[];
+        final ids = existing.map((car) => car.id).toSet();
+        _lastCars = [
+          ...existing,
+          ...page.items.where((car) => ids.add(car.id)),
+        ];
+        _nextCursor = page.nextCursor;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
   }
 
   @override
@@ -87,7 +131,7 @@ class _CarListState extends State<CarList> {
             );
           }
 
-          final cars = snapshot.data ?? _lastCars ?? const <Car>[];
+          final cars = _lastCars ?? snapshot.data ?? const <Car>[];
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -151,6 +195,24 @@ class _CarListState extends State<CarList> {
                     if (index != cars.length - 1)
                       const SizedBox(height: 14),
                   ],
+                if (_nextCursor != null) ...[
+                  const SizedBox(height: 20),
+                  if (_loadMoreFailed)
+                    const Center(
+                      child: Text('Não foi possível carregar mais projetos.'),
+                    ),
+                  if (_loadMoreFailed) const SizedBox(height: 8),
+                  Center(
+                    child: _loadingMore
+                        ? const CircularProgressIndicator()
+                        : OutlinedButton(
+                            onPressed: _loadMore,
+                            child: Text(_loadMoreFailed
+                                ? 'Tentar novamente'
+                                : 'Carregar mais projetos'),
+                          ),
+                  ),
+                ],
               ],
             ),
           );
