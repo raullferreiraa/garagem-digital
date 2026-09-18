@@ -64,4 +64,39 @@ void main() {
     await tester.pumpAndSettle();
     expect(paths, ['/carros', '/usuarios', '/equipes']);
   });
+
+  testWidgets('abre diretamente na busca de equipes', (tester) async {
+    final paths = <String>[];
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        paths.add(options.path);
+        handler.resolve(Response(
+          requestOptions: options,
+          data: <Object?>[],
+        ));
+      },
+    ));
+
+    await tester.pumpWidget(MaterialApp(
+      home: SearchScreen(
+        initialCategory: SearchCategory.teams,
+        carsRepository: CarsRepository(api),
+        usersRepository: UsersRepository(api),
+        teamsRepository: TeamsRepository(api),
+        onCarTap: (_) async {},
+        onUserTap: (_) async {},
+        onTeamTap: (_) async {},
+      ),
+    ));
+
+    expect(find.text('Nome ou localização da equipe'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Turbo');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+    expect(paths, ['/equipes']);
+  });
 }
