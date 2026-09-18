@@ -15,15 +15,20 @@ A interface utiliza uma estética escura, minimalista e low profile, inspirada e
 
 ## 📌 Status do Projeto
 
-🚧 Projeto em evolução.
+Esta versão web está arquivada. As funcionalidades e o roadmap abaixo registram
+seu estado antes da migração; o desenvolvimento ativo ocorre no aplicativo Flutter
+e na API FastAPI.
 
 A Garagem Digital já conta com cadastro e login de usuários, senhas com hash, cadastro de projetos automotivos, upload de imagens, feed geral, área de projetos pessoais, filtros de busca, sistema de curtidas, sistema de comentários, contador de comentários, tempo relativo nos comentários, remoção de comentário próprio, modal de visualização detalhada, perfis com avatar, bio e `@username`, edição do próprio perfil, upload de avatar, seguidores/seguindo, menu de usuário logado, controle de propriedade para edição e exclusão de projetos e uma interface dark premium responsiva.
 
 O projeto também possui uma base inicial de **equipes automotivas**, permitindo criar equipes, visualizar detalhes, exibir equipe no perfil, pedir para entrar, mostrar status de pedido pendente e aprovar ou recusar solicitações de entrada.
 
-Recentemente, o front-end também foi organizado separando os estilos em `style.css` e o JavaScript em `script.js`, deixando o projeto mais limpo e preparado para futuras manutenções.
+Durante o desenvolvimento desta versão, o front-end também foi organizado separando os estilos em `style.css` e o JavaScript em `script.js`, deixando o projeto mais limpo e preparado para futuras manutenções.
 
-As próximas melhorias planejadas incluem garagem coletiva da equipe, convites, cargos de equipe, notificações, feed social personalizado, ranking de projetos, autenticação mais robusta e deploy online.
+Na época, estavam planejados garagem coletiva da equipe, convites, cargos de
+equipe, notificações, feed social personalizado, ranking de projetos,
+autenticação mais robusta e deploy online. Esses itens não descrevem o
+roadmap atual do aplicativo.
 
 ---
 
@@ -213,7 +218,8 @@ legacy/web/
 ├── script.js
 ├── garagem_digital.sql
 ├── README.md
-├── .gitignore
+├── .env.example
+├── requirements.txt
 ├── uploads/
 │   └── avatars/
 └── screenshots/
@@ -261,7 +267,8 @@ A tabela `seguidores` registra relações sociais entre usuários.
 
 As tabelas `clubes`, `membros_clube` e `pedidos_clube` formam a base do sistema de equipes automotivas, permitindo criação de equipes, vínculo de membros e solicitações de entrada.
 
-O arquivo `garagem_digital.sql` contém a estrutura atual do banco de dados e deve ser mantido atualizado sempre que houver mudanças estruturais.
+O arquivo `garagem_digital.sql` contém a estrutura da versão web arquivada. O banco
+da API atual é PostgreSQL, com migrations em `backend/alembic/versions/`.
 
 ---
 
@@ -280,10 +287,10 @@ cd garagem-digital/legacy/web
 python -m venv venv
 ```
 
-No Windows:
+No Windows (PowerShell):
 
-```bash
-venv\Scripts\activate
+```powershell
+.\venv\Scripts\Activate.ps1
 ```
 
 No Linux/Mac:
@@ -295,27 +302,37 @@ source venv/bin/activate
 ### 3. Instalar dependências
 
 ```bash
-pip install flask flask-cors mysql-connector-python python-dotenv werkzeug
+pip install -r requirements.txt
 ```
 
 ### 4. Configurar o banco de dados
 
-Crie um banco MySQL/MariaDB e importe o arquivo:
+O script cria o banco `garagem_digital` e recria suas tabelas. Use apenas em
+um ambiente local sem dados que você precise preservar.
+
+No Linux ou macOS:
 
 ```bash
-mysql -u seu_usuario -p nome_do_banco < garagem_digital.sql
+mysql -u seu_usuario -p < garagem_digital.sql
+```
+
+No PowerShell, execute o redirecionamento pelo `cmd`:
+
+```powershell
+cmd /c "mysql -u seu_usuario -p < garagem_digital.sql"
 ```
 
 ### 5. Configurar variáveis de ambiente
 
-Crie um arquivo `.env` na raiz do projeto:
+Copie `legacy/web/.env.example` para `legacy/web/.env` e preencha os dados do
+MySQL. Com o terminal em `legacy/web/`:
 
-```env
-DB_HOST=localhost
-DB_USER=seu_usuario
-DB_PASSWORD=sua_senha
-DB_NAME=nome_do_banco
+```bash
+cp .env.example .env
 ```
+
+No PowerShell, use `Copy-Item .env.example .env`. Confira também se `DB_NAME`
+corresponde ao banco importado no passo anterior.
 
 ### 6. Rodar o back-end
 
@@ -354,7 +371,7 @@ Abra o arquivo `index.html` no navegador ou use uma extensão como Live Server.
 
 ---
 
-## 🧭 Roadmap
+## 🧭 Roadmap histórico da versão web
 
 - [x] CRUD completo de projetos automotivos.
 - [x] Upload de imagens dos projetos.
@@ -397,7 +414,7 @@ Abra o arquivo `index.html` no navegador ou use uma extensão como Live Server.
 
 ## 📌 Observações de Desenvolvimento
 
-O projeto segue um fluxo incremental:
+O desenvolvimento desta versão web seguiu um fluxo incremental:
 
 - Uma issue por melhoria.
 - Uma branch pequena por issue.
