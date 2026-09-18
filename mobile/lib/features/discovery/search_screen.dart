@@ -36,12 +36,13 @@ final class SearchScreen extends StatefulWidget {
 final class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
-  _SearchFilter? _filter;
+  _SearchFilter _filter = _SearchFilter.projects;
   List<Car> _cars = const [];
   List<SocialUser> _users = const [];
   List<Team> _teams = const [];
   String _lastQuery = '';
   String? _resultsQuery;
+  _SearchFilter? _resultsFilter;
   int _searchRequest = 0;
   Object? _error;
   bool _loading = false;
@@ -53,17 +54,25 @@ final class _SearchScreenState extends State<SearchScreen> {
     super.dispose();
   }
 
+  bool _canSearch(String query) {
+    final term = _filter == _SearchFilter.people && query.startsWith('@')
+        ? query.substring(1)
+        : query;
+    return term.length >= 2;
+  }
+
   void _queryChanged(String value) {
     _debounce?.cancel();
     _searchRequest++;
     final query = value.trim();
-    if (query.length < 2) {
+    if (!_canSearch(query)) {
       setState(() {
         _lastQuery = query;
         _cars = const [];
         _users = const [];
         _teams = const [];
         _resultsQuery = null;
+        _resultsFilter = null;
         _error = null;
         _loading = false;
       });
@@ -82,29 +91,39 @@ final class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _search(String query) async {
     final request = ++_searchRequest;
+    final filter = _filter;
     setState(() {
       _lastQuery = query;
       _loading = true;
       _error = null;
     });
     try {
-      final results = await Future.wait<Object>([
-        widget.carsRepository.search(query),
-        widget.usersRepository.search(query),
-        widget.teamsRepository.search(query),
-      ]);
+      final results = await switch (filter) {
+        _SearchFilter.projects => widget.carsRepository.search(query),
+        _SearchFilter.people => widget.usersRepository.search(query),
+        _SearchFilter.teams => widget.teamsRepository.search(query),
+      };
       if (!mounted || request != _searchRequest ||
-          _controller.text.trim() != query) return;
+          _controller.text.trim() != query || _filter != filter) return;
       setState(() {
-        _cars = results[0] as List<Car>;
-        _users = results[1] as List<SocialUser>;
-        _teams = results[2] as List<Team>;
+        switch (filter) {
+          case _SearchFilter.projects:
+            _cars = results as List<Car>;
+            break;
+          case _SearchFilter.people:
+            _users = results as List<SocialUser>;
+            break;
+          case _SearchFilter.teams:
+            _teams = results as List<Team>;
+            break;
+        }
         _resultsQuery = query;
+        _resultsFilter = filter;
         _loading = false;
       });
     } catch (error) {
       if (!mounted || request != _searchRequest ||
-          _controller.text.trim() != query) return;
+          _controller.text.trim() != query || _filter != filter) return;
       setState(() {
         _error = error;
         _loading = false;
@@ -112,8 +131,17 @@ final class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _toggleFilter(_SearchFilter filter) {
-    setState(() => _filter = _filter == filter ? null : filter);
+  void _selectFilter(_SearchFilter filter) {
+    if (_filter == filter) return;
+    _debounce?.cancel();
+    _searchRequest++;
+    final query = _controller.text.trim();
+    setState(() {
+      _filter = filter;
+      _loading = _canSearch(query);
+      _error = null;
+    });
+    if (_canSearch(query)) _search(query);
   }
 
   Future<void> _openCar(Car car) async {
@@ -133,11 +161,29 @@ final class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _refreshResults() async {
     final query = _controller.text.trim();
-    if (query.length >= 2) await _search(query);
+    if (_canSearch(query)) await _search(query);
   }
 
-  bool get _hasResults =>
-      _cars.isNotEmpty || _users.isNotEmpty || _teams.isNotEmpty;
+  bool get _hasResults => switch (_filter) {
+        _SearchFilter.projects => _cars.isNotEmpty,
+        _SearchFilter.people => _users.isNotEmpty,
+        _SearchFilter.teams => _teams.isNotEmpty,
+      };
+
+  int? _countFor(_SearchFilter filter, String query) {
+    if (_resultsQuery != query || _resultsFilter != filter) return null;
+    return switch (filter) {
+      _SearchFilter.projects => _cars.length,
+      _SearchFilter.people => _users.length,
+      _SearchFilter.teams => _teams.length,
+    };
+  }
+
+  String get _categoryLabel => switch (_filter) {
+        _SearchFilter.projects => 'Projetos',
+        _SearchFilter.people => 'Pessoas',
+        _SearchFilter.teams => 'Equipes',
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -155,13 +201,17 @@ final class _SearchScreenState extends State<SearchScreen> {
               onChanged: _queryChanged,
               onSubmitted: (value) {
                 final query = value.trim();
-                if (query.length >= 2) {
+                if (_canSearch(query)) {
                   _debounce?.cancel();
                   _search(query);
                 }
               },
               decoration: InputDecoration(
-                hintText: 'Projeto, @usuário ou equipe',
+                hintText: switch (_filter) {
+                  _SearchFilter.projects => 'Modelo do projeto (ex.: Omega)',
+                  _SearchFilter.people => 'Nome ou @usuário',
+                  _SearchFilter.teams => 'Nome ou localização da equipe',
+                },
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: query.isEmpty
                     ? null
@@ -182,38 +232,37 @@ final class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
-          if (query.length >= 2)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: Row(
-                children: [
-                  _FilterChip(
-                    label: 'Projetos',
-                    icon: Icons.directions_car_outlined,
-                    count: _cars.length,
-                    selected: _filter == _SearchFilter.projects,
-                    onTap: () => _toggleFilter(_SearchFilter.projects),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Pessoas',
-                    icon: Icons.people_outline_rounded,
-                    count: _users.length,
-                    selected: _filter == _SearchFilter.people,
-                    onTap: () => _toggleFilter(_SearchFilter.people),
-                  ),
-                  const SizedBox(width: 8),
-                  _FilterChip(
-                    label: 'Equipes',
-                    icon: Icons.groups_outlined,
-                    count: _teams.length,
-                    selected: _filter == _SearchFilter.teams,
-                    onTap: () => _toggleFilter(_SearchFilter.teams),
-                  ),
-                ],
-              ),
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            child: Row(
+              children: [
+                _FilterChip(
+                  label: 'Projetos',
+                  icon: Icons.directions_car_outlined,
+                  count: _countFor(_SearchFilter.projects, query),
+                  selected: _filter == _SearchFilter.projects,
+                  onTap: () => _selectFilter(_SearchFilter.projects),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Pessoas',
+                  icon: Icons.people_outline_rounded,
+                  count: _countFor(_SearchFilter.people, query),
+                  selected: _filter == _SearchFilter.people,
+                  onTap: () => _selectFilter(_SearchFilter.people),
+                ),
+                const SizedBox(width: 8),
+                _FilterChip(
+                  label: 'Equipes',
+                  icon: Icons.groups_outlined,
+                  count: _countFor(_SearchFilter.teams, query),
+                  selected: _filter == _SearchFilter.teams,
+                  onTap: () => _selectFilter(_SearchFilter.teams),
+                ),
+              ],
             ),
+          ),
           Expanded(child: _body(query)),
         ],
       ),
@@ -228,7 +277,7 @@ final class _SearchScreenState extends State<SearchScreen> {
         message: 'Encontre projetos, pessoas e equipes em um só lugar.',
       );
     }
-    if (query.length < 2) {
+    if (!_canSearch(query)) {
       return const _SearchMessage(
         icon: Icons.keyboard_alt_outlined,
         title: 'Continue digitando',
@@ -236,11 +285,13 @@ final class _SearchScreenState extends State<SearchScreen> {
       );
     }
     if (_loading && _lastQuery == query &&
-        (_resultsQuery != query || !_hasResults)) {
+        (_resultsQuery != query || _resultsFilter != _filter ||
+            !_hasResults)) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null && _lastQuery == query &&
-        (_resultsQuery != query || !_hasResults)) {
+        (_resultsQuery != query || _resultsFilter != _filter ||
+            !_hasResults)) {
       return _SearchMessage(
         icon: Icons.cloud_off_outlined,
         title: 'Não foi possível buscar',
@@ -253,7 +304,7 @@ final class _SearchScreenState extends State<SearchScreen> {
       return _SearchMessage(
         icon: Icons.search_off_rounded,
         title: 'Nada encontrado',
-        message: 'Não encontramos resultados para “$query”.',
+        message: 'Nenhum resultado em $_categoryLabel para “$query”.',
       );
     }
 
@@ -278,8 +329,7 @@ final class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 12),
         ],
-        if ((_filter == null || _filter == _SearchFilter.projects) &&
-            _cars.isNotEmpty)
+        if (_filter == _SearchFilter.projects && _cars.isNotEmpty)
           _ResultSection(
             title: 'Projetos',
             count: _cars.length,
@@ -291,8 +341,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
-        if ((_filter == null || _filter == _SearchFilter.people) &&
-            _users.isNotEmpty)
+        if (_filter == _SearchFilter.people && _users.isNotEmpty)
           _ResultSection(
             title: 'Pessoas',
             count: _users.length,
@@ -304,8 +353,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
-        if ((_filter == null || _filter == _SearchFilter.teams) &&
-            _teams.isNotEmpty)
+        if (_filter == _SearchFilter.teams && _teams.isNotEmpty)
           _ResultSection(
             title: 'Equipes',
             count: _teams.length,
@@ -333,17 +381,18 @@ final class _FilterChip extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final int count;
+  final int? count;
   final bool selected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return FilterChip(
+    return ChoiceChip(
       selected: selected,
       onSelected: (_) => onTap(),
       avatar: Icon(icon, size: 18),
-      label: Text('$label  $count'),
+      showCheckmark: false,
+      label: Text(count == null ? label : '$label  $count'),
     );
   }
 }
