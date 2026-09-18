@@ -1,8 +1,8 @@
-# Backend mobile
+# Backend da Garagem Digital
 
-Nova API do projeto, criada para atender o aplicativo Flutter.
+API FastAPI usada pelo aplicativo Flutter.
 
-## Decisoes desta fundacao
+## Arquitetura
 
 - FastAPI como camada HTTP.
 - PostgreSQL como banco relacional.
@@ -51,17 +51,22 @@ Execute os comandos desta opção a partir de `backend/`.
 1. Copie `.env.example` para `.env` e configure `DATABASE_URL` e
    `JWT_SECRET`.
 2. Inicie o PostgreSQL com PostGIS.
-3. Crie um ambiente virtual e instale as dependencias:
+3. Crie um ambiente virtual e instale as dependências:
 
-```bash
+```powershell
 python -m venv .venv
-.venv\Scripts\activate
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt -r requirements-dev.txt
 ```
+
+No Linux ou macOS, substitua a linha de ativação por `source .venv/bin/activate`.
 
 4. Aplique todas as migrations: `alembic upgrade head`.
 5. Inicie a API: `uvicorn app.main:app --reload`.
 6. Verifique `http://127.0.0.1:8000/api/v1/health`.
+
+Para executar os testes locais após instalar as dependências de desenvolvimento, use
+`python -m pytest -q tests` dentro de `backend/`.
 
 ## Banco e migrations
 
