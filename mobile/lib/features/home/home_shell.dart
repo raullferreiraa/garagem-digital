@@ -85,6 +85,10 @@ final class _HomeShellState extends State<HomeShell> {
     });
   }
 
+  void _refreshFeed() {
+    if (mounted) setState(() => _feedRevision++);
+  }
+
   Future<void> _openCreateCar() async {
     final created = await Navigator.of(context).push<Car>(
       MaterialPageRoute(
@@ -112,6 +116,7 @@ final class _HomeShellState extends State<HomeShell> {
         ),
       ),
     );
+    _refreshFeed();
   }
 
 
@@ -180,6 +185,7 @@ final class _HomeShellState extends State<HomeShell> {
         ),
       ),
     );
+    _refreshFeed();
   }
 
   Future<void> _openTeam(Team team) async {
@@ -238,7 +244,7 @@ final class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       ExploreScreen(
-        key: ValueKey('feed-$_feedRevision'),
+        refreshRevision: _feedRevision,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
         onCarTap: (car) => _openCar(car, canManage: false),
@@ -247,7 +253,7 @@ final class _HomeShellState extends State<HomeShell> {
         onSearch: _openSearch,
       ),
       CarList(
-        key: ValueKey('garage-$_garageRevision'),
+        refreshRevision: _garageRevision,
         title: 'Garagem',
         mode: CarListMode.garage,
         emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
@@ -286,6 +292,8 @@ final class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (value) {
           setState(() {
             _index = value;
+            if (value == 0) _feedRevision++;
+            if (value == 1) _garageRevision++;
             if (value == 2) _teamsRevision++;
             if (value == 3) _profileRevision++;
             if (value == 4) _notificationsRevision++;
