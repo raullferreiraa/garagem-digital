@@ -10,7 +10,6 @@ from app.models.carro import Carro
 from app.models.comentario_evolucao import ComentarioEvolucao
 from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.evolucao_projeto import EvolucaoProjeto
-from app.models.usuario import Usuario
 from app.schemas.carro import CarroCriacao, CarroPublico, PaginaCarros
 
 
@@ -106,7 +105,6 @@ def listar_feed(
     if busca:
         termo = busca.strip()
         padrao = f"%{termo}%"
-        padrao_usuario = f"%{termo.removeprefix('@')}%"
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
@@ -121,12 +119,6 @@ def listar_feed(
                 Carro.status_projeto.ilike(padrao),
                 Carro.tipo_suspensao.ilike(padrao),
                 cast(Carro.aro_roda, String).ilike(padrao),
-                Carro.proprietario.has(
-                    or_(
-                        Usuario.nome.ilike(padrao_usuario),
-                        Usuario.username.ilike(padrao_usuario),
-                    )
-                ),
             )
         )
 

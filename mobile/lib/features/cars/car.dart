@@ -114,7 +114,7 @@ final class CarInput {
   final bool plateVisible;
 
   Map<String, Object?> toJson() => {
-        'modelo': model.trim(),
+        'modelo': model.trim().toUpperCase(),
         'ano': year,
         'cor': color,
         'status_projeto': projectStatus,

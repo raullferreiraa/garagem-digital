@@ -62,7 +62,7 @@ def test_feed_seguindo_mostra_apenas_evolucoes_acompanhadas(
     assert len(itens) == 1
     assert itens[0]["evolucao"]["id"] == esperada["id"]
     assert itens[0]["evolucao"]["titulo"] == "Motor montado"
-    assert itens[0]["carro"]["modelo"] == "Omega"
+    assert itens[0]["carro"]["modelo"] == "OMEGA"
 
 
 def test_feed_seguindo_vazio_sem_perfis_acompanhados(

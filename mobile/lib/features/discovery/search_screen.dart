@@ -217,7 +217,7 @@ final class _SearchScreenState extends State<SearchScreen> {
               decoration: InputDecoration(
                 hintText: switch (_filter) {
                   SearchCategory.projects =>
-                    'Modelo, proprietário ou detalhe do projeto',
+                    'Modelo, ano ou detalhe do projeto',
                   SearchCategory.people => 'Nome ou @usuário',
                   SearchCategory.teams => 'Nome ou localização da equipe',
                 },
