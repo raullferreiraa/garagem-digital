@@ -107,7 +107,11 @@ void main() {
     expect(find.text('OMEGA ATUAL'), findsWidgets);
     expect(find.text('OMEGA ANTIGO'), findsNothing);
     expect(carRequests, 1);
-    await tester.scrollUntilVisible(find.text('1 registro'), 400);
+    await tester.scrollUntilVisible(
+      find.text('1 registro'),
+      400,
+      scrollable: find.byType(Scrollable).first,
+    );
     expect(find.text('1 registro'), findsOneWidget);
     expect(find.text('05/09/2026'), findsWidgets);
     expect(find.text('185.000 km'), findsWidgets);
