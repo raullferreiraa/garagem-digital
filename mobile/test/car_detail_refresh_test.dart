@@ -86,8 +86,9 @@ void main() {
     final refresh = tester.state<RefreshIndicatorState>(
       find.byType(RefreshIndicator),
     );
-    await refresh.show();
+    final refreshFuture = refresh.show();
     await tester.pumpAndSettle();
+    await refreshFuture;
 
     expect(find.text('OMEGA TURBO'), findsWidgets);
     expect(find.text('OMEGA ATUAL'), findsNothing);
