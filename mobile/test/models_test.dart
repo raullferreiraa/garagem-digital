@@ -105,6 +105,31 @@ void main() {
     expect(json['placa_visivel'], isFalse);
   });
 
+  test('preserva dados privados ao atualizar a ficha pública do carro', () {
+    const privateCar = Car(
+      id: 'omega',
+      model: 'OMEGA ANTIGO',
+      ownerId: 'raul',
+      ownerName: 'Raul',
+      ownerUsername: 'raul',
+      plate: 'ABC1D23',
+      plateVisible: false,
+    );
+    const refreshed = Car(
+      id: 'omega',
+      model: 'OMEGA ATUALIZADO',
+      ownerId: 'raul',
+      ownerName: 'Raul',
+      ownerUsername: 'raul',
+    );
+
+    final merged = refreshed.withPrivateDataFrom(privateCar);
+
+    expect(merged.model, 'OMEGA ATUALIZADO');
+    expect(merged.plate, 'ABC1D23');
+    expect(merged.plateVisible, isFalse);
+  });
+
   test('converte resumo e detalhe de equipe', () {
     final json = {
       'id': 'f3c513a2-a08f-45b2-a056-9898ca4df0d9',

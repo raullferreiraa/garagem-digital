@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -53,6 +54,53 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   void initState() {
     super.initState();
     _evolutions = widget.evolutionsRepository.byCar(_car.id);
+    unawaited(_refreshCarSilently());
+  }
+
+  Future<void> _refreshCarSilently() async {
+    try {
+      final refreshed = await widget.repository.detail(_car.id);
+      if (!mounted) return;
+      setState(() {
+        _car = widget.canManage
+            ? refreshed.withPrivateDataFrom(_car)
+            : refreshed;
+      });
+    } catch (_) {
+      // O card recebido mantém a tela utilizável quando a atualização falha.
+    }
+  }
+
+  Future<void> _reloadProject() async {
+    final carRequest = widget.repository.detail(_car.id);
+    final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
+    setState(() => _evolutions = evolutionsRequest);
+
+    Object? failure;
+    try {
+      final refreshed = await carRequest;
+      if (mounted) {
+        setState(() {
+          _car = widget.canManage
+              ? refreshed.withPrivateDataFrom(_car)
+              : refreshed;
+        });
+      }
+    } catch (error) {
+      failure = error;
+    }
+
+    try {
+      await evolutionsRequest;
+    } catch (error) {
+      failure ??= error;
+    }
+
+    if (failure != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(failure))),
+      );
+    }
   }
 
   Future<void> _edit() async {
@@ -624,9 +672,12 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ),
       body: _deleting
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
-              children: [
+          : RefreshIndicator(
+              onRefresh: _reloadProject,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
+                children: [
                 _ProjectCover(
                   car: _car,
                   canManage: widget.canManage,
@@ -700,7 +751,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 ),
                 const SizedBox(height: 12),
                 _evolutionTimeline(),
-              ],
+                ],
+              ),
             ),
     );
   }
@@ -1115,4 +1167,3 @@ final class _EmptyProjectSection extends StatelessWidget {
     );
   }
 }
-
