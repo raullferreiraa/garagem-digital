@@ -442,6 +442,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                               ),
                     ),
                   ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _wheelSizeController,
                     keyboardType: TextInputType.number,
