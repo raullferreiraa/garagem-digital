@@ -448,6 +448,20 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return '$day/$month/${local.year}';
   }
 
+  String _formatNumber(int value) {
+    final digits = value.toString();
+    final formatted = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && (digits.length - index) % 3 == 0) {
+        formatted.write('.');
+      }
+      formatted.write(digits[index]);
+    }
+    return formatted.toString();
+  }
+
+  String _formatMileage(int value) => '${_formatNumber(value)} km';
+
   Widget _evolutionTimeline() {
     return FutureBuilder<List<Evolution>>(
       future: _evolutions,
@@ -488,8 +502,30 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
           );
         }
 
+        final latestDate = evolutions
+            .map((evolution) => evolution.timelineDate)
+            .reduce((current, candidate) =>
+                candidate.isAfter(current) ? candidate : current);
+        final evolutionsWithMileage = evolutions
+            .where((evolution) => evolution.mileageKm != null)
+            .toList(growable: false);
+        final latestMileageEvolution = evolutionsWithMileage.isEmpty
+            ? null
+            : evolutionsWithMileage.reduce((current, candidate) =>
+                candidate.timelineDate.isAfter(current.timelineDate)
+                    ? candidate
+                    : current);
+
         return Column(
           children: [
+            _DiarySummary(
+              count: evolutions.length,
+              latestDate: _formatDate(latestDate),
+              mileage: latestMileageEvolution?.mileageKm == null
+                  ? null
+                  : _formatMileage(latestMileageEvolution!.mileageKm!),
+            ),
+            const SizedBox(height: 12),
             for (final evolution in evolutions)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
@@ -550,7 +586,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                             children: [
                               const Icon(Icons.speed_outlined, size: 18),
                               const SizedBox(width: 6),
-                              Text('${evolution.mileageKm} km'),
+                              Text(_formatMileage(evolution.mileageKm!)),
                             ],
                           ),
                         ],
@@ -1065,6 +1101,112 @@ final class _SectionHeading extends StatelessWidget {
               style: const TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
+      ],
+    );
+  }
+}
+
+final class _DiarySummary extends StatelessWidget {
+  const _DiarySummary({
+    required this.count,
+    required this.latestDate,
+    required this.mileage,
+  });
+
+  final int count;
+  final String latestDate;
+  final String? mileage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - 12) / 2;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 16,
+            children: [
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.library_books_outlined,
+                  label: 'Registros',
+                  value: count == 1 ? '1 registro' : '$count registros',
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.event_outlined,
+                  label: 'Última evolução',
+                  value: latestDate,
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.speed_outlined,
+                  label: 'Quilometragem',
+                  value: mileage ?? 'Não informada',
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+final class _DiaryStat extends StatelessWidget {
+  const _DiaryStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 20, color: colors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }

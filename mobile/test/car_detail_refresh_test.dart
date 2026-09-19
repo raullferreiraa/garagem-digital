@@ -36,6 +36,24 @@ Map<String, Object?> _carJson(String model) => {
       },
     };
 
+Map<String, Object?> _evolutionJson() => {
+      'id': 'evolution-1',
+      'carro_id': 'omega',
+      'titulo': 'Revisão completa',
+      'descricao': 'Óleo, filtros e velas substituídos.',
+      'categoria': 'manutencao',
+      'ocorreu_em': '2026-09-05T12:00:00Z',
+      'quilometragem_km': 185000,
+      'fotos': <Object?>[],
+      'criado_em': '2026-09-05T13:00:00Z',
+      'autor': <String, Object?>{
+        'id': 'raul',
+        'nome': 'Raul',
+        'username': 'raul.omega',
+        'avatar_url': null,
+      },
+    };
+
 void main() {
   testWidgets('atualiza o projeto ao abrir e ao puxar a tela', (tester) async {
     var carRequests = 0;
@@ -51,6 +69,13 @@ void main() {
           handler.resolve(Response(
             requestOptions: options,
             data: _carJson(model),
+          ));
+          return;
+        }
+        if (options.path == '/carros/omega/evolucoes') {
+          handler.resolve(Response(
+            requestOptions: options,
+            data: <Object?>[_evolutionJson()],
           ));
           return;
         }
@@ -82,6 +107,9 @@ void main() {
     expect(find.text('OMEGA ATUAL'), findsWidgets);
     expect(find.text('OMEGA ANTIGO'), findsNothing);
     expect(carRequests, 1);
+    expect(find.text('1 registro'), findsOneWidget);
+    expect(find.text('05/09/2026'), findsWidgets);
+    expect(find.text('185.000 km'), findsWidgets);
 
     final refresh = tester.state<RefreshIndicatorState>(
       find.byType(RefreshIndicator),
