@@ -445,12 +445,12 @@ final class _ResultSection extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 10),
-          Container(
+          Material(
             clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainer,
+            color: Theme.of(context).colorScheme.surfaceContainer,
+            shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(22),
-              border: Border.all(
+              side: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
             ),
