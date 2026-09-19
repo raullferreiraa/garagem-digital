@@ -93,6 +93,7 @@ void main() {
       wheelSize: 17,
       estimatedPower: '168 cv',
       fuel: 'Gasolina, GNV',
+      suspensionType: 'A AR',
     );
 
     final json = input.toJson();
@@ -100,6 +101,7 @@ void main() {
     expect(json['combustivel'], 'Gasolina, GNV');
     expect(json['aro_roda'], 17);
     expect(json['potencia_estimada'], '168 cv');
+    expect(json['tipo_suspensao'], 'A AR');
     expect(json['placa_visivel'], isFalse);
   });
 

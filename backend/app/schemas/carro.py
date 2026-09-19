@@ -39,6 +39,24 @@ _CAMBIOS = {
     "outro": "Outro",
 }
 
+_SUSPENSOES = {
+    "original": "ORIGINAL",
+    "esportiva": "MOLA ESPORTIVA",
+    "mola esportiva": "MOLA ESPORTIVA",
+    "fixa": "FIXA",
+    "suspensao fixa": "FIXA",
+    "suspensão fixa": "FIXA",
+    "rosca": "ROSCA",
+    "suspensao de rosca": "ROSCA",
+    "suspensão de rosca": "ROSCA",
+    "ar": "A AR",
+    "a ar": "A AR",
+    "suspensao a ar": "A AR",
+    "suspensão a ar": "A AR",
+    "coilover": "COILOVER",
+    "outro": "OUTRO",
+}
+
 
 def _normalizar_combustivel(value: str | None) -> str | None:
     if value is None:
@@ -61,6 +79,15 @@ def _normalizar_cambio(value: str | None) -> str | None:
     if not value:
         return None
     return _CAMBIOS.get(value.casefold(), value)
+
+
+def _normalizar_suspensao(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return _SUSPENSOES.get(value.casefold(), value.upper())
 
 
 class CarroBase(BaseModel):
@@ -98,13 +125,18 @@ class CarroBase(BaseModel):
         value = value.strip()
         return value or None
 
-    @field_validator("cor", "tipo_suspensao", "motor")
+    @field_validator("cor", "motor")
     @classmethod
     def padronizar_campos_tecnicos(cls, value: str | None) -> str | None:
         if value is None:
             return None
         value = value.strip().upper()
         return value or None
+
+    @field_validator("tipo_suspensao")
+    @classmethod
+    def normalizar_suspensao(cls, value: str | None) -> str | None:
+        return _normalizar_suspensao(value)
 
     @field_validator("cambio")
     @classmethod
@@ -177,13 +209,18 @@ class CarroAtualizacao(BaseModel):
         value = value.strip()
         return value or None
 
-    @field_validator("cor", "tipo_suspensao", "motor")
+    @field_validator("cor", "motor")
     @classmethod
     def padronizar_campos_tecnicos(cls, value: str | None) -> str | None:
         if value is None:
             return None
         value = value.strip().upper()
         return value or None
+
+    @field_validator("tipo_suspensao")
+    @classmethod
+    def normalizar_suspensao(cls, value: str | None) -> str | None:
+        return _normalizar_suspensao(value)
 
     @field_validator("cambio")
     @classmethod

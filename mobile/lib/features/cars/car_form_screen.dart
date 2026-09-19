@@ -26,6 +26,28 @@ const _transmissionOptions = [
   'Outro',
 ];
 
+const _suspensionOptions = [
+  'ORIGINAL',
+  'MOLA ESPORTIVA',
+  'FIXA',
+  'ROSCA',
+  'A AR',
+  'COILOVER',
+  'OUTRO',
+];
+
+String? _normalizeSuspension(String? value) {
+  final normalized = value?.trim().toUpperCase();
+  if (normalized == null || normalized.isEmpty) return null;
+  return switch (normalized) {
+    'ESPORTIVA' => 'MOLA ESPORTIVA',
+    'SUSPENSÃO FIXA' || 'SUSPENSAO FIXA' => 'FIXA',
+    'SUSPENSÃO DE ROSCA' || 'SUSPENSAO DE ROSCA' => 'ROSCA',
+    'AR' || 'SUSPENSÃO A AR' || 'SUSPENSAO A AR' => 'A AR',
+    _ => normalized,
+  };
+}
+
 final class CarFormScreen extends StatefulWidget {
   const CarFormScreen({
     required this.repository,
@@ -50,11 +72,11 @@ class _CarFormScreenState extends State<CarFormScreen> {
   late final TextEditingController _engineController;
   late final TextEditingController _powerController;
   late final TextEditingController _preparationController;
-  late final TextEditingController _suspensionController;
   late final TextEditingController _wheelSizeController;
 
   String? _projectStatus;
   String? _transmission;
+  String? _suspension;
   late final Set<String> _selectedFuels;
   bool _plateVisible = false;
   bool _submitting = false;
@@ -81,7 +103,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
       text: RegExp(r'\d+').firstMatch(car?.estimatedPower ?? '')?.group(0),
     );
     _preparationController = TextEditingController(text: car?.preparation);
-    _suspensionController = TextEditingController(text: car?.suspensionType);
+    _suspension = _normalizeSuspension(car?.suspensionType);
     _wheelSizeController = TextEditingController(text: car?.wheelSize?.toString());
     _projectStatus = car?.projectStatus;
     _plateVisible = car?.plateVisible ?? false;
@@ -97,7 +119,6 @@ class _CarFormScreenState extends State<CarFormScreen> {
     _engineController.dispose();
     _powerController.dispose();
     _preparationController.dispose();
-    _suspensionController.dispose();
     _wheelSizeController.dispose();
     super.dispose();
   }
@@ -157,7 +178,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
       fuel: _fuelValue,
       estimatedPower: power.isEmpty ? null : '${int.parse(power)} cv',
       preparation: _optional(_preparationController),
-      suspensionType: _optional(_suspensionController),
+      suspensionType: _suspension,
       wheelSize: wheelSize.isEmpty ? null : int.parse(wheelSize),
       plate: _optional(_plateController),
       plateVisible: _plateVisible,
@@ -392,11 +413,34 @@ class _CarFormScreenState extends State<CarFormScreen> {
                     label: 'Preparação',
                     maxLength: 100,
                   ),
-                  _OptionalField(
-                    controller: _suspensionController,
-                    label: 'Suspensão',
-                    maxLength: 50,
-                    uppercase: true,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _suspension ?? '',
+                      decoration: const InputDecoration(
+                        labelText: 'Suspensão',
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('Não informar'),
+                        ),
+                        ..._availableSuspensionOptions.map(
+                          (suspension) => DropdownMenuItem(
+                            value: suspension,
+                            child: Text(suspension),
+                          ),
+                        ),
+                      ],
+                      onChanged: _submitting
+                          ? null
+                          : (value) => setState(
+                                () => _suspension =
+                                    value == null || value.isEmpty
+                                        ? null
+                                        : value,
+                              ),
+                    ),
                   ),
                   TextFormField(
                     controller: _wheelSizeController,
@@ -477,6 +521,14 @@ class _CarFormScreenState extends State<CarFormScreen> {
       return _transmissionOptions;
     }
     return [current, ..._transmissionOptions];
+  }
+
+  List<String> get _availableSuspensionOptions {
+    final current = _suspension;
+    if (current == null || _suspensionOptions.contains(current)) {
+      return _suspensionOptions;
+    }
+    return [current, ..._suspensionOptions];
   }
 }
 

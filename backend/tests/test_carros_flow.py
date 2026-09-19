@@ -106,6 +106,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
         "historia": "Projeto de rua",
         "combustivel": "gasolina/GNV/gasolina",
         "cambio": "automatico",
+        "tipo_suspensao": "suspensão a ar",
     }
 
     sem_token = client.post("/api/v1/carros", json=dados_carro)
@@ -122,6 +123,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     assert carro["combustivel"] == "Gasolina, GNV"
     assert carro["cor"] == "BRANCO"
     assert carro["cambio"] == "Automático"
+    assert carro["tipo_suspensao"] == "A AR"
     assert carro["placa"] == "ABC1D23"
     assert carro["placa_visivel"] is False
     assert carro["proprietario"]["id"] == dono["usuario"]["id"]
