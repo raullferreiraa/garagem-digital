@@ -77,7 +77,9 @@ class _CarFormScreenState extends State<CarFormScreen> {
         .split(RegExp(r'\s*[,/;+]\s*'))
         .where((fuel) => fuel.isNotEmpty)
         .toSet();
-    _powerController = TextEditingController(text: car?.estimatedPower);
+    _powerController = TextEditingController(
+      text: RegExp(r'\d+').firstMatch(car?.estimatedPower ?? '')?.group(0),
+    );
     _preparationController = TextEditingController(text: car?.preparation);
     _suspensionController = TextEditingController(text: car?.suspensionType);
     _wheelSizeController = TextEditingController(text: car?.wheelSize?.toString());
@@ -127,6 +129,14 @@ class _CarFormScreenState extends State<CarFormScreen> {
     return null;
   }
 
+  String? _validatePower(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final power = int.tryParse(text);
+    if (power == null || power < 1) return 'Informe uma potência válida.';
+    return null;
+  }
+
   String? _optional(TextEditingController controller) {
     final value = controller.text.trim();
     return value.isEmpty ? null : value;
@@ -134,6 +144,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
   CarInput _input() {
     final year = _yearController.text.trim();
+    final power = _powerController.text.trim();
     final wheelSize = _wheelSizeController.text.trim();
     return CarInput(
       model: _modelController.text,
@@ -144,7 +155,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
       engine: _optional(_engineController),
       transmission: _transmission,
       fuel: _fuelValue,
-      estimatedPower: _optional(_powerController),
+      estimatedPower: power.isEmpty ? null : '${int.parse(power)} cv',
       preparation: _optional(_preparationController),
       suspensionType: _optional(_suspensionController),
       wheelSize: wheelSize.isEmpty ? null : int.parse(wheelSize),
@@ -363,11 +374,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
                       ),
                     ),
                   ),
-                  _OptionalField(
+                  TextFormField(
                     controller: _powerController,
-                    label: 'Potência estimada',
-                    hint: 'Ex.: 180 cv',
-                    maxLength: 50,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Potência estimada',
+                      hintText: 'Ex.: 180',
+                      suffixText: 'cv',
+                      helperText: 'Digite somente o número.',
+                    ),
+                    maxLength: 4,
+                    validator: _validatePower,
                   ),
                   _OptionalField(
                     controller: _preparationController,
@@ -384,7 +402,10 @@ class _CarFormScreenState extends State<CarFormScreen> {
                     controller: _wheelSizeController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(labelText: 'Aro da roda'),
+                    decoration: const InputDecoration(
+                      labelText: 'Aro da roda',
+                      helperText: 'Somente números, entre 1 e 40.',
+                    ),
                     maxLength: 2,
                     validator: _validateWheelSize,
                   ),

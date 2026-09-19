@@ -36,6 +36,16 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     )
     assert carro.status_code == 201
 
+    projeto_com_termo_apenas_no_historico = client.post(
+        "/api/v1/carros",
+        headers=auth(criador),
+        json={
+            "modelo": "Gol GTI",
+            "historia": "Projeto inspirado no Omega",
+        },
+    )
+    assert projeto_com_termo_apenas_no_historico.status_code == 201
+
     equipe = client.post(
         "/api/v1/equipes",
         headers=auth(criador),
@@ -76,7 +86,8 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     )
     assert projetos.status_code == 200
     assert [item["modelo"] for item in projetos.json()["itens"]] == [
-        "OMEGA CD 4.1"
+        "OMEGA CD 4.1",
+        "GOL GTI",
     ]
 
     for detalhe in ("bordô", "cilindros", "aspirado", "1996"):

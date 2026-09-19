@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import String, and_, cast, func, or_, select
+from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
@@ -103,10 +103,17 @@ def listar_feed(
         total_comentarios.label("total_comentarios"),
     )
 
+    relevancia_modelo = None
     if busca:
         termo = busca.strip()
         padrao = f"%{termo}%"
         padrao_maiusculo = f"%{termo.upper()}%"
+        relevancia_modelo = case(
+            (Carro.modelo == termo.upper(), 0),
+            (Carro.modelo.like(f"{termo.upper()}%"), 1),
+            (Carro.modelo.like(padrao_maiusculo), 2),
+            else_=3,
+        )
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
@@ -127,12 +134,17 @@ def listar_feed(
     if ordem == "em_alta":
         pontuacao = total_curtidas + total_comentarios
         consulta = consulta.order_by(
+            *([relevancia_modelo] if relevancia_modelo is not None else []),
             pontuacao.desc(),
             Carro.criado_em.desc(),
             Carro.id.desc(),
         )
     else:
-        consulta = consulta.order_by(Carro.criado_em.desc(), Carro.id.desc())
+        consulta = consulta.order_by(
+            *([relevancia_modelo] if relevancia_modelo is not None else []),
+            Carro.criado_em.desc(),
+            Carro.id.desc(),
+        )
         if cursor:
             criado_em, carro_id = _decodificar_cursor(cursor)
             consulta = consulta.where(
