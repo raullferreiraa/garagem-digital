@@ -9,12 +9,14 @@ final class FollowingFeed extends StatefulWidget {
     required this.repository,
     required this.onEvolutionTap,
     required this.onProfileTap,
+    this.refreshRevision = 0,
     super.key,
   });
 
   final EvolutionsRepository repository;
   final Future<void> Function(Evolution) onEvolutionTap;
   final Future<void> Function(String) onProfileTap;
+  final int refreshRevision;
 
   @override
   State<FollowingFeed> createState() => _FollowingFeedState();
@@ -22,17 +24,36 @@ final class FollowingFeed extends StatefulWidget {
 
 final class _FollowingFeedState extends State<FollowingFeed> {
   late Future<List<FollowingFeedItem>> _items;
+  List<FollowingFeedItem>? _lastItems;
+  int _loadRequest = 0;
+
+  Future<List<FollowingFeedItem>> _load() async {
+    final request = ++_loadRequest;
+    final items = await widget.repository.followingFeed();
+    if (request == _loadRequest) _lastItems = items;
+    return items;
+  }
 
   @override
   void initState() {
     super.initState();
-    _items = widget.repository.followingFeed();
+    _items = _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant FollowingFeed oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.refreshRevision != oldWidget.refreshRevision) _items = _load();
   }
 
   Future<void> _reload() async {
-    final future = widget.repository.followingFeed();
+    final future = _load();
     setState(() => _items = future);
-    await future;
+    try {
+      await future;
+    } catch (_) {
+      // O feed anterior continua visível e a tela oferece nova tentativa.
+    }
   }
 
   @override
@@ -40,10 +61,11 @@ final class _FollowingFeedState extends State<FollowingFeed> {
     return FutureBuilder<List<FollowingFeedItem>>(
       future: _items,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            _lastItems == null) {
           return const Center(child: CircularProgressIndicator());
         }
-        if (snapshot.hasError) {
+        if (snapshot.hasError && _lastItems == null) {
           return _FeedMessage(
             icon: Icons.cloud_off_outlined,
             title: 'Não foi possível carregar',
@@ -52,13 +74,26 @@ final class _FollowingFeedState extends State<FollowingFeed> {
             onAction: _reload,
           );
         }
-        final items = snapshot.data ?? const <FollowingFeedItem>[];
+        final items = snapshot.data ?? _lastItems ?? const <FollowingFeedItem>[];
         return RefreshIndicator(
           onRefresh: _reload,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
             children: [
+              if (snapshot.hasError) ...[
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.cloud_off_outlined),
+                    title: const Text('Não foi possível atualizar o feed.'),
+                    trailing: TextButton(
+                      onPressed: _reload,
+                      child: const Text('Tentar novamente'),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
               if (items.isEmpty)
                 const _FeedMessage(
                   icon: Icons.person_add_alt_1_rounded,

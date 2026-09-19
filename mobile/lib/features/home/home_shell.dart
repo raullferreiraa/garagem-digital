@@ -46,7 +46,8 @@ final class HomeShell extends StatefulWidget {
   State<HomeShell> createState() => _HomeShellState();
 }
 
-final class _HomeShellState extends State<HomeShell> {
+final class _HomeShellState extends State<HomeShell>
+    with WidgetsBindingObserver {
   int _index = 0;
   int _feedRevision = 0;
   int _garageRevision = 0;
@@ -54,17 +55,45 @@ final class _HomeShellState extends State<HomeShell> {
   int _profileRevision = 0;
   int _notificationsRevision = 0;
   int _unreadNotifications = 0;
+  int _unreadRequest = 0;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshUnreadNotifications());
   }
 
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      unawaited(_refreshUnreadNotifications());
+      setState(() {
+        _feedRevision++;
+        _garageRevision++;
+        _teamsRevision++;
+        _notificationsRevision++;
+      });
+    }
+  }
+
   Future<void> _refreshUnreadNotifications() async {
+    final request = ++_unreadRequest;
     try {
       final count = await widget.notificationsRepository.unreadCount();
-      if (mounted && count != _unreadNotifications) {
+      if (mounted && request == _unreadRequest &&
+          count != _unreadNotifications) {
         setState(() => _unreadNotifications = count);
       }
     } catch (_) {
@@ -73,6 +102,7 @@ final class _HomeShellState extends State<HomeShell> {
   }
 
   void _setUnreadNotifications(int count) {
+    _unreadRequest++;
     if (mounted && count != _unreadNotifications) {
       setState(() => _unreadNotifications = count);
     }
@@ -83,6 +113,10 @@ final class _HomeShellState extends State<HomeShell> {
       _feedRevision++;
       _garageRevision++;
     });
+  }
+
+  void _refreshFeed() {
+    if (mounted) setState(() => _feedRevision++);
   }
 
   Future<void> _openCreateCar() async {
@@ -112,6 +146,7 @@ final class _HomeShellState extends State<HomeShell> {
         ),
       ),
     );
+    _refreshFeed();
   }
 
 
@@ -180,6 +215,7 @@ final class _HomeShellState extends State<HomeShell> {
         ),
       ),
     );
+    _refreshFeed();
   }
 
   Future<void> _openTeam(Team team) async {
@@ -197,10 +233,13 @@ final class _HomeShellState extends State<HomeShell> {
     );
   }
 
-  Future<void> _openSearch() async {
+  Future<void> _openSearch({
+    SearchCategory initialCategory = SearchCategory.projects,
+  }) async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => SearchScreen(
+          initialCategory: initialCategory,
           carsRepository: widget.carsRepository,
           usersRepository: widget.usersRepository,
           teamsRepository: widget.teamsRepository,
@@ -238,16 +277,16 @@ final class _HomeShellState extends State<HomeShell> {
   Widget build(BuildContext context) {
     final pages = [
       ExploreScreen(
-        key: ValueKey('feed-$_feedRevision'),
+        refreshRevision: _feedRevision,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
         onCarTap: (car) => _openCar(car, canManage: false),
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
-        onSearch: _openSearch,
+        onSearch: () => _openSearch(),
       ),
       CarList(
-        key: ValueKey('garage-$_garageRevision'),
+        refreshRevision: _garageRevision,
         title: 'Garagem',
         mode: CarListMode.garage,
         emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
@@ -258,6 +297,7 @@ final class _HomeShellState extends State<HomeShell> {
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
+        onSearch: () => _openSearch(initialCategory: SearchCategory.teams),
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
@@ -272,7 +312,7 @@ final class _HomeShellState extends State<HomeShell> {
         usersRepository: widget.usersRepository,
       ),
       NotificationsScreen(
-        key: ValueKey('notifications-$_notificationsRevision'),
+        refreshRevision: _notificationsRevision,
         repository: widget.notificationsRepository,
         onUnreadChanged: _setUnreadNotifications,
         onOpen: _openNotification,
@@ -286,6 +326,8 @@ final class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (value) {
           setState(() {
             _index = value;
+            if (value == 0) _feedRevision++;
+            if (value == 1) _garageRevision++;
             if (value == 2) _teamsRevision++;
             if (value == 3) _profileRevision++;
             if (value == 4) _notificationsRevision++;

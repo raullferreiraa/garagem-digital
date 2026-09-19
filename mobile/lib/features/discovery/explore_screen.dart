@@ -16,6 +16,7 @@ final class ExploreScreen extends StatefulWidget {
     required this.onEvolutionTap,
     required this.onProfileTap,
     required this.onSearch,
+    required this.refreshRevision,
     super.key,
   });
 
@@ -25,6 +26,7 @@ final class ExploreScreen extends StatefulWidget {
   final Future<void> Function(Evolution) onEvolutionTap;
   final Future<void> Function(String) onProfileTap;
   final VoidCallback onSearch;
+  final int refreshRevision;
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -72,11 +74,15 @@ final class _ExploreScreenState extends State<ExploreScreen> {
         Expanded(
           child: CarList(
             key: ValueKey('discover-${_discoverOrder.name}'),
+            refreshRevision: widget.refreshRevision,
             title: 'Explorar',
             mode: CarListMode.explore,
             embedded: true,
             emptyMessage: 'Os primeiros projetos aparecerão aqui.',
             loader: () => widget.carsRepository.feed(order: _discoverOrder),
+            pageLoader: _discoverOrder == CarFeedOrder.recent
+                ? (cursor) => widget.carsRepository.feedPage(cursor: cursor)
+                : null,
             onCarTap: widget.onCarTap,
             onSearch: widget.onSearch,
           ),
@@ -131,6 +137,7 @@ final class _ExploreScreenState extends State<ExploreScreen> {
                   ? _discoverProjects()
                   : FollowingFeed(
                       key: const ValueKey('following-evolutions'),
+                      refreshRevision: widget.refreshRevision,
                       repository: widget.evolutionsRepository,
                       onEvolutionTap: widget.onEvolutionTap,
                       onProfileTap: widget.onProfileTap,

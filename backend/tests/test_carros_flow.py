@@ -104,6 +104,8 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
         "cor": "Branco",
         "placa": "abc-1d23",
         "historia": "Projeto de rua",
+        "combustivel": "gasolina/GNV/gasolina",
+        "cambio": "automatico",
     }
 
     sem_token = client.post("/api/v1/carros", json=dados_carro)
@@ -116,7 +118,10 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     )
     assert criado.status_code == 201
     carro = criado.json()
-    assert carro["modelo"] == "Gol CL"
+    assert carro["modelo"] == "GOL CL"
+    assert carro["combustivel"] == "Gasolina, GNV"
+    assert carro["cor"] == "BRANCO"
+    assert carro["cambio"] == "Automático"
     assert carro["placa"] == "ABC1D23"
     assert carro["placa_visivel"] is False
     assert carro["proprietario"]["id"] == dono["usuario"]["id"]
@@ -139,7 +144,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
         json={"cor": "Preto"},
     )
     assert atualizado.status_code == 200
-    assert atualizado.json()["cor"] == "Preto"
+    assert atualizado.json()["cor"] == "PRETO"
 
     placa_publica = client.patch(
         f"/api/v1/carros/{carro['id']}",

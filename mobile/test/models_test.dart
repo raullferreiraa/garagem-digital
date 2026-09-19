@@ -92,10 +92,12 @@ void main() {
       year: 1996,
       wheelSize: 17,
       estimatedPower: '168 cv',
+      fuel: 'Gasolina, GNV',
     );
 
     final json = input.toJson();
-    expect(json['modelo'], 'Omega CD 4.1');
+    expect(json['modelo'], 'OMEGA CD 4.1');
+    expect(json['combustivel'], 'Gasolina, GNV');
     expect(json['aro_roda'], 17);
     expect(json['potencia_estimada'], '168 cv');
     expect(json['placa_visivel'], isFalse);

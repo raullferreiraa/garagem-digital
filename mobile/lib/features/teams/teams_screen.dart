@@ -18,6 +18,7 @@ final class TeamsScreen extends StatefulWidget {
     required this.currentUserId,
     required this.usersRepository,
     required this.refreshRevision,
+    required this.onSearch,
     super.key,
   });
 
@@ -27,6 +28,7 @@ final class TeamsScreen extends StatefulWidget {
   final String currentUserId;
   final UsersRepository usersRepository;
   final int refreshRevision;
+  final VoidCallback onSearch;
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
@@ -110,6 +112,11 @@ class _TeamsScreenState extends State<TeamsScreen> {
         title: const Text('Equipes'),
         actions: [
           IconButton(
+            tooltip: 'Buscar equipes',
+            onPressed: widget.onSearch,
+            icon: const Icon(Icons.search_rounded),
+          ),
+          IconButton(
             tooltip: 'Criar equipe',
             onPressed: _create,
             icon: const Icon(Icons.add_circle_outline),
@@ -131,6 +138,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
     }
     final allTeams = _teams ?? const <Team>[];
     final myTeams = allTeams.where((team) => team.myRole != null).length;
+    final pendingCount =
+        allTeams.where((team) => team.myRequest == 'pendente').length;
+    final inviteCount =
+        allTeams.where((team) => team.myInvite == 'pendente').length;
     final teams = switch (_view) {
       _TeamView.all => allTeams,
       _TeamView.mine =>
@@ -173,14 +184,14 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Pedidos',
+                  label: pendingCount == 0 ? 'Pedidos' : 'Pedidos ($pendingCount)',
                   icon: Icons.schedule,
                   selected: _view == _TeamView.pending,
                   onSelected: () => setState(() => _view = _TeamView.pending),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: 'Convites',
+                  label: inviteCount == 0 ? 'Convites' : 'Convites ($inviteCount)',
                   icon: Icons.mail_outline_rounded,
                   selected: _view == _TeamView.invites,
                   onSelected: () => setState(() => _view = _TeamView.invites),
