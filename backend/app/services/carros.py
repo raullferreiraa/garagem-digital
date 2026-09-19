@@ -18,6 +18,17 @@ class CursorInvalido(ValueError):
     pass
 
 
+def _comeca_em_palavra(coluna: object, termo: str) -> object:
+    termo_escapado = (
+        termo.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+    padroes = [f"{termo_escapado}%"] + [
+        f"%{separador}{termo_escapado}%"
+        for separador in (" ", ",", "/", ";", "+", "-", "(", "\n", "\t")
+    ]
+    return or_(*(coluna.ilike(padrao, escape="\\") for padrao in padroes))
+
+
 def _codificar_cursor(carro: Carro) -> str:
     conteudo = json.dumps(
         {"criado_em": carro.criado_em.isoformat(), "id": str(carro.id)},
@@ -117,17 +128,17 @@ def listar_feed(
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
-                cast(Carro.ano, String).ilike(padrao),
-                Carro.cor.ilike(padrao_maiusculo),
-                Carro.historia.ilike(padrao),
-                Carro.motor.ilike(padrao_maiusculo),
-                Carro.cambio.ilike(padrao),
-                Carro.combustivel.ilike(padrao),
-                Carro.potencia_estimada.ilike(padrao),
-                Carro.preparacao.ilike(padrao),
-                Carro.status_projeto.ilike(padrao),
-                Carro.tipo_suspensao.ilike(padrao_maiusculo),
-                cast(Carro.aro_roda, String).ilike(padrao),
+                _comeca_em_palavra(cast(Carro.ano, String), termo),
+                _comeca_em_palavra(Carro.cor, termo.upper()),
+                _comeca_em_palavra(Carro.historia, termo),
+                _comeca_em_palavra(Carro.motor, termo.upper()),
+                _comeca_em_palavra(Carro.cambio, termo),
+                _comeca_em_palavra(Carro.combustivel, termo),
+                _comeca_em_palavra(Carro.potencia_estimada, termo),
+                _comeca_em_palavra(Carro.preparacao, termo),
+                _comeca_em_palavra(Carro.status_projeto, termo),
+                _comeca_em_palavra(Carro.tipo_suspensao, termo.upper()),
+                _comeca_em_palavra(cast(Carro.aro_roda, String), termo),
             )
         )
 

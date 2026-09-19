@@ -529,22 +529,30 @@ String? _projectMatchLabel(Car car, String query) {
   final term = query.trim().toLowerCase();
   if (term.isEmpty) return null;
 
-  bool matches(String? value) => value?.toLowerCase().contains(term) ?? false;
+  bool contains(String? value) => value?.toLowerCase().contains(term) ?? false;
+  bool startsWord(String? value) =>
+      value
+          ?.toLowerCase()
+          .split(RegExp(r'[\s,./;:+()\-]+'))
+          .any((word) => word.startsWith(term)) ??
+      false;
 
-  if (matches(car.model)) return 'Correspondência no modelo';
-  if (matches(car.year?.toString())) return 'Ano: ${car.year}';
-  if (matches(car.color)) return 'Cor: ${car.color}';
-  if (matches(car.history)) return 'Correspondência na história';
-  if (matches(car.engine)) return 'Motor: ${car.engine}';
-  if (matches(car.transmission)) return 'Câmbio: ${car.transmission}';
-  if (matches(car.fuel)) return 'Combustível: ${car.fuel}';
-  if (matches(car.estimatedPower)) return 'Potência: ${car.estimatedPower}';
-  if (matches(car.preparation)) return 'Preparação: ${car.preparation}';
-  if (matches(car.projectStatus)) return 'Fase: ${car.projectStatus}';
-  if (matches(car.suspensionType)) {
+  if (contains(car.model)) return 'Correspondência no modelo';
+  if (startsWord(car.year?.toString())) return 'Ano: ${car.year}';
+  if (startsWord(car.color)) return 'Cor: ${car.color}';
+  if (startsWord(car.history)) return 'Correspondência na história';
+  if (startsWord(car.engine)) return 'Motor: ${car.engine}';
+  if (startsWord(car.transmission)) return 'Câmbio: ${car.transmission}';
+  if (startsWord(car.fuel)) return 'Combustível: ${car.fuel}';
+  if (startsWord(car.estimatedPower)) {
+    return 'Potência: ${car.estimatedPower}';
+  }
+  if (startsWord(car.preparation)) return 'Preparação: ${car.preparation}';
+  if (startsWord(car.projectStatus)) return 'Fase: ${car.projectStatus}';
+  if (startsWord(car.suspensionType)) {
     return 'Suspensão: ${car.suspensionType}';
   }
-  if (matches(car.wheelSize?.toString())) return 'Aro: ${car.wheelSize}';
+  if (startsWord(car.wheelSize?.toString())) return 'Aro: ${car.wheelSize}';
   return null;
 }
 

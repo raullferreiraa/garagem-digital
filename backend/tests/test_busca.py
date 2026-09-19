@@ -90,7 +90,7 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
         "GOL GTI",
     ]
 
-    for detalhe in ("bordô", "cilindros", "aspirado", "1996"):
+    for detalhe in ("bord", "cil", "asp", "ru", "199"):
         encontrados = client.get(
             "/api/v1/carros",
             params={"busca": detalhe},
@@ -100,6 +100,24 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
         assert [item["modelo"] for item in encontrados.json()["itens"]] == [
             "OMEGA CD 4.1"
         ]
+
+    trecho_no_meio_da_palavra = client.get(
+        "/api/v1/carros",
+        params={"busca": "ra"},
+        headers=auth(visitante),
+    )
+    assert trecho_no_meio_da_palavra.status_code == 200
+    assert trecho_no_meio_da_palavra.json()["itens"] == []
+
+    trecho_no_meio_do_modelo = client.get(
+        "/api/v1/carros",
+        params={"busca": "meg"},
+        headers=auth(visitante),
+    )
+    assert trecho_no_meio_do_modelo.status_code == 200
+    assert [
+        item["modelo"] for item in trecho_no_meio_do_modelo.json()["itens"]
+    ] == ["OMEGA CD 4.1"]
 
     equipes = client.get(
         "/api/v1/equipes",
