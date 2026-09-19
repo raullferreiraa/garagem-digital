@@ -10,6 +10,7 @@ from app.models.carro import Carro
 from app.models.comentario_evolucao import ComentarioEvolucao
 from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.evolucao_projeto import EvolucaoProjeto
+from app.models.usuario import Usuario
 from app.schemas.carro import CarroCriacao, CarroPublico, PaginaCarros
 
 
