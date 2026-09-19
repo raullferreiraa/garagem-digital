@@ -106,19 +106,20 @@ def listar_feed(
     if busca:
         termo = busca.strip()
         padrao = f"%{termo}%"
+        padrao_maiusculo = f"%{termo.upper()}%"
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
                 cast(Carro.ano, String).ilike(padrao),
-                Carro.cor.ilike(padrao),
+                Carro.cor.ilike(padrao_maiusculo),
                 Carro.historia.ilike(padrao),
-                Carro.motor.ilike(padrao),
+                Carro.motor.ilike(padrao_maiusculo),
                 Carro.cambio.ilike(padrao),
                 Carro.combustivel.ilike(padrao),
                 Carro.potencia_estimada.ilike(padrao),
                 Carro.preparacao.ilike(padrao),
                 Carro.status_projeto.ilike(padrao),
-                Carro.tipo_suspensao.ilike(padrao),
+                Carro.tipo_suspensao.ilike(padrao_maiusculo),
                 cast(Carro.aro_roda, String).ilike(padrao),
             )
         )
