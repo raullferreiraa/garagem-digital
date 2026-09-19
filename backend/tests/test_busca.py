@@ -26,7 +26,13 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     carro = client.post(
         "/api/v1/carros",
         headers=auth(criador),
-        json={"modelo": "Omega CD 4.1", "ano": 1996},
+        json={
+            "modelo": "Omega CD 4.1",
+            "ano": 1996,
+            "cor": "Bordô",
+            "motor": "Seis cilindros",
+            "preparacao": "Aspirado de rua",
+        },
     )
     assert carro.status_code == 201
 
@@ -61,7 +67,19 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
         headers=auth(visitante),
     )
     assert projetos_por_proprietario.status_code == 200
-    assert projetos_por_proprietario.json()["itens"] == []
+    assert [
+        item["modelo"] for item in projetos_por_proprietario.json()["itens"]
+    ] == ["Omega CD 4.1"]
+
+    projetos_por_username = client.get(
+        "/api/v1/carros",
+        params={"busca": "@raul"},
+        headers=auth(visitante),
+    )
+    assert projetos_por_username.status_code == 200
+    assert [
+        item["modelo"] for item in projetos_por_username.json()["itens"]
+    ] == ["Omega CD 4.1"]
 
     projetos = client.get(
         "/api/v1/carros",
@@ -72,6 +90,17 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     assert [item["modelo"] for item in projetos.json()["itens"]] == [
         "Omega CD 4.1"
     ]
+
+    for detalhe in ("bordô", "cilindros", "aspirado", "1996"):
+        encontrados = client.get(
+            "/api/v1/carros",
+            params={"busca": detalhe},
+            headers=auth(visitante),
+        )
+        assert encontrados.status_code == 200
+        assert [item["modelo"] for item in encontrados.json()["itens"]] == [
+            "Omega CD 4.1"
+        ]
 
     equipes = client.get(
         "/api/v1/equipes",
