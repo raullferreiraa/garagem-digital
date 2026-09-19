@@ -74,7 +74,9 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   Future<void> _reloadProject() async {
     final carRequest = widget.repository.detail(_car.id);
     final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
-    setState(() => _evolutions = evolutionsRequest);
+    setState(() {
+      _evolutions = evolutionsRequest;
+    });
 
     Object? failure;
     try {
@@ -163,7 +165,9 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
   Future<void> _reloadEvolutions() async {
     final next = widget.evolutionsRepository.byCar(_car.id);
-    setState(() => _evolutions = next);
+    setState(() {
+      _evolutions = next;
+    });
     await next;
   }
 
