@@ -158,6 +158,17 @@ class _CarFormScreenState extends State<CarFormScreen> {
     return null;
   }
 
+  String? _validatePlate(String? value) {
+    final plate = value?.trim().toUpperCase() ?? '';
+    if (plate.isEmpty) return null;
+    final current = RegExp(r'^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$');
+    final classic = RegExp(r'^[A-Z]{2}[0-9]{4}$');
+    if (!current.hasMatch(plate) && !classic.hasMatch(plate)) {
+      return 'Informe uma placa válida.';
+    }
+    return null;
+  }
+
   String? _optional(TextEditingController controller) {
     final value = controller.text.trim();
     return value.isEmpty ? null : value;
@@ -462,10 +473,16 @@ class _CarFormScreenState extends State<CarFormScreen> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
                   labelText: 'Placa',
-                  hintText: 'Opcional',
+                  hintText: 'Ex.: ABC1D23',
+                  helperText: 'Também aceita ABC1234 ou AB1234.',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
-                inputFormatters: [LengthLimitingTextInputFormatter(10)],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+                  const _UpperCaseTextFormatter(),
+                  LengthLimitingTextInputFormatter(7),
+                ],
+                validator: _validatePlate,
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,

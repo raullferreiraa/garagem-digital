@@ -128,6 +128,21 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     assert carro["placa_visivel"] is False
     assert carro["proprietario"]["id"] == dono["usuario"]["id"]
 
+    placa_invalida = client.patch(
+        f"/api/v1/carros/{carro['id']}",
+        headers=auth_header(dono),
+        json={"placa": "ABC12"},
+    )
+    assert placa_invalida.status_code == 422
+
+    placa_classica = client.patch(
+        f"/api/v1/carros/{carro['id']}",
+        headers=auth_header(dono),
+        json={"placa": "ab-1234"},
+    )
+    assert placa_classica.status_code == 200
+    assert placa_classica.json()["placa"] == "AB1234"
+
     detalhe_publico = client.get(f"/api/v1/carros/{carro['id']}")
     assert detalhe_publico.status_code == 200
     assert detalhe_publico.json()["placa"] is None
@@ -155,7 +170,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     )
     assert placa_publica.status_code == 200
     detalhe_com_placa = client.get(f"/api/v1/carros/{carro['id']}")
-    assert detalhe_com_placa.json()["placa"] == "ABC1D23"
+    assert detalhe_com_placa.json()["placa"] == "AB1234"
 
     modelo_nulo = client.patch(
         f"/api/v1/carros/{carro['id']}",

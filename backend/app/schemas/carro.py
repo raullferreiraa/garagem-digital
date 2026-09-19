@@ -57,6 +57,9 @@ _SUSPENSOES = {
     "outro": "OUTRO",
 }
 
+_PLACA_ATUAL = re.compile(r"^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")
+_PLACA_CLASSICA = re.compile(r"^[A-Z]{2}[0-9]{4}$")
+
 
 def _normalizar_combustivel(value: str | None) -> str | None:
     if value is None:
@@ -159,7 +162,13 @@ class CarroCriacao(CarroBase):
         if value is None:
             return None
         value = value.replace("-", "").replace(" ", "").upper()
-        return value or None
+        if not value:
+            return None
+        if not _PLACA_ATUAL.fullmatch(value) and not _PLACA_CLASSICA.fullmatch(
+            value
+        ):
+            raise ValueError("Informe uma placa valida.")
+        return value
 
 
 class CarroAtualizacao(BaseModel):
@@ -194,7 +203,13 @@ class CarroAtualizacao(BaseModel):
         if value is None:
             return None
         value = value.replace("-", "").replace(" ", "").upper()
-        return value or None
+        if not value:
+            return None
+        if not _PLACA_ATUAL.fullmatch(value) and not _PLACA_CLASSICA.fullmatch(
+            value
+        ):
+            raise ValueError("Informe uma placa valida.")
+        return value
 
     @field_validator(
         "historia",
