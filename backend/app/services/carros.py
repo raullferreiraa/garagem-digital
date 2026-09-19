@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import String, and_, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
@@ -104,8 +104,31 @@ def listar_feed(
     )
 
     if busca:
-        padrao = f"%{busca.strip()}%"
-        consulta = consulta.where(Carro.modelo.ilike(padrao))
+        termo = busca.strip()
+        padrao = f"%{termo}%"
+        padrao_usuario = f"%{termo.removeprefix('@')}%"
+        consulta = consulta.where(
+            or_(
+                Carro.modelo.ilike(padrao),
+                cast(Carro.ano, String).ilike(padrao),
+                Carro.cor.ilike(padrao),
+                Carro.historia.ilike(padrao),
+                Carro.motor.ilike(padrao),
+                Carro.cambio.ilike(padrao),
+                Carro.combustivel.ilike(padrao),
+                Carro.potencia_estimada.ilike(padrao),
+                Carro.preparacao.ilike(padrao),
+                Carro.status_projeto.ilike(padrao),
+                Carro.tipo_suspensao.ilike(padrao),
+                cast(Carro.aro_roda, String).ilike(padrao),
+                Carro.proprietario.has(
+                    or_(
+                        Usuario.nome.ilike(padrao_usuario),
+                        Usuario.username.ilike(padrao_usuario),
+                    )
+                ),
+            )
+        )
 
     if ordem == "em_alta":
         pontuacao = total_curtidas + total_comentarios
