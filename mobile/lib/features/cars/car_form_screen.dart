@@ -485,13 +485,11 @@ final class _OptionalField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.maxLength,
-    this.hint,
     this.uppercase = false,
   });
 
   final TextEditingController controller;
   final String label;
-  final String? hint;
   final int maxLength;
   final bool uppercase;
 
@@ -507,7 +505,7 @@ final class _OptionalField extends StatelessWidget {
         inputFormatters: uppercase
             ? const <TextInputFormatter>[_UpperCaseTextFormatter()]
             : const <TextInputFormatter>[],
-        decoration: InputDecoration(labelText: label, hintText: hint),
+        decoration: InputDecoration(labelText: label),
         maxLength: maxLength,
       ),
     );
