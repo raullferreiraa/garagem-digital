@@ -99,4 +99,54 @@ void main() {
     await tester.pumpAndSettle();
     expect(paths, ['/equipes']);
   });
+
+  testWidgets('mostra em qual dado do projeto a busca encontrou o termo',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        handler.resolve(Response(
+          requestOptions: options,
+          data: <String, Object?>{
+            'itens': <Object?>[
+              <String, Object?>{
+                'id': 'omega',
+                'modelo': 'OMEGA CD 4.1',
+                'ano': 1996,
+                'cor': 'BORDÔ',
+                'proprietario': <String, Object?>{
+                  'id': 'raul',
+                  'nome': 'Raul',
+                  'username': 'raul.omega',
+                  'avatar_url': null,
+                },
+              },
+            ],
+            'proximo_cursor': null,
+          },
+        ));
+      },
+    ));
+
+    await tester.pumpWidget(MaterialApp(
+      home: SearchScreen(
+        carsRepository: CarsRepository(api),
+        usersRepository: UsersRepository(api),
+        teamsRepository: TeamsRepository(api),
+        onCarTap: (_) async {},
+        onUserTap: (_) async {},
+        onTeamTap: (_) async {},
+      ),
+    ));
+
+    await tester.enterText(find.byType(TextField), 'bordô');
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pumpAndSettle();
+
+    expect(find.text('OMEGA CD 4.1 1996'), findsOneWidget);
+    expect(find.textContaining('Cor: BORDÔ'), findsOneWidget);
+  });
 }

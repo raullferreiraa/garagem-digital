@@ -346,6 +346,7 @@ final class _SearchScreenState extends State<SearchScreen> {
               for (final car in _cars)
                 _CarResult(
                   car: car,
+                  query: query,
                   onTap: () => _openCar(car),
                 ),
             ],
@@ -473,15 +474,22 @@ final class _ResultSection extends StatelessWidget {
 }
 
 final class _CarResult extends StatelessWidget {
-  const _CarResult({required this.car, required this.onTap});
+  const _CarResult({
+    required this.car,
+    required this.query,
+    required this.onTap,
+  });
 
   final Car car;
+  final String query;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
+    final match = _projectMatchLabel(car, query);
     return ListTile(
       onTap: onTap,
+      isThreeLine: match != null,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       leading: ClipRRect(
         borderRadius: BorderRadius.circular(12),
@@ -507,10 +515,37 @@ final class _CarResult extends StatelessWidget {
         overflow: TextOverflow.ellipsis,
         style: const TextStyle(fontWeight: FontWeight.w800),
       ),
-      subtitle: Text('@${car.ownerUsername}'),
+      subtitle: Text(
+        ['@${car.ownerUsername}', if (match != null) match].join('\n'),
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+      ),
       trailing: const Icon(Icons.chevron_right_rounded),
     );
   }
+}
+
+String? _projectMatchLabel(Car car, String query) {
+  final term = query.trim().toLowerCase();
+  if (term.isEmpty) return null;
+
+  bool matches(String? value) => value?.toLowerCase().contains(term) ?? false;
+
+  if (matches(car.model)) return 'Correspondência no modelo';
+  if (matches(car.year?.toString())) return 'Ano: ${car.year}';
+  if (matches(car.color)) return 'Cor: ${car.color}';
+  if (matches(car.history)) return 'Correspondência na história';
+  if (matches(car.engine)) return 'Motor: ${car.engine}';
+  if (matches(car.transmission)) return 'Câmbio: ${car.transmission}';
+  if (matches(car.fuel)) return 'Combustível: ${car.fuel}';
+  if (matches(car.estimatedPower)) return 'Potência: ${car.estimatedPower}';
+  if (matches(car.preparation)) return 'Preparação: ${car.preparation}';
+  if (matches(car.projectStatus)) return 'Fase: ${car.projectStatus}';
+  if (matches(car.suspensionType)) {
+    return 'Suspensão: ${car.suspensionType}';
+  }
+  if (matches(car.wheelSize?.toString())) return 'Aro: ${car.wheelSize}';
+  return null;
 }
 
 final class _UserResult extends StatelessWidget {
