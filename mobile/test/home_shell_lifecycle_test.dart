@@ -101,12 +101,14 @@ void main() {
     expect(find.text('Sua garagem, sua história'), findsOneWidget);
 
     final beforeResume = Map<String, int>.from(requests);
-    await tester.binding.handleAppLifecycleStateChanged(
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.paused,
     );
-    await tester.binding.handleAppLifecycleStateChanged(
+    await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.resumed,
     );
+    await tester.pump();
     await tester.pumpAndSettle();
 
     expect(find.text('Sua garagem, sua história'), findsOneWidget);

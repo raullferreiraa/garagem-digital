@@ -47,6 +47,7 @@ final class CarDetailScreen extends StatefulWidget {
 class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
   late Future<List<Evolution>> _evolutions;
+  int _carRequest = 0;
   bool _deleting = false;
   bool _updatingPhoto = false;
 
@@ -58,9 +59,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Future<void> _refreshCarSilently() async {
+    final request = ++_carRequest;
     try {
       final refreshed = await widget.repository.detail(_car.id);
-      if (!mounted) return;
+      if (!mounted || request != _carRequest) return;
       setState(() {
         _car = widget.canManage
             ? refreshed.withPrivateDataFrom(_car)
@@ -72,6 +74,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Future<void> _reloadProject() async {
+    final request = ++_carRequest;
     final carRequest = widget.repository.detail(_car.id);
     final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
     setState(() {
@@ -81,7 +84,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     Object? failure;
     try {
       final refreshed = await carRequest;
-      if (mounted) {
+      if (mounted && request == _carRequest) {
         setState(() {
           _car = widget.canManage
               ? refreshed.withPrivateDataFrom(_car)
@@ -89,7 +92,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         });
       }
     } catch (error) {
-      failure = error;
+      if (request == _carRequest) failure = error;
     }
 
     try {
@@ -98,7 +101,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       failure ??= error;
     }
 
-    if (failure != null && mounted) {
+    if (failure != null && mounted && request == _carRequest) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(apiErrorMessage(failure))),
       );
@@ -114,7 +117,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         ),
       ),
     );
-    if (updated != null && mounted) setState(() => _car = updated);
+    if (updated != null && mounted) {
+      _carRequest++;
+      setState(() => _car = updated);
+    }
   }
 
   Future<void> _delete() async {
@@ -287,6 +293,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       );
       if (croppedBytes == null || !mounted) return;
 
+      _carRequest++;
       setState(() => _updatingPhoto = true);
       final updated = await widget.repository.uploadMainPhoto(
         _car.id,
@@ -332,6 +339,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    _carRequest++;
     setState(() => _updatingPhoto = true);
     try {
       final updated = await widget.repository.removeMainPhoto(_car.id);

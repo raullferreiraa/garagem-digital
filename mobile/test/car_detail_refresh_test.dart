@@ -127,4 +127,68 @@ void main() {
     expect(find.text('05/09/2026'), findsWidgets);
     expect(find.text('185.000 km'), findsWidgets);
   });
+
+  testWidgets('ignora resposta inicial antiga depois da edição',
+      (tester) async {
+    final carRequests = <RequestInterceptorHandler>[];
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (options.path == '/carros/omega') {
+          carRequests.add(handler);
+          return;
+        }
+        handler.resolve(Response(
+          requestOptions: options,
+          data: <Object?>[],
+        ));
+      },
+    ));
+
+    await tester.pumpWidget(MaterialApp(
+      home: CarDetailScreen(
+        car: const Car(
+          id: 'omega',
+          model: 'OMEGA INICIAL',
+          ownerId: 'raul',
+          ownerName: 'Raul',
+          ownerUsername: 'raul.omega',
+        ),
+        repository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        canManage: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(carRequests, hasLength(1));
+
+    await tester.tap(find.byIcon(Icons.more_vert));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Editar projeto'));
+    await tester.pumpAndSettle();
+    expect(find.text('Editar carro'), findsOneWidget);
+
+    Navigator.of(tester.element(find.text('Editar carro'))).pop(const Car(
+      id: 'omega',
+      model: 'OMEGA NOVO',
+      ownerId: 'raul',
+      ownerName: 'Raul',
+      ownerUsername: 'raul.omega',
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('OMEGA NOVO'), findsWidgets);
+
+    carRequests[0].resolve(Response(
+      requestOptions: RequestOptions(path: '/carros/omega'),
+      data: _carJson('OMEGA ANTIGO'),
+    ));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('OMEGA NOVO'), findsWidgets);
+    expect(find.text('OMEGA ANTIGO'), findsNothing);
+  });
 }
