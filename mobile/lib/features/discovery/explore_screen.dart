@@ -41,32 +41,29 @@ final class _ExploreScreenState extends State<ExploreScreen> {
       key: const ValueKey('discover-projects'),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
           child: Row(
             children: [
-              Text(
-                'Ordenar por',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const Spacer(),
-              ChoiceChip(
-                label: const Text('Recentes'),
-                avatar: const Icon(Icons.schedule_rounded, size: 18),
-                selected: _discoverOrder == CarFeedOrder.recent,
-                showCheckmark: false,
-                onSelected: (_) {
-                  setState(() => _discoverOrder = CarFeedOrder.recent);
-                },
+              Expanded(
+                child: _OrderButton(
+                  label: 'Recentes',
+                  icon: Icons.schedule_rounded,
+                  selected: _discoverOrder == CarFeedOrder.recent,
+                  onTap: () {
+                    setState(() => _discoverOrder = CarFeedOrder.recent);
+                  },
+                ),
               ),
               const SizedBox(width: 8),
-              ChoiceChip(
-                label: const Text('Em alta'),
-                avatar: const Icon(Icons.local_fire_department_outlined, size: 18),
-                selected: _discoverOrder == CarFeedOrder.trending,
-                showCheckmark: false,
-                onSelected: (_) {
-                  setState(() => _discoverOrder = CarFeedOrder.trending);
-                },
+              Expanded(
+                child: _OrderButton(
+                  label: 'Em alta',
+                  icon: Icons.local_fire_department_outlined,
+                  selected: _discoverOrder == CarFeedOrder.trending,
+                  onTap: () {
+                    setState(() => _discoverOrder = CarFeedOrder.trending);
+                  },
+                ),
               ),
             ],
           ),
@@ -108,31 +105,32 @@ final class _ExploreScreenState extends State<ExploreScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-            child: SegmentedButton<_ExploreView>(
-              expandedInsets: EdgeInsets.zero,
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(
-                  value: _ExploreView.following,
-                  icon: Icon(Icons.people_alt_outlined),
-                  label: Text('Seguindo'),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: _ExploreTab(
+                    label: 'Descobrir',
+                    selected: _view == _ExploreView.discover,
+                    onTap: () => setState(() => _view = _ExploreView.discover),
+                  ),
                 ),
-                ButtonSegment(
-                  value: _ExploreView.discover,
-                  icon: Icon(Icons.travel_explore_rounded),
-                  label: Text('Descobrir'),
+                const SizedBox(width: 24),
+                Expanded(
+                  child: _ExploreTab(
+                    label: 'Seguindo',
+                    selected: _view == _ExploreView.following,
+                    onTap: () => setState(() => _view = _ExploreView.following),
+                  ),
                 ),
               ],
-              selected: {_view},
-              onSelectionChanged: (selection) {
-                setState(() => _view = selection.first);
-              },
             ),
           ),
           Expanded(
             child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 220),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 220),
               child: _view == _ExploreView.discover
                   ? _discoverProjects()
                   : FollowingFeed(
@@ -145,6 +143,109 @@ final class _ExploreScreenState extends State<ExploreScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+final class _ExploreTab extends StatelessWidget {
+  const _ExploreTab({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color:
+                          selected ? colors.onSurface : colors.onSurfaceVariant,
+                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
+                    ),
+              ),
+            ),
+            AnimatedContainer(
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 200),
+              height: selected ? 3 : 1,
+              color: selected ? colors.primary : colors.outlineVariant,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _OrderButton extends StatelessWidget {
+  const _OrderButton({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      selected: selected,
+      button: true,
+      child: Material(
+        color: selected ? colors.primary : colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(icon,
+                    size: 16,
+                    color:
+                        selected ? colors.onPrimary : colors.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: selected ? colors.onPrimary : colors.onSurface,
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

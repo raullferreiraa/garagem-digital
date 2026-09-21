@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
@@ -111,8 +112,10 @@ final class _SearchScreenState extends State<SearchScreen> {
         SearchCategory.people => widget.usersRepository.search(query),
         SearchCategory.teams => widget.teamsRepository.search(query),
       };
-      if (!mounted || request != _searchRequest ||
-          _controller.text.trim() != query || _filter != filter) return;
+      if (!mounted ||
+          request != _searchRequest ||
+          _controller.text.trim() != query ||
+          _filter != filter) return;
       setState(() {
         switch (filter) {
           case SearchCategory.projects:
@@ -130,8 +133,10 @@ final class _SearchScreenState extends State<SearchScreen> {
         _loading = false;
       });
     } catch (error) {
-      if (!mounted || request != _searchRequest ||
-          _controller.text.trim() != query || _filter != filter) return;
+      if (!mounted ||
+          request != _searchRequest ||
+          _controller.text.trim() != query ||
+          _filter != filter) return;
       setState(() {
         _error = error;
         _loading = false;
@@ -197,11 +202,16 @@ final class _SearchScreenState extends State<SearchScreen> {
   Widget build(BuildContext context) {
     final query = _controller.text.trim();
     return Scaffold(
-      appBar: AppBar(title: const Text('Buscar')),
+      appBar: AppBar(title: const Text('Buscar'), actions: const [
+        Padding(
+          padding: EdgeInsets.only(right: 20),
+          child: GdWordmark(compact: true),
+        ),
+      ]),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
             child: TextField(
               controller: _controller,
               autofocus: true,
@@ -221,7 +231,8 @@ final class _SearchScreenState extends State<SearchScreen> {
                   SearchCategory.people => 'Nome ou @usuário',
                   SearchCategory.teams => 'Nome ou localização da equipe',
                 },
-                prefixIcon: const Icon(Icons.search_rounded),
+                prefixIcon: Icon(Icons.search_rounded,
+                    color: Theme.of(context).colorScheme.primary),
                 suffixIcon: query.isEmpty
                     ? null
                     : IconButton(
@@ -235,7 +246,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainer,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(18),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -243,7 +254,7 @@ final class _SearchScreenState extends State<SearchScreen> {
           ),
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
             child: Row(
               children: [
                 _FilterChip(
@@ -293,14 +304,14 @@ final class _SearchScreenState extends State<SearchScreen> {
         message: 'Use pelo menos 2 caracteres para iniciar a busca.',
       );
     }
-    if (_loading && _lastQuery == query &&
-        (_resultsQuery != query || _resultsFilter != _filter ||
-            !_hasResults)) {
-      return const Center(child: CircularProgressIndicator());
+    if (_loading &&
+        _lastQuery == query &&
+        (_resultsQuery != query || _resultsFilter != _filter || !_hasResults)) {
+      return const GdSkeleton(compact: true);
     }
-    if (_error != null && _lastQuery == query &&
-        (_resultsQuery != query || _resultsFilter != _filter ||
-            !_hasResults)) {
+    if (_error != null &&
+        _lastQuery == query &&
+        (_resultsQuery != query || _resultsFilter != _filter || !_hasResults)) {
       return _SearchMessage(
         icon: Icons.cloud_off_outlined,
         title: 'Não foi possível buscar',
@@ -319,7 +330,7 @@ final class _SearchScreenState extends State<SearchScreen> {
 
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
       children: [
         if (_loading) ...[
           const LinearProgressIndicator(),
@@ -397,10 +408,21 @@ final class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return ChoiceChip(
       selected: selected,
       onSelected: (_) => onTap(),
-      avatar: Icon(icon, size: 18),
+      selectedColor: colors.primary,
+      backgroundColor: colors.surfaceContainer,
+      side:
+          BorderSide(color: selected ? colors.primary : colors.outlineVariant),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
+            color: selected ? colors.onPrimary : colors.onSurfaceVariant,
+          ),
+      avatar: Icon(icon,
+          size: 18,
+          color: selected ? colors.onPrimary : colors.onSurfaceVariant),
       showCheckmark: false,
       label: Text(count == null ? label : '$label  $count'),
     );
@@ -425,31 +447,20 @@ final class _ResultSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                ),
-              ),
-              Text(
-                '$count',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          GdSectionTitle(
+            title: title,
+            eyebrow: 'RESULTADOS',
+            trailing: Text('$count',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: Theme.of(context).colorScheme.primary,
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-            ],
+                    )),
           ),
           const SizedBox(height: 10),
           Material(
             clipBehavior: Clip.antiAlias,
             color: Theme.of(context).colorScheme.surfaceContainer,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(16),
               side: BorderSide(
                 color: Theme.of(context).colorScheme.outlineVariant,
               ),
@@ -487,40 +498,55 @@ final class _CarResult extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final match = _projectMatchLabel(car, query);
-    return ListTile(
+    final colors = Theme.of(context).colorScheme;
+    return InkWell(
       onTap: onTap,
-      isThreeLine: match != null,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      leading: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: SizedBox(
-          width: 58,
-          height: 58,
-          child: car.photoUrl == null
-              ? ColoredBox(
-                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                  child: const Icon(Icons.directions_car_rounded),
-                )
-              : Image.network(
-                  car.photoUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) =>
-                      const Icon(Icons.broken_image_outlined),
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: GdImage(
+                  url: car.photoUrl,
+                  width: 92,
+                  height: 92,
+                  semanticLabel: car.model),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    [car.model, car.year]
+                        .where((item) => item != null)
+                        .join(' '),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 4),
+                  Text('@${car.ownerUsername}',
+                      style: Theme.of(context).textTheme.bodySmall),
+                  if (match != null) ...[
+                    const SizedBox(height: 7),
+                    Text(match,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: colors.primary,
+                            )),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.arrow_outward_rounded,
+                size: 18, color: colors.onSurfaceVariant),
+          ],
         ),
       ),
-      title: Text(
-        [car.model, car.year].where((item) => item != null).join(' '),
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(fontWeight: FontWeight.w800),
-      ),
-      subtitle: Text(
-        ['@${car.ownerUsername}', if (match != null) match].join('\n'),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
-      trailing: const Icon(Icons.chevron_right_rounded),
     );
   }
 }
@@ -564,16 +590,10 @@ final class _UserResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = user.name.isEmpty ? '?' : user.name[0].toUpperCase();
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      leading: CircleAvatar(
-        radius: 27,
-        backgroundImage:
-            user.avatarUrl == null ? null : NetworkImage(user.avatarUrl!),
-        child: user.avatarUrl == null ? Text(initial) : null,
-      ),
+      leading: GdAvatar(url: user.avatarUrl, name: user.name, size: 48),
       title: Text(
         '@${user.username}',
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -592,7 +612,6 @@ final class _TeamResult extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = team.name.isEmpty ? '?' : team.name[0].toUpperCase();
     final details = [
       '${team.memberCount} ${team.memberCount == 1 ? 'integrante' : 'integrantes'}',
       if (team.location != null) team.location!,
@@ -600,13 +619,7 @@ final class _TeamResult extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      leading: CircleAvatar(
-        radius: 27,
-        child: Text(
-          initial,
-          style: const TextStyle(fontWeight: FontWeight.w800),
-        ),
-      ),
+      leading: GdAvatar(url: team.avatarUrl, name: team.name, size: 48),
       title: Text(
         team.name,
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -634,29 +647,31 @@ final class _SearchMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
+    final colors = Theme.of(context).colorScheme;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
+      child: GdReveal(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 58,
-              color: Theme.of(context).colorScheme.primary,
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: colors.primary,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, size: 28, color: colors.onPrimary),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Text(
               title,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 8),
             Text(
               message,
-              textAlign: TextAlign.center,
               style: TextStyle(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

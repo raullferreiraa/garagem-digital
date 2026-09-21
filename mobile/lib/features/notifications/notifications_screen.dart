@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 
@@ -142,6 +143,18 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     };
   }
 
+  String _dayLabel(DateTime value) {
+    final local = value.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(local.year, local.month, local.day);
+    if (day == today) return 'HOJE';
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
+    if (day == yesterday) return 'ONTEM';
+    return '${local.day.toString().padLeft(2, '0')}/'
+        '${local.month.toString().padLeft(2, '0')}/${local.year}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -162,7 +175,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
           final items = _items ?? snapshot.data;
           if (items == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const GdSkeleton(compact: true);
           }
           if (items == null) {
             return Center(
@@ -192,87 +205,193 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                   child: items.isEmpty
                       ? ListView(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          children: const [
-                            SizedBox(height: 190),
-                            Icon(Icons.notifications_none_rounded, size: 58),
-                            SizedBox(height: 14),
-                            Text(
-                              'Suas novidades aparecerão aqui.',
-                              textAlign: TextAlign.center,
+                          padding: const EdgeInsets.all(24),
+                          children: [
+                            const SizedBox(height: 48),
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: Container(
+                                padding: const EdgeInsets.all(18),
+                                decoration: BoxDecoration(
+                                  color: colors.primary,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Icon(Icons.notifications_none_rounded,
+                                    size: 32, color: colors.onPrimary),
+                              ),
                             ),
+                            const SizedBox(height: 28),
+                            Text('A conversa começa aqui.',
+                                style:
+                                    Theme.of(context).textTheme.headlineMedium),
+                            const SizedBox(height: 12),
+                            Text('Suas novidades aparecerão aqui.',
+                                style: Theme.of(context).textTheme.bodyLarge),
+                            const SizedBox(height: 8),
+                            Text(
+                                'Seguidores, equipes e interações com seus projetos, '
+                                'tudo no mesmo lugar.',
+                                style:
+                                    TextStyle(color: colors.onSurfaceVariant)),
                           ],
                         )
-                      : ListView.separated(
+                      : ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
-                          padding: const EdgeInsets.fromLTRB(16, 10, 16, 32),
-                          itemCount: items.length,
-                          separatorBuilder: (_, __) => const SizedBox(height: 9),
+                          padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
+                          itemCount: items.length + 1,
                           itemBuilder: (context, index) {
-                            final item = items[index];
-                            return Material(
-                              color: item.isRead
-                                  ? colors.surfaceContainer
-                                  : colors.primaryContainer,
-                              borderRadius: BorderRadius.circular(20),
-                              clipBehavior: Clip.antiAlias,
-                              child: InkWell(
-                                onTap: () => _open(item),
-                                child: Padding(
-                                  padding: const EdgeInsets.all(15),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      CircleAvatar(
-                                        backgroundImage: item.actorAvatarUrl == null
-                                            ? null
-                                            : NetworkImage(item.actorAvatarUrl!),
-                                        child: item.actorAvatarUrl == null
-                                            ? Icon(_icon(item.type))
-                                            : null,
-                                      ),
-                                      const SizedBox(width: 13),
-                                      Expanded(
-                                        child: Column(
+                            if (index == 0) {
+                              final unread =
+                                  items.where((item) => !item.isRead).length;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 24),
+                                child: GdSectionTitle(
+                                  title: unread == 0
+                                      ? 'Você está em dia.'
+                                      : '$unread ${unread == 1 ? 'novidade' : 'novidades'}',
+                                  eyebrow: 'NA SUA COMUNIDADE',
+                                  trailing: Icon(
+                                    unread == 0
+                                        ? Icons.done_all_rounded
+                                        : Icons.bolt_rounded,
+                                    color: colors.primary,
+                                  ),
+                                ),
+                              );
+                            }
+                            final item = items[index - 1];
+                            final dayLabel = _dayLabel(item.createdAt);
+                            final showDay = index == 1 ||
+                                _dayLabel(items[index - 2].createdAt) !=
+                                    dayLabel;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (showDay)
+                                  Padding(
+                                    padding:
+                                        const EdgeInsets.fromLTRB(0, 8, 0, 12),
+                                    child: Row(children: [
+                                      Text(dayLabel,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelSmall
+                                              ?.copyWith(
+                                                  letterSpacing: 1.6,
+                                                  color:
+                                                      colors.onSurfaceVariant)),
+                                      const SizedBox(width: 12),
+                                      const Expanded(child: Divider()),
+                                    ]),
+                                  ),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: Material(
+                                    color: item.isRead
+                                        ? colors.surface
+                                        : colors.surfaceContainer,
+                                    borderRadius: BorderRadius.circular(14),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: InkWell(
+                                      onTap: () => _open(item),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 16),
+                                        child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              item.message,
-                                              style: TextStyle(
-                                                fontWeight: item.isRead
-                                                    ? FontWeight.w500
-                                                    : FontWeight.w800,
+                                            Stack(
+                                              clipBehavior: Clip.none,
+                                              children: [
+                                                GdAvatar(
+                                                    url: item.actorAvatarUrl,
+                                                    name: item.actorUsername ??
+                                                        'GD',
+                                                    size: 44),
+                                                Positioned(
+                                                  right: -3,
+                                                  bottom: -3,
+                                                  child: Container(
+                                                    padding:
+                                                        const EdgeInsets.all(4),
+                                                    decoration: BoxDecoration(
+                                                      color: item.isRead
+                                                          ? colors
+                                                              .surfaceContainerHighest
+                                                          : colors.primary,
+                                                      shape: BoxShape.circle,
+                                                      border: Border.all(
+                                                          color: colors.surface,
+                                                          width: 2),
+                                                    ),
+                                                    child: Icon(
+                                                        _icon(item.type),
+                                                        size: 12,
+                                                        color: item.isRead
+                                                            ? colors
+                                                                .onSurfaceVariant
+                                                            : colors.onPrimary),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(width: 13),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.message,
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .bodyMedium
+                                                        ?.copyWith(
+                                                          fontWeight: item
+                                                                  .isRead
+                                                              ? FontWeight.w500
+                                                              : FontWeight.w700,
+                                                        ),
+                                                  ),
+                                                  const SizedBox(height: 5),
+                                                  Text(
+                                                    _date(item.createdAt),
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .labelSmall
+                                                        ?.copyWith(
+                                                          color: colors
+                                                              .onSurfaceVariant,
+                                                        ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            const SizedBox(height: 5),
-                                            Text(
-                                              _date(item.createdAt),
-                                              style:
-                                                  Theme.of(context).textTheme.labelMedium,
-                                            ),
+                                            if (_changing.contains(item.id))
+                                              const SizedBox.square(
+                                                dimension: 18,
+                                                child:
+                                                    CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                ),
+                                              )
+                                            else if (!item.isRead)
+                                              Container(
+                                                width: 9,
+                                                height: 9,
+                                                decoration: BoxDecoration(
+                                                  color: colors.primary,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
                                           ],
                                         ),
                                       ),
-                                      if (_changing.contains(item.id))
-                                        const SizedBox.square(
-                                          dimension: 18,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                      else if (!item.isRead)
-                                        Container(
-                                          width: 9,
-                                          height: 9,
-                                          decoration: BoxDecoration(
-                                            color: colors.primary,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                              ),
+                              ],
                             );
                           },
                         ),

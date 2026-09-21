@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
@@ -92,7 +93,8 @@ final class _HomeShellState extends State<HomeShell>
     final request = ++_unreadRequest;
     try {
       final count = await widget.notificationsRepository.unreadCount();
-      if (mounted && request == _unreadRequest &&
+      if (mounted &&
+          request == _unreadRequest &&
           count != _unreadNotifications) {
         setState(() => _unreadNotifications = count);
       }
@@ -148,8 +150,6 @@ final class _HomeShellState extends State<HomeShell>
     );
     _refreshFeed();
   }
-
-
 
   Future<void> _openNotification(AppNotification notification) async {
     try {
@@ -289,7 +289,8 @@ final class _HomeShellState extends State<HomeShell>
         refreshRevision: _garageRevision,
         title: 'Garagem',
         mode: CarListMode.garage,
-        emptyMessage: 'Adicione seu carro e comece a registrar a história dele.',
+        emptyMessage:
+            'Adicione seu carro e comece a registrar a história dele.',
         loader: widget.carsRepository.mine,
         onCarTap: (car) => _openCar(car, canManage: true),
         primaryActionLabel: 'Adicionar carro',
@@ -320,10 +321,14 @@ final class _HomeShellState extends State<HomeShell>
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: pages),
-      bottomNavigationBar: NavigationBar(
+      body: IndexedStack(index: _index, children: [
+        for (var i = 0; i < pages.length; i++)
+          TickerMode(enabled: i == _index, child: pages[i]),
+      ]),
+      bottomNavigationBar: GdNavigation(
         selectedIndex: _index,
-        onDestinationSelected: (value) {
+        unreadCount: _unreadNotifications,
+        onSelected: (value) {
           setState(() {
             _index = value;
             if (value == 0) _feedRevision++;
@@ -334,45 +339,6 @@ final class _HomeShellState extends State<HomeShell>
           });
           unawaited(_refreshUnreadNotifications());
         },
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
-            label: 'Explorar',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.garage_outlined),
-            selectedIcon: Icon(Icons.garage),
-            label: 'Garagem',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.groups_outlined),
-            selectedIcon: Icon(Icons.groups),
-            label: 'Equipes',
-          ),
-          const NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-          NavigationDestination(
-            icon: Badge(
-              isLabelVisible: _unreadNotifications > 0,
-              label: Text(
-                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
-              ),
-              child: const Icon(Icons.notifications_outlined),
-            ),
-            selectedIcon: Badge(
-              isLabelVisible: _unreadNotifications > 0,
-              label: Text(
-                _unreadNotifications > 99 ? '99+' : '$_unreadNotifications',
-              ),
-              child: const Icon(Icons.notifications),
-            ),
-            label: 'Avisos',
-          ),
-        ],
       ),
     );
   }

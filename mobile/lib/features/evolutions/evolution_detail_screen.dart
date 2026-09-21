@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
@@ -66,8 +67,6 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     }
     return interactions;
   }
-
-
 
   GlobalKey _commentKey(String commentId) {
     return _commentKeys.putIfAbsent(commentId, GlobalKey.new);
@@ -168,8 +167,6 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       }
     }
   }
-
-
 
   EvolutionComment? _findComment(
     List<EvolutionComment> comments,
@@ -398,17 +395,11 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 
   Widget _avatar(EvolutionComment comment) {
-    final fallback = comment.authorName.trim().isEmpty
-        ? '?'
-        : comment.authorName.trim()[0].toUpperCase();
-    return CircleAvatar(
-      backgroundImage: comment.authorAvatarUrl == null
-          ? null
-          : NetworkImage(comment.authorAvatarUrl!),
-      child: comment.authorAvatarUrl == null ? Text(fallback) : null,
+    return GdAvatar(
+      url: comment.authorAvatarUrl,
+      name: comment.authorName,
     );
   }
-
 
   Widget _buildComment(EvolutionComment comment, {bool isReply = false}) {
     return _CommentTile(
@@ -464,7 +455,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           final interactions = _interactions ?? snapshot.data;
           if (interactions == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const GdSkeleton();
           }
           if (interactions == null) {
             return Center(
@@ -491,11 +482,9 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
-                Text(
-                  evolution.title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
+                GdSectionTitle(
+                  eyebrow: 'Diário de bordo',
+                  title: evolution.title,
                 ),
                 const SizedBox(height: 6),
                 Text(
@@ -508,7 +497,8 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   runSpacing: 8,
                   children: [
                     Chip(
-                      avatar: const Icon(Icons.calendar_today_outlined, size: 17),
+                      avatar:
+                          const Icon(Icons.calendar_today_outlined, size: 17),
                       label: Text(_formatDate(evolution.timelineDate)),
                     ),
                     if (evolution.category != null)
@@ -554,13 +544,10 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                             borderRadius: BorderRadius.circular(14),
                             child: AspectRatio(
                               aspectRatio: 4 / 3,
-                              child: Image.network(
-                                photo.url,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const ColoredBox(
-                                  color: Color(0xFF24262A),
-                                  child: Icon(Icons.broken_image_outlined),
-                                ),
+                              child: GdImage(
+                                url: photo.url,
+                                semanticLabel:
+                                    'Foto da evolução ${evolution.title}',
                               ),
                             ),
                           ),
@@ -572,7 +559,10 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                 const SizedBox(height: 22),
                 const Divider(),
                 const SizedBox(height: 8),
-                Row(
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 10,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     FilledButton.tonalIcon(
                       onPressed: _changingLike ? null : _toggleLike,
@@ -587,16 +577,22 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                             : '${interactions.totalLikes} curtidas',
                       ),
                     ),
-                    const SizedBox(width: 14),
-                    Icon(
-                      Icons.mode_comment_outlined,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      interactions.totalComments == 1
-                          ? '1 comentário'
-                          : '${interactions.totalComments} comentários',
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.mode_comment_outlined,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Flexible(
+                          child: Text(
+                            interactions.totalComments == 1
+                                ? '1 comentário'
+                                : '${interactions.totalComments} comentários',
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -756,92 +752,93 @@ final class _CommentTile extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(14),
         child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          avatar,
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    onTap: onAuthorTap,
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 3,
-                      ),
-                      child: Wrap(
-                        spacing: 6,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Text(
-                            '@${comment.authorUsername}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            avatar,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: InkWell(
+                      onTap: onAuthorTap,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 3,
+                          vertical: 3,
+                        ),
+                        child: Wrap(
+                          spacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Text(
+                              '@${comment.authorUsername}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
-                          if (onAuthorTap != null)
-                            const Icon(Icons.open_in_new, size: 14),
-                        ],
+                            if (onAuthorTap != null)
+                              const Icon(Icons.open_in_new, size: 14),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  date,
-                  style: Theme.of(context).textTheme.labelSmall,
-                ),
-                const SizedBox(height: 8),
-                Text(comment.content),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: changingLike ? null : onLike,
-                      icon: changingLike
-                          ? const SizedBox.square(
-                              dimension: 15,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : Icon(
-                              comment.likedByMe
-                                  ? Icons.favorite
-                                  : Icons.favorite_border,
-                              size: 17,
-                            ),
-                      label: Text(
-                        comment.totalLikes == 0
-                            ? 'Curtir'
-                            : '${comment.totalLikes}',
-                      ),
-                    ),
-                    if (onReply != null)
+                  const SizedBox(height: 2),
+                  Text(
+                    date,
+                    style: Theme.of(context).textTheme.labelSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(comment.content),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
                       TextButton.icon(
-                        onPressed: onReply,
-                        icon: const Icon(Icons.reply_rounded, size: 18),
-                        label: const Text('Responder'),
+                        onPressed: changingLike ? null : onLike,
+                        icon: changingLike
+                            ? const SizedBox.square(
+                                dimension: 15,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(
+                                comment.likedByMe
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                size: 17,
+                              ),
+                        label: Text(
+                          comment.totalLikes == 0
+                              ? 'Curtir'
+                              : '${comment.totalLikes}',
+                        ),
                       ),
-                  ],
-                ),
-              ],
+                      if (onReply != null)
+                        TextButton.icon(
+                          onPressed: onReply,
+                          icon: const Icon(Icons.reply_rounded, size: 18),
+                          label: const Text('Responder'),
+                        ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (canDelete)
-            IconButton(
-              onPressed: deleting ? null : onDelete,
-              tooltip: 'Excluir comentário',
-              icon: deleting
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.delete_outline),
-            ),
+            if (canDelete)
+              IconButton(
+                onPressed: deleting ? null : onDelete,
+                tooltip: 'Excluir comentário',
+                icon: deleting
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.delete_outline),
+              ),
           ],
         ),
       ),

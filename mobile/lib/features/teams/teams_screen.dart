@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
@@ -129,7 +130,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Widget _body() {
-    if (_loading) return const Center(child: CircularProgressIndicator());
+    if (_loading) return const GdSkeleton();
     if (_loadError != null && _teams == null) {
       return _TeamMessage(
         message: apiErrorMessage(_loadError!),
@@ -144,20 +145,17 @@ class _TeamsScreenState extends State<TeamsScreen> {
         allTeams.where((team) => team.myInvite == 'pendente').length;
     final teams = switch (_view) {
       _TeamView.all => allTeams,
-      _TeamView.mine =>
-        allTeams.where((team) => team.myRole != null).toList(),
-      _TeamView.pending => allTeams
-          .where((team) => team.myRequest == 'pendente')
-          .toList(),
-      _TeamView.invites => allTeams
-          .where((team) => team.myInvite == 'pendente')
-          .toList(),
+      _TeamView.mine => allTeams.where((team) => team.myRole != null).toList(),
+      _TeamView.pending =>
+        allTeams.where((team) => team.myRequest == 'pendente').toList(),
+      _TeamView.invites =>
+        allTeams.where((team) => team.myInvite == 'pendente').toList(),
     };
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
           _TeamsHero(
             teamCount: allTeams.length,
@@ -184,14 +182,16 @@ class _TeamsScreenState extends State<TeamsScreen> {
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: pendingCount == 0 ? 'Pedidos' : 'Pedidos ($pendingCount)',
+                  label:
+                      pendingCount == 0 ? 'Pedidos' : 'Pedidos ($pendingCount)',
                   icon: Icons.schedule,
                   selected: _view == _TeamView.pending,
                   onSelected: () => setState(() => _view = _TeamView.pending),
                 ),
                 const SizedBox(width: 8),
                 _FilterChip(
-                  label: inviteCount == 0 ? 'Convites' : 'Convites ($inviteCount)',
+                  label:
+                      inviteCount == 0 ? 'Convites' : 'Convites ($inviteCount)',
                   icon: Icons.mail_outline_rounded,
                   selected: _view == _TeamView.invites,
                   onSelected: () => setState(() => _view = _TeamView.invites),
@@ -200,28 +200,25 @@ class _TeamsScreenState extends State<TeamsScreen> {
             ),
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  _sectionTitle,
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-              ),
-              Text(
-                '${teams.length}',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-              ),
-            ],
+          GdSectionTitle(
+            title: _sectionTitle,
+            eyebrow: 'DIRETÓRIO',
+            trailing: Text(
+              '${teams.length}',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+            ),
           ),
           const SizedBox(height: 12),
           if (teams.isEmpty)
             _FilteredEmpty(view: _view, onCreate: _create)
           else
             for (var index = 0; index < teams.length; index++) ...[
-              _TeamCard(team: teams[index], onTap: () => _open(teams[index].id)),
+              GdReveal(
+                child: _TeamCard(
+                    team: teams[index], onTap: () => _open(teams[index].id)),
+              ),
               if (index != teams.length - 1) const SizedBox(height: 12),
             ],
         ],
@@ -230,7 +227,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   String get _sectionTitle => switch (_view) {
-        _TeamView.all => 'Comunidades para explorar',
+        _TeamView.all => 'Encontre sua turma',
         _TeamView.mine => 'Suas equipes',
         _TeamView.pending => 'Pedidos enviados',
         _TeamView.invites => 'Convites recebidos',
@@ -289,62 +286,52 @@ final class _TeamsHero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.primaryContainer.withValues(alpha: 0.9),
-            colors.surfaceContainerHigh,
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'CULTURA AUTOMOTIVA',
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: colors.primary,
+                letterSpacing: 2.2,
+              ),
         ),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: 0.14),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: Icon(Icons.groups_rounded, color: colors.primary),
+        const SizedBox(height: 6),
+        Text(
+          'A PAIXÃO É MAIOR\nQUANDO É COMPARTILHADA.',
+          style: Theme.of(context).textTheme.headlineLarge,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Pessoas, máquinas e histórias na mesma direção.',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+              ),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: colors.outlineVariant),
           ),
-          const SizedBox(height: 18),
-          Text(
-            'Projetos que andam juntos',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Encontre sua turma, acompanhe as máquinas dos integrantes e construa uma garagem coletiva.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.45,
-                ),
-          ),
-          const SizedBox(height: 20),
-          Row(
+          child: Wrap(
+            spacing: 22,
+            runSpacing: 12,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               _HeroStat(value: '$teamCount', label: 'equipes'),
-              const SizedBox(width: 22),
               _HeroStat(value: '$myTeamCount', label: 'suas'),
-              const Spacer(),
               FilledButton.icon(
                 onPressed: onCreate,
                 icon: const Icon(Icons.add, size: 18),
-                label: const Text('Criar'),
+                label: const Text('Criar equipe'),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -357,15 +344,15 @@ final class _HeroStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           value,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.w900,
-              ),
+          style: Theme.of(context).textTheme.headlineMedium,
         ),
+        const SizedBox(width: 6),
         Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],
     );
@@ -390,7 +377,11 @@ final class _FilterChip extends StatelessWidget {
     return ChoiceChip(
       selected: selected,
       onSelected: (_) => onSelected(),
-      avatar: Icon(icon, size: 18),
+      avatar: Icon(icon,
+          size: 18,
+          color: selected
+              ? Theme.of(context).colorScheme.onPrimary
+              : Theme.of(context).colorScheme.primary),
       label: Text(label),
       showCheckmark: false,
     );
@@ -409,50 +400,27 @@ final class _TeamCard extends StatelessWidget {
     final membership = team.myRole != null;
     return Material(
       color: colors.surfaceContainer,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             border: Border(
               left: BorderSide(
                 color: membership ? colors.primary : colors.outlineVariant,
-                width: 3,
+                width: 2,
               ),
             ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 58,
-                height: 58,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: membership
-                      ? colors.primaryContainer
-                      : colors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: team.avatarUrl == null
-                    ? Text(
-                        team.name.substring(0, 1).toUpperCase(),
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.w800,
-                            ),
-                      )
-                    : Image.network(
-                        team.avatarUrl!,
-                        width: 58,
-                        height: 58,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Text(
-                          team.name.substring(0, 1).toUpperCase(),
-                        ),
-                      ),
+              GdAvatar(
+                name: team.name,
+                url: team.avatarUrl,
+                size: 52,
               ),
               const SizedBox(width: 14),
               Expanded(
@@ -464,12 +432,16 @@ final class _TeamCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             team.name,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.w800,
                                 ),
                           ),
                         ),
-                        const Icon(Icons.chevron_right),
+                        Icon(Icons.north_east_rounded,
+                            size: 18, color: colors.onSurfaceVariant),
                       ],
                     ),
                     if (team.description != null) ...[
@@ -488,7 +460,8 @@ final class _TeamCard extends StatelessWidget {
                       children: [
                         _MetaPill(
                           icon: Icons.people_outline,
-                          label: '${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}',
+                          label:
+                              '${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}',
                         ),
                         if (team.location != null)
                           _MetaPill(
@@ -543,17 +516,17 @@ final class _MetaPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: highlighted
-            ? colors.primary.withValues(alpha: 0.12)
-            : colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(99),
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: highlighted ? colors.primary : null),
           const SizedBox(width: 5),
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
+          Flexible(
+            child: Text(label, style: Theme.of(context).textTheme.labelSmall),
+          ),
         ],
       ),
     );

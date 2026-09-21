@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 
@@ -104,7 +105,8 @@ class _CarFormScreenState extends State<CarFormScreen> {
     );
     _preparationController = TextEditingController(text: car?.preparation);
     _suspension = _normalizeSuspension(car?.suspensionType);
-    _wheelSizeController = TextEditingController(text: car?.wheelSize?.toString());
+    _wheelSizeController =
+        TextEditingController(text: car?.wheelSize?.toString());
     _projectStatus = car?.projectStatus;
     _plateVisible = car?.plateVisible ?? false;
   }
@@ -236,16 +238,17 @@ class _CarFormScreenState extends State<CarFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
+      appBar:
+          AppBar(title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
-              Text(
-                _editing ? 'Dados do projeto' : 'Comece pelo essencial',
-                style: Theme.of(context).textTheme.headlineSmall,
+              GdSectionTitle(
+                eyebrow: 'Sua garagem / Identidade',
+                title: _editing ? 'Dados do projeto' : 'Comece pelo essencial',
               ),
               const SizedBox(height: 8),
               Text(
@@ -327,8 +330,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
               ),
               const SizedBox(height: 8),
               ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 8),
+                tilePadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                collapsedBackgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainer,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                collapsedShape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                leading: Icon(Icons.tune_rounded,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Ficha técnica'),
                 subtitle: const Text('Motor, câmbio, rodas e preparação'),
                 children: [
@@ -350,17 +363,19 @@ class _CarFormScreenState extends State<CarFormScreen> {
                         ),
                         ..._availableTransmissionOptions.map(
                           (transmission) => DropdownMenuItem(
-                              value: transmission,
-                              child: Text(transmission),
-                            ),
+                            value: transmission,
+                            child: Text(transmission),
+                          ),
                         ),
                       ],
                       onChanged: _submitting
                           ? null
                           : (value) => setState(
-                              () => _transmission =
-                                  value == null || value.isEmpty ? null : value,
-                            ),
+                                () => _transmission =
+                                    value == null || value.isEmpty
+                                        ? null
+                                        : value,
+                              ),
                     ),
                   ),
                   Padding(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
@@ -202,7 +203,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         label: Text(apiErrorMessage(snapshot.error!)),
                       ),
                     )
-                  : const Center(child: CircularProgressIndicator()),
+                  : const GdSkeleton(),
         );
       },
     );
@@ -210,7 +211,8 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
 
   Widget _content(_ProfileData data) {
     final profile = data.profile;
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final isMe = profile.id == widget.currentUserId;
     final location = [profile.city, profile.state]
         .where((item) => item != null && item.isNotEmpty)
@@ -220,122 +222,117 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
       children: [
-        Container(
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(28),
-            gradient: LinearGradient(
-              colors: [
-                colors.primaryContainer,
-                colors.surfaceContainerHigh,
-              ],
-            ),
-            border: Border.all(
-              color: colors.primary.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Column(
-            children: [
-              CircleAvatar(
-                radius: 46,
-                backgroundImage: profile.avatarUrl == null
-                    ? null
-                    : NetworkImage(profile.avatarUrl!),
-                child: profile.avatarUrl == null
-                    ? Text(
-                        profile.name.substring(0, 1).toUpperCase(),
-                        style: Theme.of(context).textTheme.headlineLarge,
-                      )
-                    : null,
-              ),
-              const SizedBox(height: 14),
-              Text(
-                profile.name,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
-              ),
-              Text(
-                '@${profile.username}',
-                style: TextStyle(color: colors.onSurfaceVariant),
-              ),
-              if (location.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.location_on_outlined, size: 17),
-                    const SizedBox(width: 4),
-                    Text(location),
-                  ],
-                ),
-              ],
-              if (profile.bio != null) ...[
-                const SizedBox(height: 14),
-                Text(
-                  profile.bio!,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(height: 1.4),
-                ),
-              ],
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  _Stat(value: profile.projectCount, label: 'projetos'),
-                  _Stat(
-                    value: profile.followerCount,
-                    label: 'seguidores',
-                    onTap: () => _openConnections(
-                      profile,
-                      following: false,
-                    ),
-                  ),
-                  _Stat(
-                    value: profile.followingCount,
-                    label: 'seguindo',
-                    onTap: () => _openConnections(
-                      profile,
-                      following: true,
-                    ),
-                  ),
-                ],
-              ),
-              if (!isMe) ...[
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: profile.followedByMe
-                      ? OutlinedButton.icon(
-                          onPressed: _changingFollow
-                              ? null
-                              : () => _toggleFollow(data),
-                          icon: const Icon(Icons.person_remove_outlined),
-                          label: const Text('Seguindo'),
-                        )
-                      : FilledButton.icon(
-                          onPressed: _changingFollow
-                              ? null
-                              : () => _toggleFollow(data),
-                          icon: const Icon(Icons.person_add_alt_1),
-                          label: const Text('Seguir'),
-                        ),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const SizedBox(height: 28),
-        Row(
+        GdReveal(
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: Text(
-                'Projetos',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
+            Row(children: [
+              Expanded(
+                  child: Text(
+                'QUEM ESTÁ AO VOLANTE',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  letterSpacing: 2,
+                  color: colors.primary,
+                ),
+              )),
+              Icon(Icons.sports_motorsports_outlined,
+                  color: colors.primary, size: 24),
+            ]),
+            const SizedBox(height: 22),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GdAvatar(name: profile.name, url: profile.avatarUrl, size: 88),
+                const SizedBox(width: 18),
+                Expanded(
+                    child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(profile.name, style: theme.textTheme.headlineLarge),
+                    const SizedBox(height: 3),
+                    Text(
+                      '@${profile.username}',
+                      style: theme.textTheme.bodyMedium
+                          ?.copyWith(color: colors.primary),
+                    ),
+                    if (location.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 14, color: colors.onSurfaceVariant),
+                        const SizedBox(width: 4),
+                        Expanded(
+                            child: Text(
+                          location,
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: colors.onSurfaceVariant),
+                        )),
+                      ]),
+                    ],
+                  ],
+                )),
+              ],
             ),
-            Text('${data.cars.length}'),
+            if (profile.bio?.isNotEmpty == true) ...[
+              const SizedBox(height: 20),
+              Text(profile.bio!,
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
+                    height: 1.6,
+                  )),
+            ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: colors.outlineVariant),
+                  bottom: BorderSide(color: colors.outlineVariant),
+                ),
+              ),
+              child: Row(children: [
+                _Stat(value: profile.projectCount, label: 'projetos'),
+                _Stat(
+                  value: profile.followerCount,
+                  label: 'seguidores',
+                  onTap: () => _openConnections(profile, following: false),
+                ),
+                _Stat(
+                  value: profile.followingCount,
+                  label: 'seguindo',
+                  onTap: () => _openConnections(profile, following: true),
+                ),
+              ]),
+            ),
+            if (!isMe) ...[
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: profile.followedByMe
+                    ? OutlinedButton.icon(
+                        onPressed:
+                            _changingFollow ? null : () => _toggleFollow(data),
+                        icon: const Icon(Icons.person_remove_outlined),
+                        label: const Text('Seguindo'),
+                      )
+                    : FilledButton.icon(
+                        onPressed:
+                            _changingFollow ? null : () => _toggleFollow(data),
+                        icon: const Icon(Icons.person_add_alt_1),
+                        label: const Text('Seguir'),
+                      ),
+              ),
+            ],
           ],
+        )),
+        const SizedBox(height: 28),
+        GdSectionTitle(
+          title: 'Projetos',
+          eyebrow: 'A GARAGEM',
+          trailing: Text(
+            '${data.cars.length}',
+            style: theme.textTheme.labelLarge?.copyWith(color: colors.primary),
+          ),
         ),
         const SizedBox(height: 14),
         if (data.cars.isEmpty)
@@ -343,74 +340,68 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
             padding: const EdgeInsets.all(28),
             decoration: BoxDecoration(
               color: colors.surfaceContainer,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: colors.outlineVariant),
             ),
-            child: const Column(
-              children: [
-                Icon(Icons.garage_outlined, size: 44),
-                SizedBox(height: 10),
-                Text('Esta garagem ainda não tem projetos.'),
-              ],
-            ),
+            child: Column(children: [
+              Icon(Icons.garage_outlined, size: 44, color: colors.primary),
+              const SizedBox(height: 10),
+              const Text('Esta garagem ainda não tem projetos.',
+                  textAlign: TextAlign.center),
+            ]),
           )
         else
           for (final car in data.cars)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Card(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: GdReveal(
+                  child: Card(
+                margin: EdgeInsets.zero,
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () => _openCar(car),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      SizedBox(
-                        width: 112,
-                        height: 94,
-                        child: car.photoUrl == null
-                            ? ColoredBox(
-                                color: colors.surfaceContainerHighest,
-                                child: const Icon(
-                                  Icons.directions_car,
-                                  size: 38,
-                                ),
-                              )
-                            : Image.network(
-                                car.photoUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => const Icon(
-                                  Icons.broken_image_outlined,
-                                ),
-                              ),
+                      AspectRatio(
+                        aspectRatio: 16 / 9,
+                        child: GdImage(
+                            url: car.photoUrl, semanticLabel: car.model),
                       ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              [car.model, car.year]
-                                  .whereType<Object>()
-                                  .join(' '),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            if (car.projectStatus != null)
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(children: [
+                          Expanded(
+                              child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (car.projectStatus != null) ...[
+                                Text(
+                                  car.projectStatus!.toUpperCase(),
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    color: colors.primary,
+                                    letterSpacing: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 5),
+                              ],
                               Text(
-                                car.projectStatus!,
-                                style: TextStyle(
-                                  color: colors.onSurfaceVariant,
-                                ),
+                                [car.model, car.year]
+                                    .whereType<Object>()
+                                    .join(' '),
+                                style: theme.textTheme.titleLarge,
                               ),
-                          ],
-                        ),
+                            ],
+                          )),
+                          const SizedBox(width: 12),
+                          Icon(Icons.north_east_rounded,
+                              color: colors.primary, size: 22),
+                        ]),
                       ),
-                      const Icon(Icons.chevron_right),
-                      const SizedBox(width: 12),
                     ],
                   ),
                 ),
-              ),
+              )),
             ),
       ],
     );
@@ -440,11 +431,12 @@ final class _Stat extends StatelessWidget {
             children: [
               Text(
                 '$value',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w900,
-                    ),
+                style: Theme.of(context).textTheme.headlineMedium,
               ),
-              Text(label, style: Theme.of(context).textTheme.labelMedium),
+              Text(label,
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      )),
             ],
           ),
         ),

@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:garagem_mobile/app/app.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
@@ -15,6 +17,12 @@ import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    for (final font in ['BarlowCondensed', 'Manrope']) {
+      final text = await rootBundle.loadString('assets/fonts/$font-OFL.txt');
+      yield LicenseEntryWithLineBreaks([font], text);
+    }
+  });
 
   const tokenStorage = SecureTokenStorage();
   final apiClient = ApiClient(
