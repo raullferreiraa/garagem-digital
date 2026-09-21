@@ -1,8 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+
+const _fuelOptions = [
+  'Gasolina',
+  'Etanol',
+  'Flex',
+  'Diesel',
+  'GNV',
+  'Elétrico',
+  'Híbrido',
+  'Outro',
+];
+
+const _transmissionOptions = [
+  'Manual',
+  'Automático',
+  'Automatizado',
+  'CVT',
+  'Dupla embreagem',
+  'Sequencial',
+  'Redução única',
+  'Outro',
+];
+
+const _suspensionOptions = [
+  'ORIGINAL',
+  'MOLA ESPORTIVA',
+  'FIXA',
+  'ROSCA',
+  'A AR',
+  'COILOVER',
+  'OUTRO',
+];
+
+String? _normalizeSuspension(String? value) {
+  final normalized = value?.trim().toUpperCase();
+  if (normalized == null || normalized.isEmpty) return null;
+  return switch (normalized) {
+    'ESPORTIVA' => 'MOLA ESPORTIVA',
+    'SUSPENSÃO FIXA' || 'SUSPENSAO FIXA' => 'FIXA',
+    'SUSPENSÃO DE ROSCA' || 'SUSPENSAO DE ROSCA' => 'ROSCA',
+    'AR' || 'SUSPENSÃO A AR' || 'SUSPENSAO A AR' => 'A AR',
+    _ => normalized,
+  };
+}
 
 final class CarFormScreen extends StatefulWidget {
   const CarFormScreen({
@@ -26,14 +71,14 @@ class _CarFormScreenState extends State<CarFormScreen> {
   late final TextEditingController _plateController;
   late final TextEditingController _historyController;
   late final TextEditingController _engineController;
-  late final TextEditingController _transmissionController;
-  late final TextEditingController _fuelController;
   late final TextEditingController _powerController;
   late final TextEditingController _preparationController;
-  late final TextEditingController _suspensionController;
   late final TextEditingController _wheelSizeController;
 
   String? _projectStatus;
+  String? _transmission;
+  String? _suspension;
+  late final Set<String> _selectedFuels;
   bool _plateVisible = false;
   bool _submitting = false;
   String? _errorMessage;
@@ -50,12 +95,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
     _plateController = TextEditingController(text: car?.plate);
     _historyController = TextEditingController(text: car?.history);
     _engineController = TextEditingController(text: car?.engine);
-    _transmissionController = TextEditingController(text: car?.transmission);
-    _fuelController = TextEditingController(text: car?.fuel);
-    _powerController = TextEditingController(text: car?.estimatedPower);
+    _transmission = car?.transmission;
+    _selectedFuels = (car?.fuel ?? '')
+        .split(RegExp(r'\s*[,/;+]\s*'))
+        .where((fuel) => fuel.isNotEmpty)
+        .toSet();
+    _powerController = TextEditingController(
+      text: RegExp(r'\d+').firstMatch(car?.estimatedPower ?? '')?.group(0),
+    );
     _preparationController = TextEditingController(text: car?.preparation);
-    _suspensionController = TextEditingController(text: car?.suspensionType);
-    _wheelSizeController = TextEditingController(text: car?.wheelSize?.toString());
+    _suspension = _normalizeSuspension(car?.suspensionType);
+    _wheelSizeController =
+        TextEditingController(text: car?.wheelSize?.toString());
     _projectStatus = car?.projectStatus;
     _plateVisible = car?.plateVisible ?? false;
   }
@@ -68,11 +119,8 @@ class _CarFormScreenState extends State<CarFormScreen> {
     _plateController.dispose();
     _historyController.dispose();
     _engineController.dispose();
-    _transmissionController.dispose();
-    _fuelController.dispose();
     _powerController.dispose();
     _preparationController.dispose();
-    _suspensionController.dispose();
     _wheelSizeController.dispose();
     super.dispose();
   }
@@ -104,6 +152,25 @@ class _CarFormScreenState extends State<CarFormScreen> {
     return null;
   }
 
+  String? _validatePower(String? value) {
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return null;
+    final power = int.tryParse(text);
+    if (power == null || power < 1) return 'Informe uma potência válida.';
+    return null;
+  }
+
+  String? _validatePlate(String? value) {
+    final plate = value?.trim().toUpperCase() ?? '';
+    if (plate.isEmpty) return null;
+    final current = RegExp(r'^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$');
+    final classic = RegExp(r'^[A-Z]{2}[0-9]{4}$');
+    if (!current.hasMatch(plate) && !classic.hasMatch(plate)) {
+      return 'Informe uma placa válida.';
+    }
+    return null;
+  }
+
   String? _optional(TextEditingController controller) {
     final value = controller.text.trim();
     return value.isEmpty ? null : value;
@@ -111,6 +178,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
   CarInput _input() {
     final year = _yearController.text.trim();
+    final power = _powerController.text.trim();
     final wheelSize = _wheelSizeController.text.trim();
     return CarInput(
       model: _modelController.text,
@@ -119,16 +187,29 @@ class _CarFormScreenState extends State<CarFormScreen> {
       projectStatus: _projectStatus,
       history: _optional(_historyController),
       engine: _optional(_engineController),
-      transmission: _optional(_transmissionController),
-      fuel: _optional(_fuelController),
-      estimatedPower: _optional(_powerController),
+      transmission: _transmission,
+      fuel: _fuelValue,
+      estimatedPower: power.isEmpty ? null : '${int.parse(power)} cv',
       preparation: _optional(_preparationController),
-      suspensionType: _optional(_suspensionController),
+      suspensionType: _suspension,
       wheelSize: wheelSize.isEmpty ? null : int.parse(wheelSize),
       plate: _optional(_plateController),
       plateVisible: _plateVisible,
     );
   }
+
+  String? get _fuelValue {
+    final selected = [
+      ..._fuelOptions.where(_selectedFuels.contains),
+      ..._selectedFuels.where((fuel) => !_fuelOptions.contains(fuel)),
+    ];
+    return selected.isEmpty ? null : selected.join(', ');
+  }
+
+  List<String> get _availableFuelOptions => [
+        ..._fuelOptions,
+        ..._selectedFuels.where((fuel) => !_fuelOptions.contains(fuel)),
+      ];
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
@@ -157,16 +238,17 @@ class _CarFormScreenState extends State<CarFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
+      appBar:
+          AppBar(title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
-              Text(
-                _editing ? 'Dados do projeto' : 'Comece pelo essencial',
-                style: Theme.of(context).textTheme.headlineSmall,
+              GdSectionTitle(
+                eyebrow: 'Sua garagem / Identidade',
+                title: _editing ? 'Dados do projeto' : 'Comece pelo essencial',
               ),
               const SizedBox(height: 8),
               Text(
@@ -178,10 +260,11 @@ class _CarFormScreenState extends State<CarFormScreen> {
               TextFormField(
                 controller: _modelController,
                 autofocus: !_editing,
-                textCapitalization: TextCapitalization.words,
+                textCapitalization: TextCapitalization.characters,
+                inputFormatters: const [_UpperCaseTextFormatter()],
                 decoration: const InputDecoration(
                   labelText: 'Modelo *',
-                  hintText: 'Ex.: Gol CL',
+                  hintText: 'Ex.: GOL CL',
                   prefixIcon: Icon(Icons.directions_car_outlined),
                 ),
                 maxLength: 100,
@@ -205,7 +288,8 @@ class _CarFormScreenState extends State<CarFormScreen> {
                   Expanded(
                     child: TextFormField(
                       controller: _colorController,
-                      textCapitalization: TextCapitalization.words,
+                      textCapitalization: TextCapitalization.characters,
+                      inputFormatters: const [_UpperCaseTextFormatter()],
                       decoration: const InputDecoration(labelText: 'Cor'),
                       maxLength: 50,
                     ),
@@ -246,8 +330,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
               ),
               const SizedBox(height: 8),
               ExpansionTile(
-                tilePadding: EdgeInsets.zero,
-                childrenPadding: const EdgeInsets.only(bottom: 8),
+                tilePadding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
+                collapsedBackgroundColor:
+                    Theme.of(context).colorScheme.surfaceContainer,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                collapsedShape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
+                leading: Icon(Icons.tune_rounded,
+                    color: Theme.of(context).colorScheme.primary),
                 title: const Text('Ficha técnica'),
                 subtitle: const Text('Motor, câmbio, rodas e preparação'),
                 children: [
@@ -255,38 +349,134 @@ class _CarFormScreenState extends State<CarFormScreen> {
                     controller: _engineController,
                     label: 'Motor',
                     maxLength: 100,
+                    uppercase: true,
                   ),
-                  _OptionalField(
-                    controller: _transmissionController,
-                    label: 'Câmbio',
-                    maxLength: 50,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _transmission ?? '',
+                      decoration: const InputDecoration(labelText: 'Câmbio'),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('Não informar'),
+                        ),
+                        ..._availableTransmissionOptions.map(
+                          (transmission) => DropdownMenuItem(
+                            value: transmission,
+                            child: Text(transmission),
+                          ),
+                        ),
+                      ],
+                      onChanged: _submitting
+                          ? null
+                          : (value) => setState(
+                                () => _transmission =
+                                    value == null || value.isEmpty
+                                        ? null
+                                        : value,
+                              ),
+                    ),
                   ),
-                  _OptionalField(
-                    controller: _fuelController,
-                    label: 'Combustível',
-                    maxLength: 120,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 18, bottom: 8),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Combustível',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Selecione uma ou mais opções.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              for (final fuel in _availableFuelOptions)
+                                FilterChip(
+                                  label: Text(fuel),
+                                  selected: _selectedFuels.contains(fuel),
+                                  onSelected: _submitting
+                                      ? null
+                                      : (selected) {
+                                          setState(() {
+                                            if (selected) {
+                                              _selectedFuels.add(fuel);
+                                            } else {
+                                              _selectedFuels.remove(fuel);
+                                            }
+                                          });
+                                        },
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                  _OptionalField(
+                  TextFormField(
                     controller: _powerController,
-                    label: 'Potência estimada',
-                    hint: 'Ex.: 180 cv',
-                    maxLength: 50,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Potência estimada',
+                      hintText: 'Ex.: 180',
+                      suffixText: 'cv',
+                      helperText: 'Digite somente o número.',
+                    ),
+                    maxLength: 4,
+                    validator: _validatePower,
                   ),
                   _OptionalField(
                     controller: _preparationController,
                     label: 'Preparação',
                     maxLength: 100,
                   ),
-                  _OptionalField(
-                    controller: _suspensionController,
-                    label: 'Suspensão',
-                    maxLength: 50,
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: _suspension ?? '',
+                      decoration: const InputDecoration(
+                        labelText: 'Suspensão',
+                      ),
+                      items: [
+                        const DropdownMenuItem(
+                          value: '',
+                          child: Text('Não informar'),
+                        ),
+                        ..._availableSuspensionOptions.map(
+                          (suspension) => DropdownMenuItem(
+                            value: suspension,
+                            child: Text(suspension),
+                          ),
+                        ),
+                      ],
+                      onChanged: _submitting
+                          ? null
+                          : (value) => setState(
+                                () => _suspension =
+                                    value == null || value.isEmpty
+                                        ? null
+                                        : value,
+                              ),
+                    ),
                   ),
+                  const SizedBox(height: 16),
                   TextFormField(
                     controller: _wheelSizeController,
                     keyboardType: TextInputType.number,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(labelText: 'Aro da roda'),
+                    decoration: const InputDecoration(
+                      labelText: 'Aro da roda',
+                      helperText: 'Somente números, entre 1 e 40.',
+                    ),
                     maxLength: 2,
                     validator: _validateWheelSize,
                   ),
@@ -298,10 +488,16 @@ class _CarFormScreenState extends State<CarFormScreen> {
                 textCapitalization: TextCapitalization.characters,
                 decoration: const InputDecoration(
                   labelText: 'Placa',
-                  hintText: 'Opcional',
+                  hintText: 'Ex.: ABC1D23',
+                  helperText: 'Também aceita ABC1234 ou AB1234.',
                   prefixIcon: Icon(Icons.badge_outlined),
                 ),
-                inputFormatters: [LengthLimitingTextInputFormatter(10)],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+                  const _UpperCaseTextFormatter(),
+                  LengthLimitingTextInputFormatter(7),
+                ],
+                validator: _validatePlate,
               ),
               SwitchListTile.adaptive(
                 contentPadding: EdgeInsets.zero,
@@ -351,6 +547,22 @@ class _CarFormScreenState extends State<CarFormScreen> {
     if (current == null || defaults.contains(current)) return defaults;
     return [current, ...defaults];
   }
+
+  List<String> get _availableTransmissionOptions {
+    final current = _transmission;
+    if (current == null || _transmissionOptions.contains(current)) {
+      return _transmissionOptions;
+    }
+    return [current, ..._transmissionOptions];
+  }
+
+  List<String> get _availableSuspensionOptions {
+    final current = _suspension;
+    if (current == null || _suspensionOptions.contains(current)) {
+      return _suspensionOptions;
+    }
+    return [current, ..._suspensionOptions];
+  }
 }
 
 final class _OptionalField extends StatelessWidget {
@@ -358,13 +570,13 @@ final class _OptionalField extends StatelessWidget {
     required this.controller,
     required this.label,
     required this.maxLength,
-    this.hint,
+    this.uppercase = false,
   });
 
   final TextEditingController controller;
   final String label;
-  final String? hint;
   final int maxLength;
+  final bool uppercase;
 
   @override
   Widget build(BuildContext context) {
@@ -372,10 +584,30 @@ final class _OptionalField extends StatelessWidget {
       padding: const EdgeInsets.only(top: 12),
       child: TextFormField(
         controller: controller,
-        textCapitalization: TextCapitalization.sentences,
-        decoration: InputDecoration(labelText: label, hintText: hint),
+        textCapitalization: uppercase
+            ? TextCapitalization.characters
+            : TextCapitalization.sentences,
+        inputFormatters: uppercase
+            ? const <TextInputFormatter>[_UpperCaseTextFormatter()]
+            : const <TextInputFormatter>[],
+        decoration: InputDecoration(labelText: label),
         maxLength: maxLength,
       ),
+    );
+  }
+}
+
+final class _UpperCaseTextFormatter extends TextInputFormatter {
+  const _UpperCaseTextFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    return newValue.copyWith(
+      text: newValue.text.toUpperCase(),
+      composing: TextRange.empty,
     );
   }
 }

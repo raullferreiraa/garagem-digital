@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import String, and_, case, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
@@ -16,6 +16,17 @@ from app.schemas.carro import CarroCriacao, CarroPublico, PaginaCarros
 
 class CursorInvalido(ValueError):
     pass
+
+
+def _comeca_em_palavra(coluna: object, termo: str) -> object:
+    termo_escapado = (
+        termo.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    )
+    padroes = [f"{termo_escapado}%"] + [
+        f"%{separador}{termo_escapado}%"
+        for separador in (" ", ",", "/", ";", "+", "-", "(", "\n", "\t")
+    ]
+    return or_(*(coluna.ilike(padrao, escape="\\") for padrao in padroes))
 
 
 def _codificar_cursor(carro: Carro) -> str:
@@ -103,19 +114,48 @@ def listar_feed(
         total_comentarios.label("total_comentarios"),
     )
 
+    relevancia_modelo = None
     if busca:
-        padrao = f"%{busca.strip()}%"
-        consulta = consulta.where(Carro.modelo.ilike(padrao))
+        termo = busca.strip()
+        padrao = f"%{termo}%"
+        padrao_maiusculo = f"%{termo.upper()}%"
+        relevancia_modelo = case(
+            (Carro.modelo == termo.upper(), 0),
+            (Carro.modelo.like(f"{termo.upper()}%"), 1),
+            (Carro.modelo.like(padrao_maiusculo), 2),
+            else_=3,
+        )
+        consulta = consulta.where(
+            or_(
+                Carro.modelo.ilike(padrao),
+                _comeca_em_palavra(cast(Carro.ano, String), termo),
+                _comeca_em_palavra(Carro.cor, termo.upper()),
+                _comeca_em_palavra(Carro.historia, termo),
+                _comeca_em_palavra(Carro.motor, termo.upper()),
+                _comeca_em_palavra(Carro.cambio, termo),
+                _comeca_em_palavra(Carro.combustivel, termo),
+                _comeca_em_palavra(Carro.potencia_estimada, termo),
+                _comeca_em_palavra(Carro.preparacao, termo),
+                _comeca_em_palavra(Carro.status_projeto, termo),
+                _comeca_em_palavra(Carro.tipo_suspensao, termo.upper()),
+                _comeca_em_palavra(cast(Carro.aro_roda, String), termo),
+            )
+        )
 
     if ordem == "em_alta":
         pontuacao = total_curtidas + total_comentarios
         consulta = consulta.order_by(
+            *([relevancia_modelo] if relevancia_modelo is not None else []),
             pontuacao.desc(),
             Carro.criado_em.desc(),
             Carro.id.desc(),
         )
     else:
-        consulta = consulta.order_by(Carro.criado_em.desc(), Carro.id.desc())
+        consulta = consulta.order_by(
+            *([relevancia_modelo] if relevancia_modelo is not None else []),
+            Carro.criado_em.desc(),
+            Carro.id.desc(),
+        )
         if cursor:
             criado_em, carro_id = _decodificar_cursor(cursor)
             consulta = consulta.where(

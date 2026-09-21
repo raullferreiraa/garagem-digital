@@ -26,9 +26,25 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     carro = client.post(
         "/api/v1/carros",
         headers=auth(criador),
-        json={"modelo": "Omega CD 4.1", "ano": 1996},
+        json={
+            "modelo": "Omega CD 4.1",
+            "ano": 1996,
+            "cor": "Bordô",
+            "motor": "Seis cilindros",
+            "preparacao": "Aspirado de rua",
+        },
     )
     assert carro.status_code == 201
+
+    projeto_com_termo_apenas_no_historico = client.post(
+        "/api/v1/carros",
+        headers=auth(criador),
+        json={
+            "modelo": "Gol GTI",
+            "historia": "Projeto inspirado no Omega",
+        },
+    )
+    assert projeto_com_termo_apenas_no_historico.status_code == 201
 
     equipe = client.post(
         "/api/v1/equipes",
@@ -70,8 +86,38 @@ def test_busca_reune_pessoas_projetos_e_equipes(client: TestClient) -> None:
     )
     assert projetos.status_code == 200
     assert [item["modelo"] for item in projetos.json()["itens"]] == [
-        "Omega CD 4.1"
+        "OMEGA CD 4.1",
+        "GOL GTI",
     ]
+
+    for detalhe in ("bord", "cil", "asp", "ru", "199"):
+        encontrados = client.get(
+            "/api/v1/carros",
+            params={"busca": detalhe},
+            headers=auth(visitante),
+        )
+        assert encontrados.status_code == 200
+        assert [item["modelo"] for item in encontrados.json()["itens"]] == [
+            "OMEGA CD 4.1"
+        ]
+
+    trecho_no_meio_da_palavra = client.get(
+        "/api/v1/carros",
+        params={"busca": "ra"},
+        headers=auth(visitante),
+    )
+    assert trecho_no_meio_da_palavra.status_code == 200
+    assert trecho_no_meio_da_palavra.json()["itens"] == []
+
+    trecho_no_meio_do_modelo = client.get(
+        "/api/v1/carros",
+        params={"busca": "meg"},
+        headers=auth(visitante),
+    )
+    assert trecho_no_meio_do_modelo.status_code == 200
+    assert [
+        item["modelo"] for item in trecho_no_meio_do_modelo.json()["itens"]
+    ] == ["OMEGA CD 4.1"]
 
     equipes = client.get(
         "/api/v1/equipes",

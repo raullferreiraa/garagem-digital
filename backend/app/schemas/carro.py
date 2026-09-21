@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -8,6 +9,88 @@ from app.schemas.usuario import UsuarioResumo
 
 
 TextoCurto = Annotated[str | None, Field(max_length=120)]
+
+_COMBUSTIVEIS = {
+    "gasolina": "Gasolina",
+    "alcool": "Etanol",
+    "álcool": "Etanol",
+    "etanol": "Etanol",
+    "flex": "Flex",
+    "diesel": "Diesel",
+    "gnv": "GNV",
+    "eletrico": "Elétrico",
+    "elétrico": "Elétrico",
+    "hibrido": "Híbrido",
+    "híbrido": "Híbrido",
+    "outro": "Outro",
+}
+
+_CAMBIOS = {
+    "manual": "Manual",
+    "automatico": "Automático",
+    "automático": "Automático",
+    "automatizado": "Automatizado",
+    "cvt": "CVT",
+    "dupla embreagem": "Dupla embreagem",
+    "dct": "Dupla embreagem",
+    "sequencial": "Sequencial",
+    "reducao unica": "Redução única",
+    "redução única": "Redução única",
+    "outro": "Outro",
+}
+
+_SUSPENSOES = {
+    "original": "ORIGINAL",
+    "esportiva": "MOLA ESPORTIVA",
+    "mola esportiva": "MOLA ESPORTIVA",
+    "fixa": "FIXA",
+    "suspensao fixa": "FIXA",
+    "suspensão fixa": "FIXA",
+    "rosca": "ROSCA",
+    "suspensao de rosca": "ROSCA",
+    "suspensão de rosca": "ROSCA",
+    "ar": "A AR",
+    "a ar": "A AR",
+    "suspensao a ar": "A AR",
+    "suspensão a ar": "A AR",
+    "coilover": "COILOVER",
+    "outro": "OUTRO",
+}
+
+_PLACA_ATUAL = re.compile(r"^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$")
+_PLACA_CLASSICA = re.compile(r"^[A-Z]{2}[0-9]{4}$")
+
+
+def _normalizar_combustivel(value: str | None) -> str | None:
+    if value is None:
+        return None
+    itens: list[str] = []
+    for item in re.split(r"\s*[,/;+]\s*", value):
+        item = item.strip()
+        if not item:
+            continue
+        normalizado = _COMBUSTIVEIS.get(item.casefold(), item)
+        if normalizado not in itens:
+            itens.append(normalizado)
+    return ", ".join(itens) or None
+
+
+def _normalizar_cambio(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return _CAMBIOS.get(value.casefold(), value)
+
+
+def _normalizar_suspensao(value: str | None) -> str | None:
+    if value is None:
+        return None
+    value = value.strip()
+    if not value:
+        return None
+    return _SUSPENSOES.get(value.casefold(), value.upper())
 
 
 class CarroBase(BaseModel):
@@ -27,18 +110,13 @@ class CarroBase(BaseModel):
     @field_validator("modelo")
     @classmethod
     def limpar_modelo(cls, value: str) -> str:
-        value = " ".join(value.split())
+        value = " ".join(value.split()).upper()
         if not value:
             raise ValueError("O modelo nao pode ser vazio.")
         return value
 
     @field_validator(
-        "cor",
-        "tipo_suspensao",
         "historia",
-        "motor",
-        "cambio",
-        "combustivel",
         "potencia_estimada",
         "preparacao",
         "status_projeto",
@@ -49,6 +127,29 @@ class CarroBase(BaseModel):
             return None
         value = value.strip()
         return value or None
+
+    @field_validator("cor", "motor")
+    @classmethod
+    def padronizar_campos_tecnicos(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip().upper()
+        return value or None
+
+    @field_validator("tipo_suspensao")
+    @classmethod
+    def normalizar_suspensao(cls, value: str | None) -> str | None:
+        return _normalizar_suspensao(value)
+
+    @field_validator("cambio")
+    @classmethod
+    def normalizar_cambio(cls, value: str | None) -> str | None:
+        return _normalizar_cambio(value)
+
+    @field_validator("combustivel")
+    @classmethod
+    def normalizar_combustivel(cls, value: str | None) -> str | None:
+        return _normalizar_combustivel(value)
 
 
 class CarroCriacao(CarroBase):
@@ -61,7 +162,13 @@ class CarroCriacao(CarroBase):
         if value is None:
             return None
         value = value.replace("-", "").replace(" ", "").upper()
-        return value or None
+        if not value:
+            return None
+        if not _PLACA_ATUAL.fullmatch(value) and not _PLACA_CLASSICA.fullmatch(
+            value
+        ):
+            raise ValueError("Informe uma placa valida.")
+        return value
 
 
 class CarroAtualizacao(BaseModel):
@@ -85,7 +192,7 @@ class CarroAtualizacao(BaseModel):
     def limpar_modelo(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        value = " ".join(value.split())
+        value = " ".join(value.split()).upper()
         if not value:
             raise ValueError("O modelo nao pode ser vazio.")
         return value
@@ -96,15 +203,16 @@ class CarroAtualizacao(BaseModel):
         if value is None:
             return None
         value = value.replace("-", "").replace(" ", "").upper()
-        return value or None
+        if not value:
+            return None
+        if not _PLACA_ATUAL.fullmatch(value) and not _PLACA_CLASSICA.fullmatch(
+            value
+        ):
+            raise ValueError("Informe uma placa valida.")
+        return value
 
     @field_validator(
-        "cor",
-        "tipo_suspensao",
         "historia",
-        "motor",
-        "cambio",
-        "combustivel",
         "potencia_estimada",
         "preparacao",
         "status_projeto",
@@ -115,6 +223,29 @@ class CarroAtualizacao(BaseModel):
             return None
         value = value.strip()
         return value or None
+
+    @field_validator("cor", "motor")
+    @classmethod
+    def padronizar_campos_tecnicos(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip().upper()
+        return value or None
+
+    @field_validator("tipo_suspensao")
+    @classmethod
+    def normalizar_suspensao(cls, value: str | None) -> str | None:
+        return _normalizar_suspensao(value)
+
+    @field_validator("cambio")
+    @classmethod
+    def normalizar_cambio(cls, value: str | None) -> str | None:
+        return _normalizar_cambio(value)
+
+    @field_validator("combustivel")
+    @classmethod
+    def normalizar_combustivel(cls, value: str | None) -> str | None:
+        return _normalizar_combustivel(value)
 
     @model_validator(mode="after")
     def modelo_nao_pode_ser_nulo(self) -> "CarroAtualizacao":

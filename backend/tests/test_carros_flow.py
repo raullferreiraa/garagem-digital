@@ -104,6 +104,9 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
         "cor": "Branco",
         "placa": "abc-1d23",
         "historia": "Projeto de rua",
+        "combustivel": "gasolina/GNV/gasolina",
+        "cambio": "automatico",
+        "tipo_suspensao": "suspensão a ar",
     }
 
     sem_token = client.post("/api/v1/carros", json=dados_carro)
@@ -116,10 +119,29 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     )
     assert criado.status_code == 201
     carro = criado.json()
-    assert carro["modelo"] == "Gol CL"
+    assert carro["modelo"] == "GOL CL"
+    assert carro["combustivel"] == "Gasolina, GNV"
+    assert carro["cor"] == "BRANCO"
+    assert carro["cambio"] == "Automático"
+    assert carro["tipo_suspensao"] == "A AR"
     assert carro["placa"] == "ABC1D23"
     assert carro["placa_visivel"] is False
     assert carro["proprietario"]["id"] == dono["usuario"]["id"]
+
+    placa_invalida = client.patch(
+        f"/api/v1/carros/{carro['id']}",
+        headers=auth_header(dono),
+        json={"placa": "ABC12"},
+    )
+    assert placa_invalida.status_code == 422
+
+    placa_classica = client.patch(
+        f"/api/v1/carros/{carro['id']}",
+        headers=auth_header(dono),
+        json={"placa": "ab-1234"},
+    )
+    assert placa_classica.status_code == 200
+    assert placa_classica.json()["placa"] == "AB1234"
 
     detalhe_publico = client.get(f"/api/v1/carros/{carro['id']}")
     assert detalhe_publico.status_code == 200
@@ -139,7 +161,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
         json={"cor": "Preto"},
     )
     assert atualizado.status_code == 200
-    assert atualizado.json()["cor"] == "Preto"
+    assert atualizado.json()["cor"] == "PRETO"
 
     placa_publica = client.patch(
         f"/api/v1/carros/{carro['id']}",
@@ -148,7 +170,7 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     )
     assert placa_publica.status_code == 200
     detalhe_com_placa = client.get(f"/api/v1/carros/{carro['id']}")
-    assert detalhe_com_placa.json()["placa"] == "ABC1D23"
+    assert detalhe_com_placa.json()["placa"] == "AB1234"
 
     modelo_nulo = client.patch(
         f"/api/v1/carros/{carro['id']}",

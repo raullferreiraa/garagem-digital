@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
@@ -169,7 +170,8 @@ final class _ProfileScreenState extends State<ProfileScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 112),
               children: [
-                _ProfileHero(
+                GdReveal(
+                    child: _ProfileHero(
                   name: user.name,
                   username: user.username,
                   bio: user.bio,
@@ -182,29 +184,17 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   onFollowers: () => _openConnections(following: false),
                   onFollowing: () => _openConnections(following: true),
                   onEdit: _editProfile,
-                ),
+                )),
                 const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Meus projetos',
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                    ),
-                    if (snapshot.connectionState == ConnectionState.waiting)
-                      const SizedBox.square(
-                        dimension: 22,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    else
-                      _CountBadge(count: cars.length),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'As máquinas que contam a sua história.',
-                  style: Theme.of(context).textTheme.bodyLarge,
+                GdSectionTitle(
+                  title: 'Minha coleção',
+                  eyebrow: 'FEITO DO SEU JEITO',
+                  trailing: snapshot.connectionState == ConnectionState.waiting
+                      ? const SizedBox.square(
+                          dimension: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : _CountBadge(count: cars.length),
                 ),
                 const SizedBox(height: 16),
                 if (snapshot.hasError)
@@ -213,6 +203,12 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                     message: apiErrorMessage(snapshot.error!),
                     actionLabel: 'Tentar novamente',
                     onAction: _reload,
+                  )
+                else if (snapshot.connectionState == ConnectionState.waiting &&
+                    cars.isEmpty)
+                  const SizedBox(
+                    height: 260,
+                    child: GdSkeleton(compact: true),
                   )
                 else if (snapshot.connectionState != ConnectionState.waiting &&
                     cars.isEmpty)
@@ -232,11 +228,13 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                 const SizedBox(height: 18),
                 const Divider(),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                const GdSectionTitle(title: 'Sua conta', eyebrow: 'SÓ VOCÊ VÊ'),
+                const SizedBox(height: 12),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                   leading: const Icon(Icons.alternate_email),
-                  title: const Text('Username'),
+                  title: const Text('Nome de usuário'),
                   subtitle: Text('@${user.username}'),
                 ),
                 ListTile(
@@ -291,188 +289,128 @@ final class _ProfileHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final location = [city, state]
         .where((value) => value != null && value.isNotEmpty)
-        .join(' - ');
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF7A351F), Color(0xFF36231F)],
+        .join(' · ');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+                child: Text(
+              'QUEM ESTÁ AO VOLANTE',
+              style: theme.textTheme.labelSmall?.copyWith(
+                letterSpacing: 2,
+                color: colors.primary,
+              ),
+            )),
+            Icon(Icons.sports_motorsports_outlined,
+                color: colors.primary, size: 24),
+          ],
         ),
-        borderRadius: BorderRadius.circular(30),
-        border: Border.all(color: const Color(0xFF9B5B47)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _Avatar(name: name, avatarUrl: avatarUrl),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '@$username',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    if (location.isNotEmpty) ...[
-                      const SizedBox(height: 9),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, size: 18),
-                          const SizedBox(width: 5),
-                          Expanded(child: Text(location)),
-                        ],
-                      ),
-                    ],
+        const SizedBox(height: 22),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            GdAvatar(name: name, url: avatarUrl, size: 88),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: theme.textTheme.headlineLarge),
+                  const SizedBox(height: 3),
+                  Text('@$username',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.primary,
+                      )),
+                  if (location.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Row(children: [
+                      Icon(Icons.location_on_outlined,
+                          size: 14, color: colors.onSurfaceVariant),
+                      const SizedBox(width: 4),
+                      Expanded(
+                          child: Text(
+                        location,
+                        style: theme.textTheme.labelMedium
+                            ?.copyWith(color: colors.onSurfaceVariant),
+                      )),
+                    ]),
                   ],
-                ),
+                ],
               ),
-            ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 20),
+        Text(
+          bio?.isNotEmpty == true
+              ? bio!
+              : 'Sua história também faz parte do projeto. Adicione uma bio.',
+          style: theme.textTheme.bodyMedium
+              ?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(color: colors.outlineVariant),
+              bottom: BorderSide(color: colors.outlineVariant),
+            ),
           ),
-          const SizedBox(height: 20),
-          Text(
-            bio?.isNotEmpty == true
-                ? bio!
-                : 'Conte um pouco sobre você e sua relação com carros.',
-            style: Theme.of(context).textTheme.bodyLarge,
+          child: Row(children: [
+            _ProfileSocialStat(value: projectsCount, label: 'projetos'),
+            _ProfileSocialStat(
+                value: followersCount, label: 'seguidores', onTap: onFollowers),
+            _ProfileSocialStat(
+                value: followingCount, label: 'seguindo', onTap: onFollowing),
+          ]),
+        ),
+        const SizedBox(height: 18),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: onEdit,
+            icon: const Icon(Icons.tune_rounded, size: 18),
+            label: const Text('Editar perfil'),
           ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              _ProfileSocialStat(
-                value: followersCount,
-                label: 'seguidores',
-                onTap: onFollowers,
-              ),
-              const SizedBox(width: 10),
-              _ProfileSocialStat(
-                value: followingCount,
-                label: 'seguindo',
-                onTap: onFollowing,
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.22),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.garage_outlined),
-                      const SizedBox(width: 10),
-                      Text(
-                        '$projectsCount ${projectsCount == 1 ? 'projeto' : 'projetos'}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.tonalIcon(
-                onPressed: onEdit,
-                icon: const Icon(Icons.edit_outlined),
-                label: const Text('Editar'),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 final class _ProfileSocialStat extends StatelessWidget {
-  const _ProfileSocialStat({
-    required this.value,
-    required this.label,
-    required this.onTap,
-  });
+  const _ProfileSocialStat(
+      {required this.value, required this.label, this.onTap});
 
   final int value;
   final String label;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Expanded(
-      child: Material(
-        color: Colors.black.withValues(alpha: 0.18),
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Column(
-              children: [
-                Text(
-                  '$value',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                ),
-                Text(label),
-              ],
-            ),
-          ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
+          child: Column(children: [
+            Text('$value', style: theme.textTheme.headlineMedium),
+            Text(label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                )),
+          ]),
         ),
       ),
-    );
-  }
-}
-
-final class _Avatar extends StatelessWidget {
-  const _Avatar({required this.name, required this.avatarUrl});
-
-  final String name;
-  final String? avatarUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 86,
-      height: 86,
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFF8D3E24),
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFFFAE96)),
-      ),
-      child: avatarUrl == null
-          ? Center(
-              child: Text(
-                name.substring(0, 1).toUpperCase(),
-                style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-            )
-          : Image.network(
-              avatarUrl!,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const Icon(Icons.person, size: 42),
-            ),
     );
   }
 }
@@ -485,59 +423,49 @@ final class _ProjectCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = [car.model, car.year]
-        .where((value) => value != null)
-        .join(' ');
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Row(
-          children: [
-            SizedBox(
-              width: 124,
-              height: 112,
-              child: car.photoUrl == null
-                  ? const ColoredBox(
-                      color: Color(0xFF24262A),
-                      child: Icon(Icons.directions_car_rounded, size: 44),
-                    )
-                  : Image.network(
-                      car.photoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const ColoredBox(
-                        color: Color(0xFF24262A),
-                        child: Icon(Icons.broken_image_outlined),
-                      ),
-                    ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                    if (car.projectStatus != null) ...[
-                      const SizedBox(height: 8),
-                      Text(car.projectStatus!),
-                    ],
-                  ],
-                ),
+    final theme = Theme.of(context);
+    final title =
+        [car.model, car.year].where((value) => value != null).join(' ');
+    return GdReveal(
+      child: Card(
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AspectRatio(
+                aspectRatio: 16 / 9,
+                child: GdImage(url: car.photoUrl, semanticLabel: title),
               ),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(right: 14),
-              child: Icon(Icons.chevron_right),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  Expanded(
+                      child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (car.projectStatus != null) ...[
+                        Text(
+                          car.projectStatus!.toUpperCase(),
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: theme.colorScheme.primary,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 5),
+                      ],
+                      Text(title, style: theme.textTheme.titleLarge),
+                    ],
+                  )),
+                  const SizedBox(width: 12),
+                  Icon(Icons.north_east_rounded,
+                      color: theme.colorScheme.primary, size: 22),
+                ]),
+              ),
+            ],
+          ),
         ),
       ),
     );

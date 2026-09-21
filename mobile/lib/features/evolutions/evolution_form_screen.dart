@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
@@ -40,7 +41,8 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
     super.initState();
     final evolution = widget.evolution;
     _titleController = TextEditingController(text: evolution?.title);
-    _descriptionController = TextEditingController(text: evolution?.description);
+    _descriptionController =
+        TextEditingController(text: evolution?.description);
     _mileageController = TextEditingController(
       text: evolution?.mileageKm?.toString(),
     );
@@ -134,9 +136,9 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
             children: [
-              Text(
-                widget.carModel,
-                style: Theme.of(context).textTheme.headlineSmall,
+              GdSectionTitle(
+                eyebrow: 'Diário de bordo',
+                title: widget.carModel,
               ),
               const SizedBox(height: 8),
               Text(

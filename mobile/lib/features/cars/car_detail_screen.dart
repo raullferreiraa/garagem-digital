@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
@@ -46,6 +48,7 @@ final class CarDetailScreen extends StatefulWidget {
 class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
   late Future<List<Evolution>> _evolutions;
+  int _carRequest = 0;
   bool _deleting = false;
   bool _updatingPhoto = false;
 
@@ -53,6 +56,56 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   void initState() {
     super.initState();
     _evolutions = widget.evolutionsRepository.byCar(_car.id);
+    unawaited(_refreshCarSilently());
+  }
+
+  Future<void> _refreshCarSilently() async {
+    final request = ++_carRequest;
+    try {
+      final refreshed = await widget.repository.detail(_car.id);
+      if (!mounted || request != _carRequest) return;
+      setState(() {
+        _car =
+            widget.canManage ? refreshed.withPrivateDataFrom(_car) : refreshed;
+      });
+    } catch (_) {
+      // O card recebido mantém a tela utilizável quando a atualização falha.
+    }
+  }
+
+  Future<void> _reloadProject() async {
+    final request = ++_carRequest;
+    final carRequest = widget.repository.detail(_car.id);
+    final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
+    setState(() {
+      _evolutions = evolutionsRequest;
+    });
+
+    Object? failure;
+    try {
+      final refreshed = await carRequest;
+      if (mounted && request == _carRequest) {
+        setState(() {
+          _car = widget.canManage
+              ? refreshed.withPrivateDataFrom(_car)
+              : refreshed;
+        });
+      }
+    } catch (error) {
+      if (request == _carRequest) failure = error;
+    }
+
+    try {
+      await evolutionsRequest;
+    } catch (error) {
+      failure ??= error;
+    }
+
+    if (failure != null && mounted && request == _carRequest) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(failure))),
+      );
+    }
   }
 
   Future<void> _edit() async {
@@ -64,7 +117,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
         ),
       ),
     );
-    if (updated != null && mounted) setState(() => _car = updated);
+    if (updated != null && mounted) {
+      _carRequest++;
+      setState(() => _car = updated);
+    }
   }
 
   Future<void> _delete() async {
@@ -115,7 +171,9 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
   Future<void> _reloadEvolutions() async {
     final next = widget.evolutionsRepository.byCar(_car.id);
-    setState(() => _evolutions = next);
+    setState(() {
+      _evolutions = next;
+    });
     await next;
   }
 
@@ -235,6 +293,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       );
       if (croppedBytes == null || !mounted) return;
 
+      _carRequest++;
       setState(() => _updatingPhoto = true);
       final updated = await widget.repository.uploadMainPhoto(
         _car.id,
@@ -280,6 +339,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     );
     if (confirmed != true || !mounted) return;
 
+    _carRequest++;
     setState(() => _updatingPhoto = true);
     try {
       final updated = await widget.repository.removeMainPhoto(_car.id);
@@ -396,15 +456,26 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return '$day/$month/${local.year}';
   }
 
+  String _formatNumber(int value) {
+    final digits = value.toString();
+    final formatted = StringBuffer();
+    for (var index = 0; index < digits.length; index++) {
+      if (index > 0 && (digits.length - index) % 3 == 0) {
+        formatted.write('.');
+      }
+      formatted.write(digits[index]);
+    }
+    return formatted.toString();
+  }
+
+  String _formatMileage(int value) => '${_formatNumber(value)} km';
+
   Widget _evolutionTimeline() {
     return FutureBuilder<List<Evolution>>(
       future: _evolutions,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Padding(
-            padding: EdgeInsets.all(32),
-            child: Center(child: CircularProgressIndicator()),
-          );
+          return const SizedBox(height: 180, child: GdSkeleton(compact: true));
         }
         if (snapshot.hasError) {
           return Card(
@@ -436,12 +507,43 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
           );
         }
 
+        final latestDate = evolutions
+            .map((evolution) => evolution.timelineDate)
+            .reduce((current, candidate) =>
+                candidate.isAfter(current) ? candidate : current);
+        final evolutionsWithMileage = evolutions
+            .where((evolution) => evolution.mileageKm != null)
+            .toList(growable: false);
+        final latestMileageEvolution = evolutionsWithMileage.isEmpty
+            ? null
+            : evolutionsWithMileage.reduce((current, candidate) =>
+                candidate.timelineDate.isAfter(current.timelineDate)
+                    ? candidate
+                    : current);
+
         return Column(
           children: [
+            _DiarySummary(
+              count: evolutions.length,
+              latestDate: _formatDate(latestDate),
+              mileage: latestMileageEvolution?.mileageKm == null
+                  ? null
+                  : _formatMileage(latestMileageEvolution!.mileageKm!),
+            ),
+            const SizedBox(height: 12),
             for (final evolution in evolutions)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainer,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border(
+                        left: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
+                      width: 2,
+                    )),
+                  ),
                   child: Padding(
                     padding: const EdgeInsets.all(16),
                     child: Column(
@@ -455,13 +557,6 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                                 style: Theme.of(context).textTheme.labelLarge,
                               ),
                             ),
-                            if (evolution.category != null)
-                              Chip(
-                                label: Text(
-                                  evolutionCategoryLabels[evolution.category] ??
-                                      evolution.category!,
-                                ),
-                              ),
                             if (widget.canManage)
                               PopupMenuButton<_EvolutionAction>(
                                 tooltip: 'Opções da evolução',
@@ -486,9 +581,25 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                               ),
                           ],
                         ),
+                        if (evolution.category != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            (evolutionCategoryLabels[evolution.category] ??
+                                    evolution.category!)
+                                .toUpperCase(),
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  letterSpacing: 1,
+                                ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
                         Text(
                           evolution.title,
-                          style: Theme.of(context).textTheme.titleLarge,
+                          style: Theme.of(context).textTheme.headlineSmall,
                         ),
                         const SizedBox(height: 8),
                         Text(evolution.description),
@@ -498,7 +609,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                             children: [
                               const Icon(Icons.speed_outlined, size: 18),
                               const SizedBox(width: 6),
-                              Text('${evolution.mileageKm} km'),
+                              Text(_formatMileage(evolution.mileageKm!)),
                             ],
                           ),
                         ],
@@ -527,17 +638,9 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                                     borderRadius: BorderRadius.circular(10),
                                     child: AspectRatio(
                                       aspectRatio: 4 / 3,
-                                      child: Image.network(
-                                        photo.url,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            const ColoredBox(
-                                          color: Color(0xFF24262A),
-                                          child: Icon(
-                                            Icons.broken_image_outlined,
-                                          ),
-                                        ),
-                                      ),
+                                      child: GdImage(
+                                          url: photo.url,
+                                          semanticLabel: evolution.title),
                                     ),
                                   ),
                                 );
@@ -624,83 +727,94 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ),
       body: _deleting
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 36),
-              children: [
-                _ProjectCover(
-                  car: _car,
-                  canManage: widget.canManage,
-                  updatingPhoto: _updatingPhoto,
-                  onPhotoTap: _openPhotoActions,
-                ),
-                const SizedBox(height: 16),
-                _ProjectIdentity(
-                  car: _car,
-                  onOwnerTap: widget.onOwnerTap,
-                ),
-                const SizedBox(height: 28),
-                const _SectionHeading(
-                  eyebrow: 'A HISTÓRIA',
-                  title: 'Sobre o projeto',
-                  icon: Icons.auto_stories_outlined,
-                ),
-                const SizedBox(height: 12),
-                _StoryCard(
-                  text: _car.history ??
-                      'O proprietário ainda não contou a história deste projeto.',
-                ),
-                const SizedBox(height: 28),
-                _SectionHeading(
-                  eyebrow: 'A MÁQUINA',
-                  title: 'Ficha do carro',
-                  icon: Icons.tune_rounded,
-                  count: specs.length,
-                ),
-                const SizedBox(height: 12),
-                if (specs.isEmpty)
-                  const _EmptyProjectSection(
-                    icon: Icons.tune_rounded,
-                    message: 'A ficha técnica ainda não foi preenchida.',
-                  )
-                else
-                  GridView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: specs.length,
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 10,
-                      crossAxisSpacing: 10,
-                      childAspectRatio: 1.72,
-                    ),
-                    itemBuilder: (context, index) => _SpecTile(
-                      label: specs[index].$1,
-                      value: specs[index].$2!,
-                      icon: specs[index].$3,
-                    ),
+          : RefreshIndicator(
+              onRefresh: _reloadProject,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
+                children: [
+                  _ProjectCover(
+                    car: _car,
+                    canManage: widget.canManage,
+                    updatingPhoto: _updatingPhoto,
+                    onPhotoTap: _openPhotoActions,
                   ),
-                const SizedBox(height: 30),
-                Row(
-                  children: [
-                    const Expanded(
-                      child: _SectionHeading(
-                        eyebrow: 'DIÁRIO DO PROJETO',
-                        title: 'Evoluções',
-                        icon: Icons.timeline_rounded,
-                      ),
+                  const SizedBox(height: 16),
+                  _ProjectIdentity(
+                    car: _car,
+                    onOwnerTap: widget.onOwnerTap,
+                  ),
+                  const SizedBox(height: 28),
+                  const _SectionHeading(
+                    eyebrow: 'A HISTÓRIA',
+                    title: 'Sobre o projeto',
+                    icon: Icons.auto_stories_outlined,
+                  ),
+                  const SizedBox(height: 12),
+                  _StoryCard(
+                    text: _car.history ??
+                        'O proprietário ainda não contou a história deste projeto.',
+                  ),
+                  const SizedBox(height: 28),
+                  _SectionHeading(
+                    eyebrow: 'A MÁQUINA',
+                    title: 'Ficha do carro',
+                    icon: Icons.tune_rounded,
+                    count: specs.length,
+                  ),
+                  const SizedBox(height: 12),
+                  if (specs.isEmpty)
+                    const _EmptyProjectSection(
+                      icon: Icons.tune_rounded,
+                      message: 'A ficha técnica ainda não foi preenchida.',
+                    )
+                  else
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final singleColumn = constraints.maxWidth < 300 ||
+                            MediaQuery.textScalerOf(context).scale(14) > 20;
+                        final width = singleColumn
+                            ? constraints.maxWidth
+                            : (constraints.maxWidth - 10) / 2;
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: [
+                            for (final spec in specs)
+                              SizedBox(
+                                width: width,
+                                child: _SpecTile(
+                                  label: spec.$1,
+                                  value: spec.$2!,
+                                  icon: spec.$3,
+                                ),
+                              ),
+                          ],
+                        );
+                      },
                     ),
-                    if (widget.canManage)
-                      IconButton.filled(
-                        onPressed: _openEvolutionForm,
-                        tooltip: 'Registrar evolução',
-                        icon: const Icon(Icons.add),
+                  const SizedBox(height: 30),
+                  Row(
+                    children: [
+                      const Expanded(
+                        child: _SectionHeading(
+                          eyebrow: 'DIÁRIO DO PROJETO',
+                          title: 'Evoluções',
+                          icon: Icons.timeline_rounded,
+                        ),
                       ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _evolutionTimeline(),
-              ],
+                      if (widget.canManage)
+                        IconButton.filled(
+                          onPressed: _openEvolutionForm,
+                          tooltip: 'Registrar evolução',
+                          icon: const Icon(Icons.add),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  _evolutionTimeline(),
+                ],
+              ),
             ),
     );
   }
@@ -723,30 +837,15 @@ final class _ProjectCover extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return AspectRatio(
-      aspectRatio: 16 / 10,
+      aspectRatio: 4 / 3,
       child: Material(
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(20),
         clipBehavior: Clip.antiAlias,
         color: colors.surfaceContainerHighest,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (car.photoUrl == null)
-              Icon(
-                Icons.directions_car_rounded,
-                size: 104,
-                color: colors.onSurfaceVariant,
-              )
-            else
-              Image.network(
-                car.photoUrl!,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Icon(
-                  Icons.broken_image_outlined,
-                  size: 68,
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
+            GdImage(url: car.photoUrl, semanticLabel: car.model),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -755,9 +854,29 @@ final class _ProjectCover extends StatelessWidget {
                   colors: [
                     Color(0x22000000),
                     Color(0x00000000),
-                    Color(0xB8000000),
+                    Color(0xEB090C10),
                   ],
                   stops: [0, 0.52, 1],
+                ),
+              ),
+            ),
+            Positioned(
+              top: 18,
+              left: 18,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                decoration: BoxDecoration(
+                  color: colors.primary,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'PROJETO AUTOMOTIVO',
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: colors.onPrimary,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
                 ),
               ),
             ),
@@ -776,16 +895,17 @@ final class _ProjectCover extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style:
-                          Theme.of(context).textTheme.headlineMedium?.copyWith(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w900,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                              ),
+                          Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        height: 1,
+                        shadows: const [
+                          Shadow(
+                            color: Colors.black54,
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   if (canManage && !updatingPhoto) ...[
@@ -823,102 +943,52 @@ final class _ProjectIdentity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final ownerInitial =
-        car.ownerName.isEmpty ? '?' : car.ownerName[0].toUpperCase();
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(26),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.primaryContainer.withValues(alpha: 0.82),
-            colors.surfaceContainerHigh,
-          ],
-        ),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'PROJETO AUTOMOTIVO',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.primary,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 1.2,
-                ),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            [car.model, car.year]
-                .where((value) => value != null)
-                .join(' '),
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w900,
-                ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              CircleAvatar(
-                radius: 23,
-                backgroundImage: car.ownerAvatarUrl == null
-                    ? null
-                    : NetworkImage(car.ownerAvatarUrl!),
-                child: car.ownerAvatarUrl == null
-                    ? Text(
-                        ownerInitial,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      )
-                    : null,
-              ),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: InkWell(
-                    onTap: onOwnerTap,
-                    borderRadius: BorderRadius.circular(9),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 3,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              '@${car.ownerUsername}',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                color:
-                                    onOwnerTap == null ? null : colors.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: onOwnerTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                GdAvatar(
+                    url: car.ownerAvatarUrl, name: car.ownerName, size: 44),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'NA GARAGEM DE',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: colors.onSurfaceVariant,
+                              letterSpacing: 1.1,
                             ),
-                          ),
-                          if (onOwnerTap != null) ...[
-                            const SizedBox(width: 5),
-                            const Icon(Icons.open_in_new, size: 15),
-                          ],
-                        ],
                       ),
-                    ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '@${car.ownerUsername}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              if (car.projectStatus != null) ...[
-                const SizedBox(width: 8),
-                _ProjectStatus(label: car.projectStatus!),
+                if (onOwnerTap != null)
+                  Icon(Icons.arrow_outward_rounded,
+                      size: 19, color: colors.primary),
               ],
-            ],
+            ),
           ),
+        ),
+        if (car.projectStatus != null) ...[
+          const SizedBox(height: 10),
+          _ProjectStatus(label: car.projectStatus!),
         ],
-      ),
+      ],
     );
   }
 }
@@ -934,9 +1004,9 @@ final class _ProjectStatus extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(99),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.34)),
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(7),
+        border: Border.all(color: colors.outlineVariant),
       ),
       child: Text(
         label,
@@ -965,50 +1035,122 @@ final class _SectionHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    return GdSectionTitle(
+      title: title,
+      eyebrow: eyebrow,
+      trailing: count == null
+          ? Icon(icon, color: colors.primary, size: 21)
+          : Text(
+              count.toString().padLeft(2, '0'),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+            ),
+    );
+  }
+}
+
+final class _DiarySummary extends StatelessWidget {
+  const _DiarySummary({
+    required this.count,
+    required this.latestDate,
+    required this.mileage,
+  });
+
+  final int count;
+  final String latestDate;
+  final String? mileage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: colors.outlineVariant),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - 12) / 2;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 16,
+            children: [
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.library_books_outlined,
+                  label: 'Registros',
+                  value: count == 1 ? '1 registro' : '$count registros',
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.event_outlined,
+                  label: 'Última evolução',
+                  value: latestDate,
+                ),
+              ),
+              SizedBox(
+                width: itemWidth,
+                child: _DiaryStat(
+                  icon: Icons.speed_outlined,
+                  label: 'Quilometragem',
+                  value: mileage ?? 'Não informada',
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+final class _DiaryStat extends StatelessWidget {
+  const _DiaryStat({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          padding: const EdgeInsets.all(9),
-          decoration: BoxDecoration(
-            color: colors.primary.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(13),
-          ),
-          child: Icon(icon, color: colors.primary, size: 21),
-        ),
-        const SizedBox(width: 11),
+        Icon(icon, size: 20, color: colors.primary),
+        const SizedBox(width: 8),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                eyebrow,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.05,
+                label,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
                     ),
               ),
+              const SizedBox(height: 2),
               Text(
-                title,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                value,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
               ),
             ],
           ),
         ),
-        if (count != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(99),
-            ),
-            child: Text(
-              '$count',
-              style: const TextStyle(fontWeight: FontWeight.w800),
-            ),
-          ),
       ],
     );
   }
@@ -1059,14 +1201,15 @@ final class _SpecTile extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colors.outlineVariant),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(icon, size: 20, color: colors.primary),
-          const Spacer(),
+          const SizedBox(height: 16),
           Text(
             label,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
@@ -1115,4 +1258,3 @@ final class _EmptyProjectSection extends StatelessWidget {
     );
   }
 }
-

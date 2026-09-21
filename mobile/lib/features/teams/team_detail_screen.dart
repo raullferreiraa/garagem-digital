@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
@@ -86,7 +87,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   Future<void> _editTeam(TeamDetail team) async {
     final updated = await Navigator.of(context).push<TeamDetail>(
       MaterialPageRoute(
-        builder: (_) => TeamFormScreen(repository: widget.repository, team: team),
+        builder: (_) =>
+            TeamFormScreen(repository: widget.repository, team: team),
       ),
     );
     if (!mounted || updated == null) return;
@@ -213,7 +215,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         _acting = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(type == 'avatar' ? 'Foto atualizada.' : 'Capa atualizada.')),
+        SnackBar(
+            content: Text(
+                type == 'avatar' ? 'Foto atualizada.' : 'Capa atualizada.')),
       );
     } catch (error) {
       if (!mounted) return;
@@ -291,7 +295,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     try {
       await _reload();
     } catch (error, stackTrace) {
-      debugPrint('Convite aceito, mas a equipe não recarregou: $error\n$stackTrace');
+      debugPrint(
+          'Convite aceito, mas a equipe não recarregou: $error\n$stackTrace');
     }
     if (!mounted) return;
     setState(() => _acting = false);
@@ -373,9 +378,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                 leading: Icon(role.$3),
                 title: Text(role.$2),
                 selected: member.role == role.$1,
-                trailing: member.role == role.$1
-                    ? const Icon(Icons.check)
-                    : null,
+                trailing:
+                    member.role == role.$1 ? const Icon(Icons.check) : null,
                 onTap: () => Navigator.of(context).pop(role.$1),
               ),
             const Divider(),
@@ -468,7 +472,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     if (!mounted) return;
     if (ownCars.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Adicione um carro à sua garagem primeiro.')),
+        const SnackBar(
+            content: Text('Adicione um carro à sua garagem primeiro.')),
       );
       return;
     }
@@ -479,12 +484,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('Carro na equipe', style: Theme.of(context).textTheme.titleLarge),
+            Text('Carro na equipe',
+                style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             for (final car in ownCars)
               ListTile(
                 leading: const Icon(Icons.directions_car_outlined),
-                title: Text([car.model, car.year].whereType<Object>().join(' ')),
+                title:
+                    Text([car.model, car.year].whereType<Object>().join(' ')),
                 trailing: team.cars.any((item) => item.id == car.id)
                     ? const Icon(Icons.check)
                     : null,
@@ -505,7 +512,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       () => selected.isEmpty
           ? widget.repository.removeSelectedCar(team.id)
           : widget.repository.selectCar(team.id, selected),
-      selected.isEmpty ? 'Carro removido da equipe.' : 'Carro escolhido para a equipe.',
+      selected.isEmpty
+          ? 'Carro removido da equipe.'
+          : 'Carro escolhido para a equipe.',
     );
   }
 
@@ -570,7 +579,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           ),
           body: snapshot.connectionState == ConnectionState.waiting &&
                   team == null
-              ? const Center(child: CircularProgressIndicator())
+              ? const GdSkeleton()
               : snapshot.hasError && team == null
                   ? Center(
                       child: FilledButton(
@@ -593,7 +602,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
       children: [
-        _TeamHero(team: team),
+        GdReveal(child: _TeamHero(team: team)),
         const SizedBox(height: 16),
         if (team.myRole == null && team.myInvite == 'pendente') ...[
           Container(
@@ -628,9 +637,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
-                  onPressed: _acting
-                      ? null
-                      : () => _respondInvite(team, accept: true),
+                  onPressed:
+                      _acting ? null : () => _respondInvite(team, accept: true),
                   child: const Text('Aceitar convite'),
                 ),
               ),
@@ -768,7 +776,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           )
         else
           SizedBox(
-            height: 250,
+            height: 270 + (MediaQuery.textScalerOf(context).scale(36) - 36),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: team.cars.length,
@@ -790,7 +798,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         ),
         const SizedBox(height: 12),
         AnimatedSize(
-          duration: const Duration(milliseconds: 240),
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
           child: Container(
@@ -829,150 +839,107 @@ final class _TeamHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(28),
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.primaryContainer,
-            colors.surfaceContainerHigh,
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (team.coverUrl != null) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: AspectRatio(
+              aspectRatio: 16 / 7,
+              child: GdImage(
+                url: team.coverUrl,
+                semanticLabel: 'Capa de ${team.name}',
+                fallbackIcon: Icons.panorama_outlined,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _StatusPill(
+              icon: team.visibility == 'publica'
+                  ? Icons.public
+                  : Icons.lock_outline,
+              label: team.visibility == 'publica' ? 'Pública' : 'Privada',
+            ),
+            if (team.myRole != null)
+              _StatusPill(
+                icon: Icons.shield_outlined,
+                label: _roleName(team.myRole!),
+                highlighted: true,
+              ),
           ],
         ),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (team.coverUrl != null) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: Image.network(
-                team.coverUrl!,
-                width: double.infinity,
-                height: 150,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => SizedBox(
-                  height: 150,
-                  child: Center(
-                    child: Icon(Icons.panorama_outlined, color: colors.onSurface),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-          ],
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: colors.primary.withValues(alpha: 0.18),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(
-                    color: colors.primary.withValues(alpha: 0.3),
-                  ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: team.avatarUrl == null
-                    ? Text(
-                        team.name.substring(0, 1).toUpperCase(),
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.w900,
-                            ),
-                      )
-                    : Image.network(
-                        team.avatarUrl!,
-                        width: 72,
-                        height: 72,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Text(
-                          team.name.substring(0, 1).toUpperCase(),
-                        ),
-                      ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            GdAvatar(name: team.name, url: team.avatarUrl, size: 72),
+            const SizedBox(width: 16),
+            Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _StatusPill(
-                          icon: team.visibility == 'publica'
-                              ? Icons.public
-                              : Icons.lock_outline,
-                          label: team.visibility == 'publica'
-                              ? 'Pública'
-                              : 'Privada',
-                        ),
-                        if (team.myRole != null)
-                          _StatusPill(
-                            icon: Icons.shield_outlined,
-                            label: _roleName(team.myRole!),
-                            highlighted: true,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      team.name,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w900,
-                          ),
-                    ),
-                    if (team.location != null) ...[
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          const Icon(Icons.location_on_outlined, size: 16),
-                          const SizedBox(width: 4),
-                          Expanded(child: Text(team.location!)),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
-          if (team.description != null) ...[
-            const SizedBox(height: 18),
-            Text(
-              team.description!,
-              style: TextStyle(color: colors.onSurfaceVariant, height: 1.45),
-            ),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(team.name, style: theme.textTheme.headlineLarge),
+                if (team.location != null) ...[
+                  const SizedBox(height: 5),
+                  Row(children: [
+                    Icon(Icons.location_on_outlined,
+                        size: 14, color: colors.primary),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Text(
+                      team.location!,
+                      style: theme.textTheme.labelMedium
+                          ?.copyWith(color: colors.onSurfaceVariant),
+                    )),
+                  ]),
+                ],
+              ],
+            )),
           ],
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _TeamStat(
-                  icon: Icons.people_outline,
-                  value: '${team.memberCount}',
-                  label: 'integrantes',
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _TeamStat(
-                  icon: Icons.directions_car_outlined,
-                  value: '${team.cars.length}',
-                  label: 'projetos',
-                ),
-              ),
-            ],
+        ),
+        if (team.description != null) ...[
+          const SizedBox(height: 18),
+          Text(
+            team.description!,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+              height: 1.6,
+            ),
           ),
         ],
-      ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+              border: Border(
+            top: BorderSide(color: colors.outlineVariant),
+            bottom: BorderSide(color: colors.outlineVariant),
+          )),
+          child: Row(children: [
+            Expanded(
+                child: _TeamStat(
+              icon: Icons.people_outline,
+              value: '${team.memberCount}',
+              label: 'integrantes',
+            )),
+            const SizedBox(width: 10),
+            Expanded(
+                child: _TeamStat(
+              icon: Icons.directions_car_outlined,
+              value: '${team.cars.length}',
+              label: 'projetos',
+            )),
+          ]),
+        ),
+      ],
     );
   }
 }
@@ -1001,17 +968,17 @@ final class _StatusPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: highlighted
-            ? colors.primary.withValues(alpha: 0.16)
-            : colors.surface.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(99),
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 14, color: highlighted ? colors.primary : null),
           const SizedBox(width: 5),
-          Text(label, style: Theme.of(context).textTheme.labelMedium),
+          Flexible(
+              child:
+                  Text(label, style: Theme.of(context).textTheme.labelSmall)),
         ],
       ),
     );
@@ -1031,25 +998,23 @@ final class _TeamStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 20),
-          const SizedBox(width: 10),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w900)),
-              Text(label, style: Theme.of(context).textTheme.labelSmall),
-            ],
-          ),
-        ],
-      ),
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Icon(icon, size: 22, color: theme.colorScheme.primary),
+        const SizedBox(width: 10),
+        Expanded(
+            child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value, style: theme.textTheme.headlineMedium),
+            Text(label,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                )),
+          ],
+        )),
+      ],
     );
   }
 }
@@ -1067,36 +1032,13 @@ final class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                eyebrow,
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colors.primary,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.1,
-                    ),
-              ),
-              const SizedBox(height: 3),
-              Text(title, style: Theme.of(context).textTheme.titleLarge),
-            ],
-          ),
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(99),
-          ),
-          child: Text(trailing),
-        ),
-      ],
+    return GdSectionTitle(
+      title: title,
+      eyebrow: eyebrow,
+      trailing: Text(trailing,
+          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+              )),
     );
   }
 }
@@ -1129,14 +1071,7 @@ final class _RequestCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              CircleAvatar(
-                backgroundImage: request.avatarUrl == null
-                    ? null
-                    : NetworkImage(request.avatarUrl!),
-                child: request.avatarUrl == null
-                    ? Text(request.name.substring(0, 1).toUpperCase())
-                    : null,
-              ),
+              GdAvatar(name: request.name, url: request.avatarUrl),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1192,41 +1127,55 @@ final class _MemberTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
+    final colors = Theme.of(context).colorScheme;
+    return InkWell(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
-      leading: CircleAvatar(
-        backgroundImage:
-            member.avatarUrl == null ? null : NetworkImage(member.avatarUrl!),
-        child: member.avatarUrl == null
-            ? Text(member.name.substring(0, 1).toUpperCase())
-            : null,
-      ),
-      title: Text(member.name),
-      subtitle: Text('@${member.username}'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _StatusPill(
-            icon: member.role == 'dono'
-                ? Icons.star_outline
-                : member.role == 'administrador'
-                    ? Icons.shield_outlined
-                    : member.role == 'moderador'
-                        ? Icons.gavel_outlined
-                        : Icons.person_outline,
-            label: _roleName(member.role),
-            highlighted: member.role != 'membro',
-          ),
-          if (canManageRole) ...[
-            const SizedBox(width: 4),
-            IconButton(
-              tooltip: 'Alterar cargo',
-              onPressed: onRoleTap,
-              icon: const Icon(Icons.manage_accounts_outlined),
-            ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            GdAvatar(name: member.name, url: member.avatarUrl, size: 44),
+            const SizedBox(width: 12),
+            Expanded(
+                child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(member.name,
+                    style: Theme.of(context).textTheme.titleSmall),
+                const SizedBox(height: 3),
+                Text(
+                  '@${member.username}',
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(color: colors.onSurfaceVariant),
+                ),
+                const SizedBox(height: 6),
+                _StatusPill(
+                  icon: member.role == 'dono'
+                      ? Icons.star_outline
+                      : member.role == 'administrador'
+                          ? Icons.shield_outlined
+                          : member.role == 'moderador'
+                              ? Icons.gavel_outlined
+                              : Icons.person_outline,
+                  label: _roleName(member.role),
+                  highlighted: member.role != 'membro',
+                ),
+              ],
+            )),
+            if (canManageRole)
+              IconButton(
+                tooltip: 'Alterar cargo',
+                onPressed: onRoleTap,
+                icon: const Icon(Icons.manage_accounts_outlined),
+              )
+            else
+              Icon(Icons.north_east_rounded,
+                  size: 18, color: colors.onSurfaceVariant),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1240,67 +1189,55 @@ final class _TeamCarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
     return SizedBox(
       width: 250,
       child: Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            SizedBox(
-              height: 150,
-              child: car.photoUrl == null
-                  ? ColoredBox(
-                      color: colors.surfaceContainerHighest,
-                      child: const Icon(Icons.directions_car, size: 48),
-                    )
-                  : Image.network(
-                      car.photoUrl!,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => ColoredBox(
-                        color: colors.surfaceContainerHighest,
-                        child: const Icon(Icons.broken_image_outlined),
-                      ),
-                    ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(14),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
+        margin: EdgeInsets.zero,
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 150,
+                child: GdImage(url: car.photoUrl, semanticLabel: car.model),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
                         Expanded(
-                          child: Text(
-                            [car.model, car.year]
-                                .whereType<Object>()
-                                .join(' '),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
-                          ),
+                            child: Text(
+                          [car.model, car.year].whereType<Object>().join(' '),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleLarge,
+                        )),
+                        const SizedBox(width: 8),
+                        Icon(Icons.north_east_rounded,
+                            size: 18, color: theme.colorScheme.primary),
+                      ]),
+                      const SizedBox(height: 4),
+                      Text(
+                        '@${car.ownerUsername}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
-                        const Icon(Icons.arrow_outward, size: 18),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '@${car.ownerUsername}',
-                      style: TextStyle(color: colors.onSurfaceVariant),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
-      ),
       ),
     );
   }

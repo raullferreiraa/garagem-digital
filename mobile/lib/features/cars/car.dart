@@ -78,6 +78,31 @@ final class Car {
   final bool? plateVisible;
   final int likesCount;
   final int commentsCount;
+
+  Car withPrivateDataFrom(Car source) => Car(
+        id: id,
+        model: model,
+        ownerId: ownerId,
+        ownerName: ownerName,
+        ownerUsername: ownerUsername,
+        ownerAvatarUrl: ownerAvatarUrl,
+        year: year,
+        color: color,
+        photoUrl: photoUrl,
+        projectStatus: projectStatus,
+        history: history,
+        engine: engine,
+        transmission: transmission,
+        fuel: fuel,
+        estimatedPower: estimatedPower,
+        preparation: preparation,
+        suspensionType: suspensionType,
+        wheelSize: wheelSize,
+        plate: source.plate,
+        plateVisible: source.plateVisible,
+        likesCount: likesCount,
+        commentsCount: commentsCount,
+      );
 }
 
 final class CarInput {
@@ -114,7 +139,7 @@ final class CarInput {
   final bool plateVisible;
 
   Map<String, Object?> toJson() => {
-        'modelo': model.trim(),
+        'modelo': model.trim().toUpperCase(),
         'ano': year,
         'cor': color,
         'status_projeto': projectStatus,

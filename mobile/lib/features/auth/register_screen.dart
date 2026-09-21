@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 
 final class RegisterScreen extends StatefulWidget {
@@ -18,6 +19,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _submitting = false;
+  bool _showPassword = false;
 
   @override
   void dispose() {
@@ -29,6 +31,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() => _submitting = true);
     try {
@@ -55,76 +58,225 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Criar conta')),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: Center(
+            child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: _name,
-                  textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Nome'),
-                  validator: (value) => value == null || value.trim().length < 2
-                      ? 'Informe seu nome.'
-                      : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _username,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'Username',
-                    prefixText: '@',
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 440),
+            child: AutofillGroup(
+                child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const GdReveal(
+                      child: AuthRacingHeader(
+                    title: 'Toda paixão',
+                    accent: 'tem um começo.',
+                    description:
+                        'Crie seu perfil e dê um lugar para a história '
+                        'do seu projeto.',
+                    compact: true,
+                  )),
+                  const SizedBox(height: 28),
+                  TextFormField(
+                    controller: _name,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    autofillHints: const [AutofillHints.name],
+                    decoration: const InputDecoration(
+                        labelText: 'Nome',
+                        prefixIcon: Icon(Icons.person_outline_rounded)),
+                    validator: (value) =>
+                        value == null || value.trim().length < 2
+                            ? 'Informe seu nome.'
+                            : null,
                   ),
-                  validator: (value) {
-                    final username = value?.trim() ?? '';
-                    return RegExp(r'^[a-z0-9._]{3,30}$').hasMatch(username)
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _username,
+                    textInputAction: TextInputAction.next,
+                    autocorrect: false,
+                    autofillHints: const [AutofillHints.newUsername],
+                    decoration: const InputDecoration(
+                      labelText: 'Nome de usuário',
+                      prefixText: '@',
+                      prefixIcon: Icon(Icons.alternate_email_rounded),
+                    ),
+                    validator: (value) {
+                      final username = value?.trim() ?? '';
+                      return RegExp(r'^[a-z0-9._]{3,30}$').hasMatch(username)
+                          ? null
+                          : 'Use 3 a 30 letras minúsculas, números, ponto ou _.';
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _email,
+                    keyboardType: TextInputType.emailAddress,
+                    textInputAction: TextInputAction.next,
+                    autocorrect: false,
+                    autofillHints: const [AutofillHints.email],
+                    decoration: const InputDecoration(
+                        labelText: 'Email',
+                        prefixIcon: Icon(Icons.mail_outline_rounded)),
+                    validator: (value) => value != null && value.contains('@')
                         ? null
-                        : 'Use 3 a 30 letras minusculas, numeros, ponto ou _.';
-                  },
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _email,
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  validator: (value) => value != null && value.contains('@')
-                      ? null
-                      : 'Informe um email valido.',
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _password,
-                  obscureText: true,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
-                  decoration: const InputDecoration(labelText: 'Senha'),
-                  validator: (value) => value == null || value.length < 8
-                      ? 'Use pelo menos 8 caracteres.'
-                      : null,
-                ),
-                const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton(
-                    onPressed: _submitting ? null : _submit,
-                    child: _submitting
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : const Text('Criar conta'),
+                        : 'Informe um email válido.',
                   ),
-                ),
-              ],
-            ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: !_showPassword,
+                    autofillHints: const [AutofillHints.newPassword],
+                    autocorrect: false,
+                    enableSuggestions: false,
+                    textInputAction: TextInputAction.done,
+                    onFieldSubmitted: (_) => _submit(),
+                    decoration: InputDecoration(
+                      labelText: 'Senha',
+                      prefixIcon: const Icon(Icons.lock_outline_rounded),
+                      helperText: 'Pelo menos 8 caracteres.',
+                      suffixIcon: IconButton(
+                        tooltip:
+                            _showPassword ? 'Ocultar senha' : 'Mostrar senha',
+                        onPressed: () =>
+                            setState(() => _showPassword = !_showPassword),
+                        icon: Icon(_showPassword
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined),
+                      ),
+                    ),
+                    validator: (value) => value == null || value.length < 8
+                        ? 'Use pelo menos 8 caracteres.'
+                        : null,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: _submitting ? null : _submit,
+                      child: _submitting
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Flexible(
+                                    child: Text('Criar conta',
+                                        textAlign: TextAlign.center)),
+                                SizedBox(width: 12),
+                                Icon(Icons.arrow_forward_rounded, size: 20)
+                              ],
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            )),
           ),
-        ),
+        )),
       ),
     );
   }
+}
+
+/// Marca e traçado de pista compartilhados pelas telas de acesso.
+final class AuthRacingHeader extends StatelessWidget {
+  const AuthRacingHeader({
+    required this.title,
+    required this.accent,
+    required this.description,
+    this.compact = false,
+    super.key,
+  });
+
+  final String title;
+  final String accent;
+  final String description;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final typography = Theme.of(context).textTheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const GdWordmark(),
+        const SizedBox(height: 24),
+        if (!compact) ...[
+          ExcludeSemantics(
+            child: SizedBox(
+              height: 88,
+              width: double.infinity,
+              child: CustomPaint(
+                  painter: _TrackPainter(
+                      accent: colors.primary, line: colors.outlineVariant)),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        Text(title,
+            style: typography.displaySmall
+                ?.copyWith(height: 1, fontWeight: FontWeight.w700)),
+        Text(accent,
+            style: typography.displaySmall?.copyWith(
+                height: 1.08,
+                color: colors.primary,
+                fontWeight: FontWeight.w700)),
+        const SizedBox(height: 16),
+        Text(description,
+            style: typography.bodyMedium
+                ?.copyWith(color: colors.onSurfaceVariant, height: 1.6)),
+      ],
+    );
+  }
+}
+
+final class _TrackPainter extends CustomPainter {
+  const _TrackPainter({required this.accent, required this.line});
+
+  final Color accent;
+  final Color line;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    canvas.clipRect(Offset.zero & size);
+    final guide = Paint()
+      ..color = line
+      ..strokeWidth = 1;
+    for (var x = 0.0; x < size.width; x += 24) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), guide);
+    }
+    for (var y = 0.0; y < size.height; y += 22) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), guide);
+    }
+    final track = Path()
+      ..moveTo(-12, size.height * .8)
+      ..lineTo(size.width * .30, size.height * .8)
+      ..cubicTo(size.width * .47, size.height * .8, size.width * .45,
+          size.height * .23, size.width * .61, size.height * .23)
+      ..lineTo(size.width + 12, size.height * .23);
+    canvas.drawPath(
+        track,
+        Paint()
+          ..color = accent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 14);
+    canvas.drawPath(
+        track.shift(const Offset(0, 18)),
+        Paint()
+          ..color = accent.withValues(alpha: .35)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant _TrackPainter oldDelegate) =>
+      accent != oldDelegate.accent || line != oldDelegate.line;
 }

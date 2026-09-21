@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
+import 'package:garagem_mobile/core/theme/app_theme.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/login_screen.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
@@ -32,17 +34,7 @@ final class GaragemApp extends StatelessWidget {
     return MaterialApp(
       title: AppConfig.appName,
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFFF5A1F),
-          brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: const Color(0xFF111214),
-        useMaterial3: true,
-        inputDecorationTheme: const InputDecorationTheme(
-          border: OutlineInputBorder(),
-        ),
-      ),
+      theme: AppTheme.dark,
       home: ListenableBuilder(
         listenable: session,
         builder: (context, _) => switch (session.status) {
@@ -67,6 +59,15 @@ final class _StartupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    return const Scaffold(
+        body: Center(
+            child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GdWordmark(),
+        SizedBox(height: 32),
+        SizedBox(width: 120, child: LinearProgressIndicator(minHeight: 2))
+      ],
+    )));
   }
 }
