@@ -57,7 +57,28 @@ def _slug_disponivel(db: Session, nome: str) -> str:
     return slug
 
 
+def _equipe_do_usuario(db: Session, usuario_id: UUID) -> Equipe | None:
+    return db.scalar(
+        select(Equipe)
+        .join(MembroEquipe, MembroEquipe.equipe_id == Equipe.id)
+        .where(MembroEquipe.usuario_id == usuario_id)
+        .order_by(MembroEquipe.entrou_em)
+        .limit(1)
+    )
+
+
+def _exigir_sem_equipe(db: Session, usuario_id: UUID) -> None:
+    # Serializa aceitações simultâneas para o mesmo usuário no PostgreSQL.
+    db.scalar(select(Usuario).where(Usuario.id == usuario_id).with_for_update())
+    equipe_atual = _equipe_do_usuario(db, usuario_id)
+    if equipe_atual is not None:
+        raise EstadoInvalido(
+            f"Você já faz parte de {equipe_atual.nome}. Saia da equipe atual antes de entrar em outra."
+        )
+
+
 def criar_equipe(db: Session, usuario: Usuario, dados: EquipeCriacao) -> Equipe:
+    _exigir_sem_equipe(db, usuario.id)
     equipe = Equipe(
         dono_id=usuario.id,
         slug=_slug_disponivel(db, dados.nome),
@@ -248,7 +269,8 @@ def solicitar_entrada(
 ) -> SolicitacaoEquipe:
     equipe = obter_equipe(db, equipe_id)
     if db.get(MembroEquipe, (equipe_id, usuario.id)) is not None:
-        raise EstadoInvalido("Voce ja faz parte desta equipe.")
+        raise EstadoInvalido("Você já faz parte desta equipe.")
+    _exigir_sem_equipe(db, usuario.id)
     pendente = db.scalar(
         select(SolicitacaoEquipe).where(
             SolicitacaoEquipe.equipe_id == equipe_id,
@@ -296,6 +318,7 @@ def decidir_solicitacao(
         raise EstadoInvalido("Esta solicitacao ja foi analisada.")
     if decisao == "aprovar":
         if db.get(MembroEquipe, (equipe_id, solicitacao.usuario_id)) is None:
+            _exigir_sem_equipe(db, solicitacao.usuario_id)
             db.add(
                 MembroEquipe(
                     equipe_id=equipe_id,
@@ -348,6 +371,7 @@ def convidar_usuario(
         raise EquipeNaoEncontrada("Usuário não encontrado.")
     if db.get(MembroEquipe, (equipe_id, usuario_id)) is not None:
         raise EstadoInvalido("Este usuário já faz parte da equipe.")
+    _exigir_sem_equipe(db, usuario_id)
     solicitacao = db.scalar(
         select(SolicitacaoEquipe.id).where(
             SolicitacaoEquipe.equipe_id == equipe_id,
@@ -409,6 +433,7 @@ def decidir_convite(
         raise EstadoInvalido("Este convite já foi respondido.")
     if decisao == "aceitar":
         if db.get(MembroEquipe, (equipe_id, usuario.id)) is None:
+            _exigir_sem_equipe(db, usuario.id)
             db.add(
                 MembroEquipe(
                     equipe_id=equipe_id,
@@ -468,6 +493,53 @@ def alterar_papel_membro(
     )
     db.commit()
 
+
+
+def transferir_lideranca(
+    db: Session,
+    equipe_id: UUID,
+    novo_dono_id: UUID,
+    dono_atual: Usuario,
+) -> None:
+    equipe = obter_equipe(db, equipe_id)
+    if equipe.dono_id != dono_atual.id:
+        raise AcaoNaoPermitida("Apenas o dono pode transferir a liderança.")
+    if novo_dono_id == dono_atual.id:
+        raise EstadoInvalido("Escolha outro integrante para assumir a liderança.")
+
+    novo_dono = db.get(MembroEquipe, (equipe_id, novo_dono_id))
+    if novo_dono is None:
+        raise EquipeNaoEncontrada("Integrante não encontrado.")
+    membro_atual = db.get(MembroEquipe, (equipe_id, dono_atual.id))
+    if membro_atual is None:
+        raise EstadoInvalido("O dono atual não faz parte da equipe.")
+
+    membro_atual.papel = "administrador"
+    novo_dono.papel = "dono"
+    equipe.dono_id = novo_dono_id
+    criar_notificacao(
+        db,
+        destinatario_id=novo_dono_id,
+        ator_id=dono_atual.id,
+        tipo="lideranca_equipe_transferida",
+        mensagem=f"Você agora é dono de {equipe.nome}.",
+        equipe_id=equipe.id,
+    )
+    db.commit()
+
+
+def encerrar_equipe(
+    db: Session,
+    equipe_id: UUID,
+    dono: Usuario,
+) -> tuple[str | None, str | None]:
+    equipe = obter_equipe(db, equipe_id)
+    if equipe.dono_id != dono.id:
+        raise AcaoNaoPermitida("Apenas o dono pode encerrar a equipe.")
+    urls_imagens = (equipe.avatar_url, equipe.capa_url)
+    db.delete(equipe)
+    db.commit()
+    return urls_imagens
 
 
 def remover_membro(

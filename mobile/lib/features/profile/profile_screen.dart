@@ -3,17 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
+import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/security_screen.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -21,6 +26,8 @@ final class ProfileScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.usersRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
     super.key,
   });
 
@@ -28,6 +35,8 @@ final class ProfileScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final UsersRepository usersRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -35,13 +44,30 @@ final class ProfileScreen extends StatefulWidget {
 
 final class _ProfileScreenState extends State<ProfileScreen> {
   late Future<List<Car>> _cars;
+  List<Car> _visibleCars = const [];
+  final Map<String, Car> _optimisticCars = {};
+  int _carsRevision = 0;
   PublicProfile? _socialProfile;
 
   @override
   void initState() {
     super.initState();
-    _cars = widget.carsRepository.mine();
+    _cars = _loadCars();
     unawaited(_loadSocialProfile());
+  }
+
+  Future<List<Car>> _loadCars() async {
+    final revision = ++_carsRevision;
+    final remote = await widget.carsRepository.mine();
+    if (!mounted || revision != _carsRevision) return _visibleCars;
+    final remoteIds = remote.map((car) => car.id).toSet();
+    _optimisticCars.removeWhere((id, _) => remoteIds.contains(id));
+    final merged = [
+      ..._optimisticCars.values,
+      ...remote.where((car) => !_optimisticCars.containsKey(car.id)),
+    ];
+    _visibleCars = merged;
+    return merged;
   }
 
   Future<void> _loadSocialProfile() async {
@@ -56,9 +82,15 @@ final class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _reload() async {
-    final next = widget.carsRepository.mine();
-    setState(() => _cars = next);
-    await Future.wait<Object?>([next, _loadSocialProfile()]);
+    final next = _loadCars();
+    setState(() {
+      _cars = next;
+    });
+    try {
+      await Future.wait<Object?>([next, _loadSocialProfile()]);
+    } catch (_) {
+      // O FutureBuilder apresenta o erro e permite tentar novamente.
+    }
   }
 
   Future<void> _openPublicProfile(String userId) async {
@@ -70,6 +102,8 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );
@@ -123,6 +157,29 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) await _reload();
   }
 
+  Future<void> _createCar() async {
+    final created = await Navigator.of(context).push<Car>(
+      MaterialPageRoute(
+        builder: (_) => CarFormScreen(repository: widget.carsRepository),
+      ),
+    );
+    if (created == null || !mounted) return;
+    ++_carsRevision;
+    _optimisticCars[created.id] = created;
+    final visible = [
+      created,
+      ..._visibleCars.where((car) => car.id != created.id),
+    ];
+    setState(() {
+      _visibleCars = visible;
+      _cars = Future.value(visible);
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Projeto adicionado à sua garagem.')),
+    );
+    unawaited(_reload());
+  }
+
   Future<void> _confirmLogout() async {
     final shouldLogout = await showDialog<bool>(
       context: context,
@@ -146,6 +203,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     if (shouldLogout == true) await widget.session.logout();
   }
 
+  Future<void> _openSecurity() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SecurityScreen(session: widget.session),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.session.user!;
@@ -153,6 +218,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Perfil'),
         actions: [
+          GdShareAction(
+            payload: ShareContent.profileValues(
+              name: user.name,
+              username: user.username,
+              projectCount: _socialProfile?.projectCount,
+            ),
+            tooltip: 'Compartilhar perfil',
+          ),
           IconButton(
             onPressed: _editProfile,
             tooltip: 'Editar perfil',
@@ -163,7 +236,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       body: FutureBuilder<List<Car>>(
         future: _cars,
         builder: (context, snapshot) {
-          final cars = snapshot.data ?? const <Car>[];
+          final cars = _visibleCars;
           return RefreshIndicator(
             onRefresh: _reload,
             child: ListView(
@@ -197,6 +270,15 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                       : _CountBadge(count: cars.length),
                 ),
                 const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _createCar,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Adicionar projeto'),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 if (snapshot.hasError)
                   _ProfileMessage(
                     icon: Icons.cloud_off_outlined,
@@ -212,9 +294,11 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   )
                 else if (snapshot.connectionState != ConnectionState.waiting &&
                     cars.isEmpty)
-                  const _ProfileMessage(
+                  _ProfileMessage(
                     icon: Icons.garage_outlined,
                     message: 'Sua garagem ainda não tem nenhum projeto.',
+                    actionLabel: 'Adicionar projeto',
+                    onAction: _createCar,
                   )
                 else
                   ...cars.map(
@@ -242,6 +326,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   leading: const Icon(Icons.mail_outline),
                   title: const Text('E-mail da conta'),
                   subtitle: Text(user.email),
+                ),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: const Icon(Icons.shield_outlined),
+                  title: const Text('Senha e segurança'),
+                  subtitle: const Text('Proteja o acesso à sua garagem'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: _openSecurity,
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

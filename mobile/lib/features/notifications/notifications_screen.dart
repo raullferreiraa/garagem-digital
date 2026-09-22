@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -27,6 +29,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
   List<AppNotification>? _items;
   int _fetchRequest = 0;
   final Set<String> _changing = {};
+  final Set<String> _newThisVisit = {};
+  bool _opening = false;
+  bool _acknowledging = false;
 
   @override
   void initState() {
@@ -44,10 +49,51 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     final request = ++_fetchRequest;
     final items = await widget.repository.all();
     if (mounted && request == _fetchRequest) {
-      setState(() => _items = items);
+      setState(() {
+        _items = items;
+        _newThisVisit.addAll(
+          items.where((item) => !item.isRead).map((item) => item.id),
+        );
+      });
       widget.onUnreadChanged(items.where((item) => !item.isRead).length);
+      if (items.any((item) => !item.isRead)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) unawaited(_acknowledgeVisible());
+        });
+      }
     }
     return items;
+  }
+
+  Future<void> _acknowledgeVisible() async {
+    if (_acknowledging) return;
+    final items = _items;
+    if (items == null || items.every((item) => item.isRead)) return;
+    _acknowledging = true;
+    try {
+      final readIds =
+          items.where((item) => !item.isRead).map((item) => item.id).toSet();
+      for (final id in readIds) {
+        await widget.repository.markRead(id);
+      }
+      if (!mounted) return;
+      final now = DateTime.now();
+      setState(() {
+        _items = [
+          for (final item in _items!)
+            if (!readIds.contains(item.id))
+              item
+            else
+              item.copyWith(readAt: now),
+        ];
+      });
+      final unread = await widget.repository.unreadCount();
+      if (mounted) widget.onUnreadChanged(unread);
+    } catch (_) {
+      // Mantém o estado pendente; um novo acesso ou refresh tenta novamente.
+    } finally {
+      _acknowledging = false;
+    }
   }
 
   Future<void> _reload() async {
@@ -61,55 +107,37 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
   }
 
   Future<void> _open(AppNotification item) async {
-    if (_changing.contains(item.id)) return;
-    if (!item.isRead) {
-      setState(() => _changing.add(item.id));
-      try {
-        final updated = await widget.repository.markRead(item.id);
-        if (!mounted) return;
-        setState(() {
-          _fetchRequest++;
-          _changing.remove(item.id);
-          _items = [
-            for (final current in _items!)
-              if (current.id == updated.id) updated else current,
-          ];
-        });
-        widget.onUnreadChanged(
-          _items!.where((notification) => !notification.isRead).length,
-        );
-      } catch (error) {
-        if (!mounted) return;
-        setState(() => _changing.remove(item.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(apiErrorMessage(error))),
-        );
-        return;
-      }
-    }
-    if (mounted) await widget.onOpen(item);
-  }
-
-  Future<void> _markAllRead() async {
-    final items = _items;
-    if (items == null || items.every((item) => item.isRead)) return;
+    if (_opening) return;
+    _opening = true;
     try {
-      await widget.repository.markAllRead();
-      if (!mounted) return;
-      final now = DateTime.now();
-      setState(() {
-        _fetchRequest++;
-        _items = [
-          for (final item in items)
-            if (item.isRead) item else item.copyWith(readAt: now),
-        ];
-      });
-      widget.onUnreadChanged(0);
-    } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(apiErrorMessage(error))),
-      );
+      if (!item.isRead) {
+        setState(() => _changing.add(item.id));
+        try {
+          final updated = await widget.repository.markRead(item.id);
+          if (!mounted) return;
+          setState(() {
+            _fetchRequest++;
+            _changing.remove(item.id);
+            _items = [
+              for (final current in _items!)
+                if (current.id == updated.id) updated else current,
+            ];
+          });
+          widget.onUnreadChanged(
+            _items!.where((notification) => !notification.isRead).length,
+          );
+        } catch (error) {
+          if (!mounted) return;
+          setState(() => _changing.remove(item.id));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(apiErrorMessage(error))),
+          );
+          return;
+        }
+      }
+      if (mounted) await widget.onOpen(item);
+    } finally {
+      _opening = false;
     }
   }
 
@@ -159,16 +187,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Atividade'),
-        actions: [
-          IconButton(
-            onPressed: _markAllRead,
-            tooltip: 'Marcar todas como lidas',
-            icon: const Icon(Icons.done_all),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Atividade')),
       body: FutureBuilder<List<AppNotification>>(
         future: _future,
         builder: (context, snapshot) {
@@ -241,17 +260,19 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                           itemCount: items.length + 1,
                           itemBuilder: (context, index) {
                             if (index == 0) {
-                              final unread =
-                                  items.where((item) => !item.isRead).length;
+                              final newThisVisit = items
+                                  .where(
+                                      (item) => _newThisVisit.contains(item.id))
+                                  .length;
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 24),
                                 child: GdSectionTitle(
-                                  title: unread == 0
+                                  title: newThisVisit == 0
                                       ? 'Você está em dia.'
-                                      : '$unread ${unread == 1 ? 'novidade' : 'novidades'}',
+                                      : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
                                   eyebrow: 'NA SUA COMUNIDADE',
                                   trailing: Icon(
-                                    unread == 0
+                                    newThisVisit == 0
                                         ? Icons.done_all_rounded
                                         : Icons.bolt_rounded,
                                     color: colors.primary,
@@ -260,6 +281,8 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                               );
                             }
                             final item = items[index - 1];
+                            final isNewThisVisit =
+                                _newThisVisit.contains(item.id);
                             final dayLabel = _dayLabel(item.createdAt);
                             final showDay = index == 1 ||
                                 _dayLabel(items[index - 2].createdAt) !=
@@ -287,10 +310,19 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                 Padding(
                                   padding: const EdgeInsets.only(bottom: 8),
                                   child: Material(
-                                    color: item.isRead
-                                        ? colors.surface
-                                        : colors.surfaceContainer,
-                                    borderRadius: BorderRadius.circular(14),
+                                    key: ValueKey('notification-${item.id}'),
+                                    color: isNewThisVisit
+                                        ? colors.primary.withValues(alpha: 0.10)
+                                        : colors.surface,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                      side: BorderSide(
+                                        color: isNewThisVisit
+                                            ? colors.primary
+                                                .withValues(alpha: 0.28)
+                                            : Colors.transparent,
+                                      ),
+                                    ),
                                     clipBehavior: Clip.antiAlias,
                                     child: InkWell(
                                       onTap: () => _open(item),
@@ -316,7 +348,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                                     padding:
                                                         const EdgeInsets.all(4),
                                                     decoration: BoxDecoration(
-                                                      color: item.isRead
+                                                      color: !isNewThisVisit
                                                           ? colors
                                                               .surfaceContainerHighest
                                                           : colors.primary,
@@ -328,7 +360,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                                     child: Icon(
                                                         _icon(item.type),
                                                         size: 12,
-                                                        color: item.isRead
+                                                        color: !isNewThisVisit
                                                             ? colors
                                                                 .onSurfaceVariant
                                                             : colors.onPrimary),
@@ -348,10 +380,12 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                                         .textTheme
                                                         .bodyMedium
                                                         ?.copyWith(
-                                                          fontWeight: item
-                                                                  .isRead
-                                                              ? FontWeight.w500
-                                                              : FontWeight.w700,
+                                                          fontWeight:
+                                                              !isNewThisVisit
+                                                                  ? FontWeight
+                                                                      .w500
+                                                                  : FontWeight
+                                                                      .w700,
                                                         ),
                                                   ),
                                                   const SizedBox(height: 5),

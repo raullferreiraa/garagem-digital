@@ -1,19 +1,23 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
+import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garagem_mobile/features/discovery/explore_screen.dart';
 import 'package:garagem_mobile/features/discovery/search_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
+import 'package:garagem_mobile/features/events/events_screen.dart';
+import 'package:garagem_mobile/features/messages/conversations_screen.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
@@ -21,6 +25,7 @@ import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
@@ -30,6 +35,8 @@ final class HomeShell extends StatefulWidget {
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.eventsRepository,
+    required this.messagesRepository,
     required this.notificationsRepository,
     required this.teamsRepository,
     required this.usersRepository,
@@ -39,6 +46,8 @@ final class HomeShell extends StatefulWidget {
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final EventsRepository eventsRepository;
+  final MessagesRepository messagesRepository;
   final NotificationsRepository notificationsRepository;
   final TeamsRepository teamsRepository;
   final UsersRepository usersRepository;
@@ -51,24 +60,42 @@ final class _HomeShellState extends State<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
   int _feedRevision = 0;
-  int _garageRevision = 0;
+  int _eventsRevision = 0;
   int _teamsRevision = 0;
+  int _messagesRevision = 0;
   int _profileRevision = 0;
-  int _notificationsRevision = 0;
+  final _notificationsRevision = ValueNotifier<int>(0);
+  bool _activityOpen = false;
   int _unreadNotifications = 0;
+  int _unreadMessages = 0;
+  TeamChatSummary? _teamChatSummary;
   int _unreadRequest = 0;
+  int _unreadMessagesRequest = 0;
+  int _teamChatRequest = 0;
   bool _wasBackgrounded = false;
+  Timer? _messagesBadgeTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshUnreadNotifications());
+    unawaited(_refreshUnreadMessages());
+    unawaited(_refreshTeamChat());
+    _messagesBadgeTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) {
+        unawaited(_refreshUnreadMessages());
+        unawaited(_refreshTeamChat());
+      },
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _messagesBadgeTimer?.cancel();
+    _notificationsRevision.dispose();
     super.dispose();
   }
 
@@ -80,12 +107,16 @@ final class _HomeShellState extends State<HomeShell>
     } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
       unawaited(_refreshUnreadNotifications());
+      unawaited(_refreshUnreadMessages());
+      unawaited(_refreshTeamChat());
       setState(() {
         _feedRevision++;
-        _garageRevision++;
+        _eventsRevision++;
         _teamsRevision++;
-        _notificationsRevision++;
+        _messagesRevision++;
+        _profileRevision++;
       });
+      _notificationsRevision.value++;
     }
   }
 
@@ -103,37 +134,95 @@ final class _HomeShellState extends State<HomeShell>
     }
   }
 
-  void _setUnreadNotifications(int count) {
-    _unreadRequest++;
-    if (mounted && count != _unreadNotifications) {
-      setState(() => _unreadNotifications = count);
+  Future<void> _refreshUnreadMessages() async {
+    final request = ++_unreadMessagesRequest;
+    try {
+      final count = await widget.messagesRepository.unreadCount();
+      if (mounted &&
+          request == _unreadMessagesRequest &&
+          count != _unreadMessages) {
+        setState(() => _unreadMessages = count);
+      }
+    } catch (_) {
+      // A caixa de entrada permite tentar novamente sem bloquear o app.
+    }
+  }
+
+  Future<void> _refreshTeamChat() async {
+    final request = ++_teamChatRequest;
+    try {
+      final summary = await widget.teamsRepository.chatSummary();
+      if (!mounted || request != _teamChatRequest) return;
+      final current = _teamChatSummary;
+      if (current?.teamId == summary?.teamId &&
+          current?.teamName == summary?.teamName &&
+          current?.teamAvatarUrl == summary?.teamAvatarUrl &&
+          current?.unreadCount == summary?.unreadCount &&
+          current?.lastMessage?.id == summary?.lastMessage?.id) {
+        return;
+      }
+      setState(() => _teamChatSummary = summary);
+    } catch (_) {
+      // A equipe continua acessível e o badge tenta novamente no próximo ciclo.
+    }
+  }
+
+  Future<void> _openTeamChat() async {
+    final summary = _teamChatSummary;
+    if (summary == null) return;
+    try {
+      final team = await widget.teamsRepository.detail(summary.teamId);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => TeamChatScreen(
+            team: team,
+            repository: widget.teamsRepository,
+            currentUserId: widget.session.user!.id,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) unawaited(_refreshTeamChat());
     }
   }
 
   void _refreshCars() {
     setState(() {
       _feedRevision++;
-      _garageRevision++;
+      _profileRevision++;
     });
+  }
+
+  Future<void> _openActivity() async {
+    if (_activityOpen) return;
+    _activityOpen = true;
+    try {
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) => ValueListenableBuilder<int>(
+          valueListenable: _notificationsRevision,
+          builder: (activityContext, revision, __) => NotificationsScreen(
+            refreshRevision: revision,
+            repository: widget.notificationsRepository,
+            onUnreadChanged: (_) => unawaited(_refreshUnreadNotifications()),
+            onOpen: (item) => _openNotification(item, activityContext),
+          ),
+        ),
+      ));
+    } finally {
+      _activityOpen = false;
+      if (mounted) unawaited(_refreshUnreadNotifications());
+    }
   }
 
   void _refreshFeed() {
     if (mounted) setState(() => _feedRevision++);
-  }
-
-  Future<void> _openCreateCar() async {
-    final created = await Navigator.of(context).push<Car>(
-      MaterialPageRoute(
-        builder: (_) => CarFormScreen(repository: widget.carsRepository),
-      ),
-    );
-
-    if (created == null || !mounted) return;
-    setState(() => _index = 1);
-    _refreshCars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Carro adicionado à sua garagem.')),
-    );
   }
 
   Future<void> _openPublicProfile(String userId) async {
@@ -145,16 +234,28 @@ final class _HomeShellState extends State<HomeShell>
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: _refreshUnreadMessages,
         ),
       ),
     );
     _refreshFeed();
   }
 
-  Future<void> _openNotification(AppNotification notification) async {
+  Future<void> _openNotification(
+      AppNotification notification, BuildContext activityContext) async {
+    if (!mounted ||
+        !activityContext.mounted ||
+        ModalRoute.of(activityContext)?.isCurrent != true) return;
     try {
       if (notification.type == 'solicitacao_equipe_recusada') {
-        if (mounted) setState(() => _index = 2);
+        if (mounted) {
+          Navigator.of(context).pop();
+          setState(() {
+            _index = 2;
+            _teamsRevision++;
+          });
+        }
         return;
       }
       if (notification.teamId != null) {
@@ -167,6 +268,8 @@ final class _HomeShellState extends State<HomeShell>
               evolutionsRepository: widget.evolutionsRepository,
               currentUserId: widget.session.user!.id,
               usersRepository: widget.usersRepository,
+              messagesRepository: widget.messagesRepository,
+              onConversationChanged: _refreshUnreadMessages,
             ),
           ),
         );
@@ -178,7 +281,9 @@ final class _HomeShellState extends State<HomeShell>
           notification.carId!,
           notification.evolutionId!,
         );
-        if (!mounted) return;
+        if (!mounted ||
+            !activityContext.mounted ||
+            ModalRoute.of(activityContext)?.isCurrent != true) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (_) => EvolutionDetailScreen(
@@ -197,11 +302,29 @@ final class _HomeShellState extends State<HomeShell>
         await _openPublicProfile(notification.actorId!);
       }
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(apiErrorMessage(error))),
+      if (!mounted ||
+          !activityContext.mounted ||
+          ModalRoute.of(activityContext)?.isCurrent != true) return;
+      ScaffoldMessenger.of(activityContext).showSnackBar(
+        SnackBar(content: Text(_notificationError(notification, error))),
       );
     }
+  }
+
+  String _notificationError(AppNotification notification, Object error) {
+    final unavailable =
+        error is DioException && error.response?.statusCode == 404;
+    if (!unavailable) return apiErrorMessage(error);
+    if (notification.evolutionId != null) {
+      return 'Esta evolução não está mais disponível.';
+    }
+    if (notification.carId != null) {
+      return 'Este projeto não está mais disponível.';
+    }
+    if (notification.teamId != null) {
+      return 'Esta equipe não está mais disponível.';
+    }
+    return 'Este conteúdo não está mais disponível.';
   }
 
   Future<void> _openEvolution(Evolution evolution) async {
@@ -228,6 +351,8 @@ final class _HomeShellState extends State<HomeShell>
           evolutionsRepository: widget.evolutionsRepository,
           currentUserId: widget.session.user!.id,
           usersRepository: widget.usersRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: _refreshUnreadMessages,
         ),
       ),
     );
@@ -285,16 +410,10 @@ final class _HomeShellState extends State<HomeShell>
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),
       ),
-      CarList(
-        refreshRevision: _garageRevision,
-        title: 'Garagem',
-        mode: CarListMode.garage,
-        emptyMessage:
-            'Adicione seu carro e comece a registrar a história dele.',
-        loader: widget.carsRepository.mine,
-        onCarTap: (car) => _openCar(car, canManage: true),
-        primaryActionLabel: 'Adicionar carro',
-        onPrimaryAction: _openCreateCar,
+      EventsScreen(
+        refreshRevision: _eventsRevision,
+        repository: widget.eventsRepository,
+        teamsRepository: widget.teamsRepository,
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
@@ -304,6 +423,22 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         currentUserId: widget.session.user!.id,
         usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
+        unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,
+        onTeamChatChanged: _refreshTeamChat,
+      ),
+      ConversationsScreen(
+        active: _index == 3,
+        refreshRevision: _messagesRevision,
+        repository: widget.messagesRepository,
+        currentUserId: widget.session.user!.id,
+        onUnreadChanged: _refreshUnreadMessages,
+        onProfileTap: _openPublicProfile,
+        onDiscover: () => setState(() => _index = 0),
+        teamChat: _teamChatSummary,
+        onTeamChatTap: _openTeamChat,
+        onTeamChatChanged: _refreshTeamChat,
       ),
       ProfileScreen(
         key: ValueKey('profile-$_profileRevision'),
@@ -311,33 +446,36 @@ final class _HomeShellState extends State<HomeShell>
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
-      ),
-      NotificationsScreen(
-        refreshRevision: _notificationsRevision,
-        repository: widget.notificationsRepository,
-        onUnreadChanged: _setUnreadNotifications,
-        onOpen: _openNotification,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
       ),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: [
-        for (var i = 0; i < pages.length; i++)
-          TickerMode(enabled: i == _index, child: pages[i]),
-      ]),
+      body: GdActivityScope(
+          unreadCount: _unreadNotifications,
+          onOpen: _openActivity,
+          child: IndexedStack(index: _index, children: [
+            for (var i = 0; i < pages.length; i++)
+              TickerMode(enabled: i == _index, child: pages[i]),
+          ])),
       bottomNavigationBar: GdNavigation(
         selectedIndex: _index,
-        unreadCount: _unreadNotifications,
+        unreadMessages: _unreadMessages,
+        unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,
+        hasTeam: _teamChatSummary != null,
         onSelected: (value) {
           setState(() {
             _index = value;
             if (value == 0) _feedRevision++;
-            if (value == 1) _garageRevision++;
+            if (value == 1) _eventsRevision++;
             if (value == 2) _teamsRevision++;
-            if (value == 3) _profileRevision++;
-            if (value == 4) _notificationsRevision++;
+            if (value == 3) _messagesRevision++;
+            if (value == 4) _profileRevision++;
           });
           unawaited(_refreshUnreadNotifications());
+          unawaited(_refreshUnreadMessages());
+          unawaited(_refreshTeamChat());
         },
       ),
     );

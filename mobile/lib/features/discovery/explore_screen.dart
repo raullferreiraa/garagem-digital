@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
@@ -94,6 +95,7 @@ final class _ExploreScreenState extends State<ExploreScreen> {
       appBar: AppBar(
         title: const Text('Explorar'),
         actions: [
+          const GdActivityAction(),
           IconButton(
             onPressed: widget.onSearch,
             tooltip: 'Buscar',

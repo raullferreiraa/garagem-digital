@@ -16,7 +16,9 @@ import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
@@ -104,6 +106,8 @@ Widget _app(double scale) {
           },
         ],
       '/notificacoes/nao-lidas' => {'total': 1},
+      '/conversas/nao-lidas' => {'total': 0},
+      '/conversas' => <Object?>[],
       '/notificacoes' => [
           {
             'id': 'notification',
@@ -150,6 +154,8 @@ Widget _app(double scale) {
             session: session,
             carsRepository: CarsRepository(api),
             evolutionsRepository: EvolutionsRepository(api),
+            eventsRepository: EventsRepository(api),
+            messagesRepository: MessagesRepository(api),
             notificationsRepository: NotificationsRepository(api),
             teamsRepository: TeamsRepository(api),
             usersRepository: UsersRepository(api))),
@@ -196,11 +202,23 @@ void main() {
       await tester.pumpWidget(_app(layout.$2));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      const names = ['explorar', 'garagem', 'equipes', 'perfil', 'avisos'];
-      for (var index = 0; index < 5; index++) {
+      const names = ['explorar', 'garagem', 'equipes', 'perfil'];
+      for (var index = 0; index < 4; index++) {
         await tester.tap(find.byKey(ValueKey('nav-$index')));
         await tester.pumpAndSettle();
         expect(find.byType(GdNavigation), findsOneWidget);
+        if (index == 0) {
+          expect(find.byKey(const ValueKey('activity-bell')), findsOneWidget);
+          await tester.tap(find.byKey(const ValueKey('activity-bell')));
+          await tester.pumpAndSettle();
+          expect(find.text('Atividade'), findsOneWidget);
+          expect(find.byType(GdNavigation), findsNothing);
+          expect(tester.takeException(), isNull);
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byKey(const ValueKey('activity-bell')), findsNothing);
+        }
         expect(tester.takeException(), isNull, reason: 'Aba ${names[index]}');
         if (layout.$1 == 390) await _preview(tester, names[index]);
         final scrollables = find.byType(Scrollable);
@@ -289,12 +307,15 @@ void main() {
     expect(find.text('Projetos para descobrir'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Entering through the owner's garage must retain their private data.
-    await tester.tap(find.byKey(const ValueKey('nav-1')));
+    // Entering through the owner's profile garage must retain private data.
+    await tester.tap(find.byKey(const ValueKey('nav-4')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Abrir projeto').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Abrir projeto').first);
+    await tester.scrollUntilVisible(
+      find.textContaining('FUSCA'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.textContaining('FUSCA').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ABC1D23'), 250,
         scrollable: find.byType(Scrollable).first);

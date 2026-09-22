@@ -2,25 +2,33 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class GdNavigation extends StatelessWidget {
-  const GdNavigation(
-      {super.key,
-      required this.selectedIndex,
-      required this.onSelected,
-      this.unreadCount = 0});
+  const GdNavigation({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+    this.unreadMessages = 0,
+    this.unreadTeamMessages = 0,
+    this.hasTeam = false,
+  });
   final int selectedIndex;
   final ValueChanged<int> onSelected;
-  final int unreadCount;
-
-  static const _items = [
-    ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
-    ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
-    ('Equipes', Icons.groups_outlined, Icons.groups_rounded),
-    ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
-    ('Avisos', Icons.notifications_outlined, Icons.notifications_rounded),
-  ];
+  final int unreadMessages;
+  final int unreadTeamMessages;
+  final bool hasTeam;
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
+      ('Encontros', Icons.flag_outlined, Icons.flag_rounded),
+      (
+        hasTeam ? 'Minha equipe' : 'Equipes',
+        Icons.groups_outlined,
+        Icons.groups_rounded,
+      ),
+      ('Conversas', Icons.forum_outlined, Icons.forum_rounded),
+      ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
+    ];
     final colors = Theme.of(context).colorScheme;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
@@ -34,17 +42,19 @@ class GdNavigation extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
-                children: List.generate(_items.length, (index) {
-              final item = _items[index];
+                children: List.generate(items.length, (index) {
+              final item = items[index];
               final selected = selectedIndex == index;
+              final badgeCount = index == 2
+                  ? unreadTeamMessages
+                  : index == 3
+                      ? unreadMessages
+                      : 0;
               return Expanded(
                   child: Semantics(
                 button: true,
                 selected: selected,
                 label: item.$1,
-                value: index == 4 && unreadCount > 0
-                    ? '$unreadCount não lidos'
-                    : null,
                 child: Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -74,21 +84,55 @@ class GdNavigation extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(2)),
                                 ),
                                 const SizedBox(height: 6),
-                                Badge(
-                                  isLabelVisible: index == 4 && unreadCount > 0,
-                                  label: Text(unreadCount > 99
-                                      ? '99+'
-                                      : '$unreadCount'),
-                                  backgroundColor: colors.primary,
-                                  textColor: colors.onPrimary,
-                                  child: AnimatedScale(
-                                      scale: selected ? 1.08 : 1,
-                                      duration: duration,
-                                      child: Icon(selected ? item.$3 : item.$2,
+                                AnimatedScale(
+                                  scale: selected ? 1.08 : 1,
+                                  duration: duration,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Icon(selected ? item.$3 : item.$2,
                                           size: 23,
                                           color: selected
                                               ? colors.primary
-                                              : colors.onSurfaceVariant)),
+                                              : colors.onSurfaceVariant),
+                                      if (badgeCount > 0)
+                                        Positioned(
+                                          right: -9,
+                                          top: -7,
+                                          child: Container(
+                                            constraints: const BoxConstraints(
+                                              minWidth: 16,
+                                              minHeight: 16,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 1,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colors.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: colors.surface,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              badgeCount > 99
+                                                  ? '99+'
+                                                  : '$badgeCount',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                height: 1.2,
+                                                fontWeight: FontWeight.w900,
+                                                color: colors.onPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                                 const SizedBox(height: 5),
                                 AnimatedDefaultTextStyle(

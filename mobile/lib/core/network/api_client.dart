@@ -4,9 +4,20 @@ import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 
 final class ApiClient {
-  ApiClient({required String baseUrl, required TokenStorage tokenStorage})
-      : _tokenStorage = tokenStorage,
-        _refreshClient = Dio(BaseOptions(baseUrl: baseUrl)),
+  ApiClient({
+    required String baseUrl,
+    required TokenStorage tokenStorage,
+    Dio? refreshClient,
+  })  : _tokenStorage = tokenStorage,
+        _refreshClient = refreshClient ??
+            Dio(
+              BaseOptions(
+                baseUrl: baseUrl,
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 15),
+                headers: const {'Accept': 'application/json'},
+              ),
+            ),
         dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,
@@ -28,6 +39,13 @@ final class ApiClient {
   final TokenStorage _tokenStorage;
   Future<bool>? _refreshing;
 
+  static const _nonRefreshableAuthPaths = {
+    '/auth/cadastro',
+    '/auth/login',
+    '/auth/logout',
+    '/auth/refresh',
+  };
+
   Future<void> _authorize(
     RequestOptions options,
     RequestInterceptorHandler handler,
@@ -42,11 +60,25 @@ final class ApiClient {
     ErrorInterceptorHandler handler,
   ) async {
     final request = error.requestOptions;
+    final requestPath = Uri.parse(request.path).path;
     final mayRefresh = error.response?.statusCode == 401 &&
         request.extra['retried_after_refresh'] != true &&
-        !request.path.contains('/auth/refresh');
+        !_nonRefreshableAuthPaths.contains(requestPath);
 
-    if (!mayRefresh || !await _refreshTokens()) {
+    if (!mayRefresh) {
+      handler.next(error);
+      return;
+    }
+
+    try {
+      if (!await _refreshTokens()) {
+        handler.next(error);
+        return;
+      }
+    } on DioException catch (refreshError) {
+      handler.next(refreshError);
+      return;
+    } catch (_) {
       handler.next(error);
       return;
     }
@@ -55,14 +87,17 @@ final class ApiClient {
       request.extra['retried_after_refresh'] = true;
       final token = await _tokenStorage.readAccessToken();
       request.headers['Authorization'] = 'Bearer $token';
-      handler.resolve(await dio.fetch<Object?>(request));
+      handler.resolve(await _refreshClient.fetch<Object?>(request));
     } on DioException catch (retryError) {
       handler.next(retryError);
+    } catch (_) {
+      handler.next(error);
     }
   }
 
   Future<bool> _refreshTokens() {
-    return _refreshing ??= _performRefresh().whenComplete(() => _refreshing = null);
+    return _refreshing ??=
+        _performRefresh().whenComplete(() => _refreshing = null);
   }
 
   Future<bool> _performRefresh() async {
@@ -81,9 +116,13 @@ final class ApiClient {
         refreshToken: data['refresh_token']! as String,
       );
       return true;
-    } on DioException {
-      await _tokenStorage.clear();
-      return false;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 401 ||
+          error.response?.statusCode == 403) {
+        await _tokenStorage.clear();
+        return false;
+      }
+      rethrow;
     }
   }
 }
@@ -96,11 +135,12 @@ String apiErrorMessage(Object error) {
       if (detail is String) return detail;
       if (detail is List && detail.isNotEmpty) {
         final first = detail.first;
-        if (first is Map && first['msg'] is String) return first['msg'] as String;
+        if (first is Map && first['msg'] is String)
+          return first['msg'] as String;
       }
     }
     if (error.type == DioExceptionType.connectionError) {
-      return 'Nao foi possivel conectar a API.';
+      return 'Não foi possível conectar à API.';
     }
   }
   return 'Algo deu errado. Tente novamente.';

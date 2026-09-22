@@ -66,6 +66,12 @@ def salvar_avatar(usuario_id: UUID, conteudo: bytes) -> str:
     return f"{settings.media_url_prefix}/usuarios/{usuario_id}/{destino.name}"
 
 
+def salvar_capa_encontro(encontro_id: UUID, conteudo: bytes) -> str:
+    diretorio = settings.media_root / "encontros" / str(encontro_id)
+    destino = _salvar_imagem(diretorio, conteudo)
+    return f"{settings.media_url_prefix}/encontros/{encontro_id}/{destino.name}"
+
+
 def salvar_foto_principal(carro_id: UUID, conteudo: bytes) -> str:
     destino = _salvar_imagem(_diretorio_do_carro(carro_id), conteudo)
     return f"{settings.media_url_prefix}/carros/{carro_id}/{destino.name}"

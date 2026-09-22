@@ -9,14 +9,18 @@ import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
 import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 enum _TeamImageAction { avatar, cover, removeAvatar, removeCover }
+
+enum _OwnerAction { transferLeadership, endTeam }
 
 final class TeamDetailScreen extends StatefulWidget {
   const TeamDetailScreen({
@@ -26,6 +30,13 @@ final class TeamDetailScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.currentUserId,
     required this.usersRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
+    this.isMyTeamHome = false,
+    this.onExploreTeams,
+    this.onMembershipChanged,
+    this.unreadChatCount = 0,
+    this.onTeamChatChanged,
     super.key,
   });
 
@@ -35,6 +46,13 @@ final class TeamDetailScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
   final UsersRepository usersRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
+  final bool isMyTeamHome;
+  final VoidCallback? onExploreTeams;
+  final VoidCallback? onMembershipChanged;
+  final int unreadChatCount;
+  final VoidCallback? onTeamChatChanged;
 
   @override
   State<TeamDetailScreen> createState() => _TeamDetailScreenState();
@@ -446,6 +464,88 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         false;
   }
 
+  Future<void> _ownerAction(TeamDetail team, _OwnerAction action) async {
+    if (action == _OwnerAction.transferLeadership) {
+      final candidates = team.members
+          .where((member) => member.userId != widget.currentUserId)
+          .toList(growable: false);
+      if (candidates.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+                'Adicione ao menos um integrante antes de transferir a liderança.'),
+          ),
+        );
+        return;
+      }
+      final nextOwner = await showModalBottomSheet<TeamMember>(
+        context: context,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(
+                title: Text('Transferir liderança'),
+                subtitle: Text('Escolha quem será dono da equipe.'),
+              ),
+              for (final member in candidates)
+                ListTile(
+                  leading: GdAvatar(
+                    url: member.avatarUrl,
+                    name: member.name,
+                    size: 40,
+                  ),
+                  title: Text(member.name),
+                  subtitle:
+                      Text('@${member.username} · ${_roleName(member.role)}'),
+                  onTap: () => Navigator.of(context).pop(member),
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      );
+      if (!mounted || nextOwner == null) return;
+      final confirmed = await _confirmMembershipAction(
+        title: 'Transferir liderança?',
+        message:
+            '@${nextOwner.username} será o novo dono. Você continuará como administrador e poderá sair depois, se quiser.',
+        confirmLabel: 'Transferir',
+      );
+      if (!confirmed) return;
+      await _act(
+        () => widget.repository.transferLeadership(team.id, nextOwner.userId),
+        'Liderança transferida para @${nextOwner.username}.',
+      );
+      return;
+    }
+
+    final confirmed = await _confirmMembershipAction(
+      title: 'Encerrar equipe?',
+      message:
+          'Essa ação remove a equipe, os integrantes e o chat coletivo de forma permanente.',
+      confirmLabel: 'Encerrar equipe',
+    );
+    if (!confirmed) return;
+    setState(() => _acting = true);
+    try {
+      await widget.repository.endTeam(team.id);
+      if (!mounted) return;
+      if (widget.isMyTeamHome) {
+        widget.onMembershipChanged?.call();
+      } else {
+        Navigator.of(context).pop();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _acting = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(apiErrorMessage(error))),
+      );
+    }
+  }
+
   Future<void> _leaveTeam(TeamDetail team) async {
     final confirmed = await _confirmMembershipAction(
       title: 'Sair da equipe?',
@@ -457,7 +557,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     setState(() => _acting = true);
     try {
       await widget.repository.removeMember(team.id, widget.currentUserId);
-      if (mounted) Navigator.of(context).pop();
+      if (!mounted) return;
+      if (widget.isMyTeamHome) {
+        widget.onMembershipChanged?.call();
+      } else {
+        Navigator.of(context).pop();
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _acting = false);
@@ -546,10 +651,25 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );
     if (mounted) await _reload();
+  }
+
+  Future<void> _openTeamChat(TeamDetail team) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => TeamChatScreen(
+          team: team,
+          repository: widget.repository,
+          currentUserId: widget.currentUserId,
+        ),
+      ),
+    );
+    widget.onTeamChatChanged?.call();
   }
 
   @override
@@ -560,9 +680,28 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         final team = _currentTeam ?? snapshot.data;
         return Scaffold(
           appBar: AppBar(
-            title: Text(team?.name ?? 'Equipe'),
+            automaticallyImplyLeading: !widget.isMyTeamHome,
+            title: Text(
+              widget.isMyTeamHome ? 'Minha equipe' : team?.name ?? 'Equipe',
+            ),
             scrolledUnderElevation: 0,
             actions: [
+              if (widget.isMyTeamHome && widget.onExploreTeams != null)
+                IconButton(
+                  tooltip: 'Explorar equipes',
+                  onPressed: widget.onExploreTeams,
+                  icon: const Icon(Icons.travel_explore_rounded),
+                ),
+              if (team?.myRole != null)
+                IconButton(
+                  tooltip: 'Conversa da equipe',
+                  onPressed: () => _openTeamChat(team!),
+                  icon: Badge.count(
+                    count: widget.unreadChatCount,
+                    isLabelVisible: widget.unreadChatCount > 0,
+                    child: const Icon(Icons.forum_outlined),
+                  ),
+                ),
               if (team?.myRole == 'dono')
                 IconButton(
                   tooltip: 'Editar equipe',
@@ -574,6 +713,37 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   tooltip: 'Imagens da equipe',
                   onPressed: _acting ? null : () => _showImageOptions(team!),
                   icon: const Icon(Icons.add_photo_alternate_outlined),
+                ),
+              if (team?.myRole == 'dono')
+                PopupMenuButton<_OwnerAction>(
+                  tooltip: 'Opções da equipe',
+                  enabled: !_acting,
+                  onSelected: (action) => _ownerAction(team!, action),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: _OwnerAction.transferLeadership,
+                      child: ListTile(
+                        leading: Icon(Icons.swap_horiz_rounded),
+                        title: Text('Transferir liderança'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: _OwnerAction.endTeam,
+                      child: ListTile(
+                        leading: Icon(
+                          Icons.delete_forever_outlined,
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                        title: Text(
+                          'Encerrar equipe',
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        ),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),

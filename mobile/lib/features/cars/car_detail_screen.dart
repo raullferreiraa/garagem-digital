@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
@@ -13,6 +14,7 @@ import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart'
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _CarAction { edit, delete }
@@ -702,6 +704,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       appBar: AppBar(
         title: const Text('Projeto'),
         actions: [
+          GdShareAction(
+            payload: ShareContent.project(_car),
+            tooltip: 'Compartilhar projeto',
+          ),
           if (widget.canManage)
             PopupMenuButton<_CarAction>(
               enabled: !_deleting,

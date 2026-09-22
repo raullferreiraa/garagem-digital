@@ -3,13 +3,14 @@ import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
-enum _TeamView { all, mine, pending, invites }
+enum _TeamView { all, pending, invites }
 
 final class TeamsScreen extends StatefulWidget {
   const TeamsScreen({
@@ -18,6 +19,10 @@ final class TeamsScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.currentUserId,
     required this.usersRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
+    required this.unreadTeamMessages,
+    required this.onTeamChatChanged,
     required this.refreshRevision,
     required this.onSearch,
     super.key,
@@ -28,6 +33,10 @@ final class TeamsScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
   final UsersRepository usersRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
+  final int unreadTeamMessages;
+  final VoidCallback onTeamChatChanged;
   final int refreshRevision;
   final VoidCallback onSearch;
 
@@ -41,6 +50,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   bool _loading = true;
   int _reloadRequest = 0;
   _TeamView _view = _TeamView.all;
+  bool _exploringDirectory = false;
 
   @override
   void initState() {
@@ -51,7 +61,10 @@ class _TeamsScreenState extends State<TeamsScreen> {
   @override
   void didUpdateWidget(covariant TeamsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.refreshRevision != oldWidget.refreshRevision) _reload();
+    if (widget.refreshRevision != oldWidget.refreshRevision) {
+      _exploringDirectory = false;
+      _reload();
+    }
   }
 
   Future<void> _reload() async {
@@ -63,6 +76,9 @@ class _TeamsScreenState extends State<TeamsScreen> {
         _teams = updated;
         _loadError = null;
         _loading = false;
+        if (!updated.any((team) => team.myRole != null)) {
+          _exploringDirectory = false;
+        }
       });
     } catch (error) {
       if (!mounted || request != _reloadRequest) return;
@@ -87,7 +103,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
       ];
       _loadError = null;
     });
-    await _open(created.id);
+    await _reload();
+    widget.onTeamChatChanged();
   }
 
   Future<void> _open(String teamId) async {
@@ -100,6 +117,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
           evolutionsRepository: widget.evolutionsRepository,
           currentUserId: widget.currentUserId,
           usersRepository: widget.usersRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );
@@ -108,19 +127,50 @@ class _TeamsScreenState extends State<TeamsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Team? myTeam;
+    for (final team in _teams ?? const <Team>[]) {
+      if (team.myRole != null) {
+        myTeam = team;
+        break;
+      }
+    }
+    if (myTeam != null && !_exploringDirectory) {
+      return TeamDetailScreen(
+        teamId: myTeam.id,
+        repository: widget.repository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.currentUserId,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: widget.onConversationChanged,
+        isMyTeamHome: true,
+        onExploreTeams: () => setState(() => _exploringDirectory = true),
+        unreadChatCount: widget.unreadTeamMessages,
+        onTeamChatChanged: widget.onTeamChatChanged,
+        onMembershipChanged: () {
+          _reload();
+          widget.onTeamChatChanged();
+        },
+      );
+    }
+    final hasTeam =
+        (_teams ?? const <Team>[]).any((team) => team.myRole != null);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Equipes'),
+        leading: hasTeam
+            ? IconButton(
+                tooltip: 'Voltar à minha equipe',
+                onPressed: () => setState(() => _exploringDirectory = false),
+                icon: const Icon(Icons.arrow_back_rounded),
+              )
+            : null,
+        title: Text(hasTeam ? 'Explorar equipes' : 'Encontre uma equipe'),
         actions: [
           IconButton(
             tooltip: 'Buscar equipes',
             onPressed: widget.onSearch,
             icon: const Icon(Icons.search_rounded),
-          ),
-          IconButton(
-            tooltip: 'Criar equipe',
-            onPressed: _create,
-            icon: const Icon(Icons.add_circle_outline),
           ),
           const SizedBox(width: 8),
         ],
@@ -138,14 +188,13 @@ class _TeamsScreenState extends State<TeamsScreen> {
       );
     }
     final allTeams = _teams ?? const <Team>[];
-    final myTeams = allTeams.where((team) => team.myRole != null).length;
+    final hasTeam = allTeams.any((team) => team.myRole != null);
     final pendingCount =
         allTeams.where((team) => team.myRequest == 'pendente').length;
     final inviteCount =
         allTeams.where((team) => team.myInvite == 'pendente').length;
     final teams = switch (_view) {
       _TeamView.all => allTeams,
-      _TeamView.mine => allTeams.where((team) => team.myRole != null).toList(),
       _TeamView.pending =>
         allTeams.where((team) => team.myRequest == 'pendente').toList(),
       _TeamView.invites =>
@@ -157,62 +206,50 @@ class _TeamsScreenState extends State<TeamsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          _TeamsHero(
-            teamCount: allTeams.length,
-            myTeamCount: myTeams,
-            onCreate: _create,
-          ),
-          const SizedBox(height: 20),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _FilterChip(
-                  label: 'Todas',
-                  icon: Icons.public,
-                  selected: _view == _TeamView.all,
-                  onSelected: () => setState(() => _view = _TeamView.all),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label: 'Minhas',
-                  icon: Icons.shield_outlined,
-                  selected: _view == _TeamView.mine,
-                  onSelected: () => setState(() => _view = _TeamView.mine),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label:
-                      pendingCount == 0 ? 'Pedidos' : 'Pedidos ($pendingCount)',
-                  icon: Icons.schedule,
-                  selected: _view == _TeamView.pending,
-                  onSelected: () => setState(() => _view = _TeamView.pending),
-                ),
-                const SizedBox(width: 8),
-                _FilterChip(
-                  label:
-                      inviteCount == 0 ? 'Convites' : 'Convites ($inviteCount)',
-                  icon: Icons.mail_outline_rounded,
-                  selected: _view == _TeamView.invites,
-                  onSelected: () => setState(() => _view = _TeamView.invites),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          GdSectionTitle(
-            title: _sectionTitle,
-            eyebrow: 'DIRETÓRIO',
-            trailing: Text(
-              '${teams.length}',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
+          if (!hasTeam) ...[
+            _TeamsIntro(onCreate: _create),
+            const SizedBox(height: 24),
+          ],
+          if (pendingCount > 0 || inviteCount > 0) ...[
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  _FilterChip(
+                    label: 'Descobrir',
+                    icon: Icons.public,
+                    selected: _view == _TeamView.all,
+                    onSelected: () => setState(() => _view = _TeamView.all),
                   ),
+                  if (pendingCount > 0) ...[
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Pedidos ($pendingCount)',
+                      icon: Icons.schedule,
+                      selected: _view == _TeamView.pending,
+                      onSelected: () =>
+                          setState(() => _view = _TeamView.pending),
+                    ),
+                  ],
+                  if (inviteCount > 0) ...[
+                    const SizedBox(width: 8),
+                    _FilterChip(
+                      label: 'Convites ($inviteCount)',
+                      icon: Icons.mail_outline_rounded,
+                      selected: _view == _TeamView.invites,
+                      onSelected: () =>
+                          setState(() => _view = _TeamView.invites),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+          ],
+          GdSectionTitle(title: _sectionTitle, eyebrow: 'COMUNIDADE'),
           const SizedBox(height: 12),
           if (teams.isEmpty)
-            _FilteredEmpty(view: _view, onCreate: _create)
+            _FilteredEmpty(view: _view)
           else
             for (var index = 0; index < teams.length; index++) ...[
               GdReveal(
@@ -227,8 +264,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   String get _sectionTitle => switch (_view) {
-        _TeamView.all => 'Encontre sua turma',
-        _TeamView.mine => 'Suas equipes',
+        _TeamView.all => 'Equipes para conhecer',
         _TeamView.pending => 'Pedidos enviados',
         _TeamView.invites => 'Convites recebidos',
       };
@@ -272,15 +308,9 @@ final class _TeamMessage extends StatelessWidget {
   }
 }
 
-final class _TeamsHero extends StatelessWidget {
-  const _TeamsHero({
-    required this.teamCount,
-    required this.myTeamCount,
-    required this.onCreate,
-  });
+final class _TeamsIntro extends StatelessWidget {
+  const _TeamsIntro({required this.onCreate});
 
-  final int teamCount;
-  final int myTeamCount;
   final VoidCallback onCreate;
 
   @override
@@ -308,52 +338,12 @@ final class _TeamsHero extends StatelessWidget {
                 color: colors.onSurfaceVariant,
               ),
         ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainer,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: colors.outlineVariant),
-          ),
-          child: Wrap(
-            spacing: 22,
-            runSpacing: 12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              _HeroStat(value: '$teamCount', label: 'equipes'),
-              _HeroStat(value: '$myTeamCount', label: 'suas'),
-              FilledButton.icon(
-                onPressed: onCreate,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Criar equipe'),
-              ),
-            ],
-          ),
+        const SizedBox(height: 18),
+        FilledButton.icon(
+          onPressed: onCreate,
+          icon: const Icon(Icons.add, size: 18),
+          label: const Text('Criar minha equipe'),
         ),
-      ],
-    );
-  }
-}
-
-final class _HeroStat extends StatelessWidget {
-  const _HeroStat({required this.value, required this.label});
-
-  final String value;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Text(
-          value,
-          style: Theme.of(context).textTheme.headlineMedium,
-        ),
-        const SizedBox(width: 6),
-        Text(label, style: Theme.of(context).textTheme.labelMedium),
       ],
     );
   }
@@ -534,16 +524,14 @@ final class _MetaPill extends StatelessWidget {
 }
 
 final class _FilteredEmpty extends StatelessWidget {
-  const _FilteredEmpty({required this.view, required this.onCreate});
+  const _FilteredEmpty({required this.view});
 
   final _TeamView view;
-  final VoidCallback onCreate;
 
   @override
   Widget build(BuildContext context) {
     final message = switch (view) {
       _TeamView.all => 'Nenhuma equipe foi criada ainda.',
-      _TeamView.mine => 'Você ainda não participa de uma equipe.',
       _TeamView.pending => 'Você não tem pedidos pendentes.',
       _TeamView.invites => 'Você não tem convites pendentes.',
     };
@@ -558,14 +546,6 @@ final class _FilteredEmpty extends StatelessWidget {
           const Icon(Icons.flag_outlined, size: 42),
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
-          if (view != _TeamView.pending && view != _TeamView.invites) ...[
-            const SizedBox(height: 16),
-            TextButton.icon(
-              onPressed: onCreate,
-              icon: const Icon(Icons.add),
-              label: const Text('Criar uma equipe'),
-            ),
-          ],
         ],
       ),
     );
