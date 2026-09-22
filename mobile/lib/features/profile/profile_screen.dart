@@ -13,6 +13,7 @@ import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/security_screen.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/sharing/share_content.dart';
@@ -148,6 +149,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     if (shouldLogout == true) await widget.session.logout();
   }
 
+  Future<void> _openSecurity() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => SecurityScreen(session: widget.session),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.session.user!;
@@ -252,6 +261,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   leading: const Icon(Icons.mail_outline),
                   title: const Text('E-mail da conta'),
                   subtitle: Text(user.email),
+                ),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: const Icon(Icons.shield_outlined),
+                  title: const Text('Senha e segurança'),
+                  subtitle: const Text('Proteja o acesso à sua garagem'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: _openSecurity,
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

@@ -4,9 +4,21 @@ import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 
 final class ApiClient {
-  ApiClient({required String baseUrl, required TokenStorage tokenStorage})
+  ApiClient({
+    required String baseUrl,
+    required TokenStorage tokenStorage,
+    Dio? refreshClient,
+  })
       : _tokenStorage = tokenStorage,
-        _refreshClient = Dio(BaseOptions(baseUrl: baseUrl)),
+        _refreshClient = refreshClient ??
+            Dio(
+              BaseOptions(
+                baseUrl: baseUrl,
+                connectTimeout: const Duration(seconds: 10),
+                receiveTimeout: const Duration(seconds: 15),
+                headers: const {'Accept': 'application/json'},
+              ),
+            ),
         dio = Dio(
           BaseOptions(
             baseUrl: baseUrl,
@@ -28,6 +40,13 @@ final class ApiClient {
   final TokenStorage _tokenStorage;
   Future<bool>? _refreshing;
 
+  static const _nonRefreshableAuthPaths = {
+    '/auth/cadastro',
+    '/auth/login',
+    '/auth/logout',
+    '/auth/refresh',
+  };
+
   Future<void> _authorize(
     RequestOptions options,
     RequestInterceptorHandler handler,
@@ -42,11 +61,22 @@ final class ApiClient {
     ErrorInterceptorHandler handler,
   ) async {
     final request = error.requestOptions;
+    final requestPath = Uri.parse(request.path).path;
     final mayRefresh = error.response?.statusCode == 401 &&
         request.extra['retried_after_refresh'] != true &&
-        !request.path.contains('/auth/refresh');
+        !_nonRefreshableAuthPaths.contains(requestPath);
 
-    if (!mayRefresh || !await _refreshTokens()) {
+    if (!mayRefresh) {
+      handler.next(error);
+      return;
+    }
+
+    try {
+      if (!await _refreshTokens()) {
+        handler.next(error);
+        return;
+      }
+    } catch (_) {
       handler.next(error);
       return;
     }
@@ -55,9 +85,11 @@ final class ApiClient {
       request.extra['retried_after_refresh'] = true;
       final token = await _tokenStorage.readAccessToken();
       request.headers['Authorization'] = 'Bearer $token';
-      handler.resolve(await dio.fetch<Object?>(request));
+      handler.resolve(await _refreshClient.fetch<Object?>(request));
     } on DioException catch (retryError) {
       handler.next(retryError);
+    } catch (_) {
+      handler.next(error);
     }
   }
 

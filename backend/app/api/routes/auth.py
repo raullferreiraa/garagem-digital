@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.api.dependencies.auth import UsuarioAtual
 from app.core.database import get_db
 from app.schemas.auth import (
+    AlteracaoSenha,
     CredenciaisLogin,
     RefreshTokenEntrada,
     TokenResposta,
@@ -16,7 +17,10 @@ from app.schemas.usuario import PerfilPrivado
 from app.services.auth import (
     CredenciaisInvalidas,
     IdentificadorEmUso,
+    NovaSenhaInvalida,
     RefreshTokenInvalido,
+    SenhaAtualIncorreta,
+    alterar_senha,
     autenticar_usuario,
     cadastrar_usuario,
     emitir_tokens,
@@ -75,3 +79,22 @@ def logout(dados: RefreshTokenEntrada, db: DbSession) -> Response:
 @router.get("/me", response_model=PerfilPrivado)
 def me(usuario: UsuarioAtual) -> PerfilPrivado:
     return PerfilPrivado.model_validate(usuario)
+
+
+@router.post("/alterar-senha", response_model=TokenResposta)
+def alterar_senha_atual(
+    dados: AlteracaoSenha,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> TokenResposta:
+    try:
+        return alterar_senha(
+            db,
+            usuario,
+            senha_atual=dados.senha_atual,
+            nova_senha=dados.nova_senha,
+        )
+    except SenhaAtualIncorreta as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+    except NovaSenhaInvalida as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error

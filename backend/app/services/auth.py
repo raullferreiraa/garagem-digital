@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
@@ -26,6 +26,14 @@ class CredenciaisInvalidas(ValueError):
 
 
 class RefreshTokenInvalido(ValueError):
+    pass
+
+
+class SenhaAtualIncorreta(ValueError):
+    pass
+
+
+class NovaSenhaInvalida(ValueError):
     pass
 
 
@@ -101,6 +109,33 @@ def _montar_resposta(usuario: Usuario, refresh_token: str) -> TokenResposta:
 
 
 def emitir_tokens(db: Session, usuario: Usuario) -> TokenResposta:
+    refresh_token = _adicionar_sessao_refresh(db, usuario)
+    db.commit()
+    db.refresh(usuario)
+    return _montar_resposta(usuario, refresh_token)
+
+
+def alterar_senha(
+    db: Session,
+    usuario: Usuario,
+    senha_atual: str,
+    nova_senha: str,
+) -> TokenResposta:
+    if not verificar_senha(senha_atual, usuario.senha_hash):
+        raise SenhaAtualIncorreta("A senha atual está incorreta.")
+    if verificar_senha(nova_senha, usuario.senha_hash):
+        raise NovaSenhaInvalida("A nova senha deve ser diferente da atual.")
+
+    agora = datetime.now(timezone.utc)
+    usuario.senha_hash = gerar_hash_senha(nova_senha)
+    db.execute(
+        update(SessaoRefresh)
+        .where(
+            SessaoRefresh.usuario_id == usuario.id,
+            SessaoRefresh.revogada_em.is_(None),
+        )
+        .values(revogada_em=agora)
+    )
     refresh_token = _adicionar_sessao_refresh(db, usuario)
     db.commit()
     db.refresh(usuario)

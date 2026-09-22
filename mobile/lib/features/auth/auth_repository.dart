@@ -31,7 +31,8 @@ final class AuthRepository {
   }
 
   Future<User> _authenticate(String path, Map<String, Object?> body) async {
-    final response = await _api.dio.post<Map<String, Object?>>(path, data: body);
+    final response =
+        await _api.dio.post<Map<String, Object?>>(path, data: body);
     final data = response.data!;
     await _tokens.write(
       accessToken: data['access_token']! as String,
@@ -43,6 +44,25 @@ final class AuthRepository {
   Future<User> currentUser() async {
     final response = await _api.dio.get<Map<String, Object?>>('/auth/me');
     return User.fromJson(response.data!);
+  }
+
+  Future<User> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final response = await _api.dio.post<Map<String, Object?>>(
+      '/auth/alterar-senha',
+      data: {
+        'senha_atual': currentPassword,
+        'nova_senha': newPassword,
+      },
+    );
+    final data = response.data!;
+    await _tokens.write(
+      accessToken: data['access_token']! as String,
+      refreshToken: data['refresh_token']! as String,
+    );
+    return User.fromJson(data['usuario']! as Map<String, Object?>);
   }
 
   Future<User> updateProfile({

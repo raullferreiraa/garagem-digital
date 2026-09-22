@@ -5,7 +5,8 @@ import 'package:garagem_mobile/features/auth/user.dart';
 enum SessionStatus { initializing, signedOut, authenticated }
 
 final class SessionController extends ChangeNotifier {
-  SessionController({required AuthRepository repository}) : _repository = repository;
+  SessionController({required AuthRepository repository})
+      : _repository = repository;
 
   final AuthRepository _repository;
   SessionStatus status = SessionStatus.initializing;
@@ -74,6 +75,17 @@ final class SessionController extends ChangeNotifier {
 
   Future<void> removeAvatar() async {
     user = await _repository.removeAvatar();
+    notifyListeners();
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    user = await _repository.changePassword(
+      currentPassword: currentPassword,
+      newPassword: newPassword,
+    );
     notifyListeners();
   }
 

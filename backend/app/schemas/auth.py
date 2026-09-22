@@ -45,6 +45,11 @@ class RefreshTokenEntrada(BaseModel):
     refresh_token: Annotated[str, Field(min_length=40, max_length=256)]
 
 
+class AlteracaoSenha(BaseModel):
+    senha_atual: Senha
+    nova_senha: Senha
+
+
 class TokenResposta(BaseModel):
     access_token: str
     refresh_token: str
