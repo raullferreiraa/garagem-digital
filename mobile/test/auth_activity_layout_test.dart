@@ -112,15 +112,23 @@ void main() {
     )));
     await tester.pumpAndSettle();
     expect(find.text('HOJE'), findsOneWidget);
-    expect(unread.last, 1);
+    expect(requests, contains('POST /notificacoes/lidas'));
+    expect(unread.last, 0);
+    expect(find.text('1 novidade nesta visita'), findsOneWidget);
+    expect(
+      tester
+          .widget<Text>(find.text('@piloto começou a seguir você.'))
+          .style
+          ?.fontWeight,
+      FontWeight.w700,
+    );
     expect(tester.takeException(), isNull);
     await tester.ensureVisible(find.text('@piloto começou a seguir você.'));
     await tester.tap(find.text('@piloto começou a seguir você.'));
     await tester.pumpAndSettle();
-    expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
     expect(unread.last, 0);
     expect(opened, ['aviso-1']);
-    expect(find.text('Você está em dia.'), findsOneWidget);
+    expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

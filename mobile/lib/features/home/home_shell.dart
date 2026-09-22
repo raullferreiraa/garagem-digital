@@ -1,8 +1,10 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
+import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
@@ -54,7 +56,8 @@ final class _HomeShellState extends State<HomeShell>
   int _garageRevision = 0;
   int _teamsRevision = 0;
   int _profileRevision = 0;
-  int _notificationsRevision = 0;
+  final _notificationsRevision = ValueNotifier<int>(0);
+  bool _activityOpen = false;
   int _unreadNotifications = 0;
   int _unreadRequest = 0;
   bool _wasBackgrounded = false;
@@ -69,6 +72,7 @@ final class _HomeShellState extends State<HomeShell>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _notificationsRevision.dispose();
     super.dispose();
   }
 
@@ -84,8 +88,8 @@ final class _HomeShellState extends State<HomeShell>
         _feedRevision++;
         _garageRevision++;
         _teamsRevision++;
-        _notificationsRevision++;
       });
+      _notificationsRevision.value++;
     }
   }
 
@@ -103,18 +107,32 @@ final class _HomeShellState extends State<HomeShell>
     }
   }
 
-  void _setUnreadNotifications(int count) {
-    _unreadRequest++;
-    if (mounted && count != _unreadNotifications) {
-      setState(() => _unreadNotifications = count);
-    }
-  }
-
   void _refreshCars() {
     setState(() {
       _feedRevision++;
       _garageRevision++;
     });
+  }
+
+  Future<void> _openActivity() async {
+    if (_activityOpen) return;
+    _activityOpen = true;
+    try {
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) => ValueListenableBuilder<int>(
+          valueListenable: _notificationsRevision,
+          builder: (activityContext, revision, __) => NotificationsScreen(
+            refreshRevision: revision,
+            repository: widget.notificationsRepository,
+            onUnreadChanged: (_) => unawaited(_refreshUnreadNotifications()),
+            onOpen: (item) => _openNotification(item, activityContext),
+          ),
+        ),
+      ));
+    } finally {
+      _activityOpen = false;
+      if (mounted) unawaited(_refreshUnreadNotifications());
+    }
   }
 
   void _refreshFeed() {
@@ -151,10 +169,20 @@ final class _HomeShellState extends State<HomeShell>
     _refreshFeed();
   }
 
-  Future<void> _openNotification(AppNotification notification) async {
+  Future<void> _openNotification(
+      AppNotification notification, BuildContext activityContext) async {
+    if (!mounted ||
+        !activityContext.mounted ||
+        ModalRoute.of(activityContext)?.isCurrent != true) return;
     try {
       if (notification.type == 'solicitacao_equipe_recusada') {
-        if (mounted) setState(() => _index = 2);
+        if (mounted) {
+          Navigator.of(context).pop();
+          setState(() {
+            _index = 2;
+            _teamsRevision++;
+          });
+        }
         return;
       }
       if (notification.teamId != null) {
@@ -178,7 +206,9 @@ final class _HomeShellState extends State<HomeShell>
           notification.carId!,
           notification.evolutionId!,
         );
-        if (!mounted) return;
+        if (!mounted ||
+            !activityContext.mounted ||
+            ModalRoute.of(activityContext)?.isCurrent != true) return;
         await Navigator.of(context).push<void>(
           MaterialPageRoute(
             builder: (_) => EvolutionDetailScreen(
@@ -197,11 +227,29 @@ final class _HomeShellState extends State<HomeShell>
         await _openPublicProfile(notification.actorId!);
       }
     } catch (error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(apiErrorMessage(error))),
+      if (!mounted ||
+          !activityContext.mounted ||
+          ModalRoute.of(activityContext)?.isCurrent != true) return;
+      ScaffoldMessenger.of(activityContext).showSnackBar(
+        SnackBar(content: Text(_notificationError(notification, error))),
       );
     }
+  }
+
+  String _notificationError(AppNotification notification, Object error) {
+    final unavailable =
+        error is DioException && error.response?.statusCode == 404;
+    if (!unavailable) return apiErrorMessage(error);
+    if (notification.evolutionId != null) {
+      return 'Esta evolução não está mais disponível.';
+    }
+    if (notification.carId != null) {
+      return 'Este projeto não está mais disponível.';
+    }
+    if (notification.teamId != null) {
+      return 'Esta equipe não está mais disponível.';
+    }
+    return 'Este conteúdo não está mais disponível.';
   }
 
   Future<void> _openEvolution(Evolution evolution) async {
@@ -312,22 +360,18 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
       ),
-      NotificationsScreen(
-        refreshRevision: _notificationsRevision,
-        repository: widget.notificationsRepository,
-        onUnreadChanged: _setUnreadNotifications,
-        onOpen: _openNotification,
-      ),
     ];
 
     return Scaffold(
-      body: IndexedStack(index: _index, children: [
-        for (var i = 0; i < pages.length; i++)
-          TickerMode(enabled: i == _index, child: pages[i]),
-      ]),
+      body: GdActivityScope(
+          unreadCount: _unreadNotifications,
+          onOpen: _openActivity,
+          child: IndexedStack(index: _index, children: [
+            for (var i = 0; i < pages.length; i++)
+              TickerMode(enabled: i == _index, child: pages[i]),
+          ])),
       bottomNavigationBar: GdNavigation(
         selectedIndex: _index,
-        unreadCount: _unreadNotifications,
         onSelected: (value) {
           setState(() {
             _index = value;
@@ -335,7 +379,6 @@ final class _HomeShellState extends State<HomeShell>
             if (value == 1) _garageRevision++;
             if (value == 2) _teamsRevision++;
             if (value == 3) _profileRevision++;
-            if (value == 4) _notificationsRevision++;
           });
           unawaited(_refreshUnreadNotifications());
         },

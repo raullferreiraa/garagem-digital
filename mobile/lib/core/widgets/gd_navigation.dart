@@ -3,20 +3,15 @@ import 'package:flutter/services.dart';
 
 class GdNavigation extends StatelessWidget {
   const GdNavigation(
-      {super.key,
-      required this.selectedIndex,
-      required this.onSelected,
-      this.unreadCount = 0});
+      {super.key, required this.selectedIndex, required this.onSelected});
   final int selectedIndex;
   final ValueChanged<int> onSelected;
-  final int unreadCount;
 
   static const _items = [
     ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
     ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
     ('Equipes', Icons.groups_outlined, Icons.groups_rounded),
     ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
-    ('Avisos', Icons.notifications_outlined, Icons.notifications_rounded),
   ];
 
   @override
@@ -42,9 +37,6 @@ class GdNavigation extends StatelessWidget {
                 button: true,
                 selected: selected,
                 label: item.$1,
-                value: index == 4 && unreadCount > 0
-                    ? '$unreadCount não lidos'
-                    : null,
                 child: Material(
                     color: Colors.transparent,
                     child: InkWell(
@@ -74,22 +66,14 @@ class GdNavigation extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(2)),
                                 ),
                                 const SizedBox(height: 6),
-                                Badge(
-                                  isLabelVisible: index == 4 && unreadCount > 0,
-                                  label: Text(unreadCount > 99
-                                      ? '99+'
-                                      : '$unreadCount'),
-                                  backgroundColor: colors.primary,
-                                  textColor: colors.onPrimary,
-                                  child: AnimatedScale(
-                                      scale: selected ? 1.08 : 1,
-                                      duration: duration,
-                                      child: Icon(selected ? item.$3 : item.$2,
-                                          size: 23,
-                                          color: selected
-                                              ? colors.primary
-                                              : colors.onSurfaceVariant)),
-                                ),
+                                AnimatedScale(
+                                    scale: selected ? 1.08 : 1,
+                                    duration: duration,
+                                    child: Icon(selected ? item.$3 : item.$2,
+                                        size: 23,
+                                        color: selected
+                                            ? colors.primary
+                                            : colors.onSurfaceVariant)),
                                 const SizedBox(height: 5),
                                 AnimatedDefaultTextStyle(
                                   duration: duration,

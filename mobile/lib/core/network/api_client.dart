@@ -62,7 +62,8 @@ final class ApiClient {
   }
 
   Future<bool> _refreshTokens() {
-    return _refreshing ??= _performRefresh().whenComplete(() => _refreshing = null);
+    return _refreshing ??=
+        _performRefresh().whenComplete(() => _refreshing = null);
   }
 
   Future<bool> _performRefresh() async {
@@ -96,11 +97,12 @@ String apiErrorMessage(Object error) {
       if (detail is String) return detail;
       if (detail is List && detail.isNotEmpty) {
         final first = detail.first;
-        if (first is Map && first['msg'] is String) return first['msg'] as String;
+        if (first is Map && first['msg'] is String)
+          return first['msg'] as String;
       }
     }
     if (error.type == DioExceptionType.connectionError) {
-      return 'Nao foi possivel conectar a API.';
+      return 'Não foi possível conectar à API.';
     }
   }
   return 'Algo deu errado. Tente novamente.';

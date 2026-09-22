@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
@@ -14,6 +15,7 @@ import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -153,6 +155,14 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Perfil'),
         actions: [
+          GdShareAction(
+            payload: ShareContent.profileValues(
+              name: user.name,
+              username: user.username,
+              projectCount: _socialProfile?.projectCount,
+            ),
+            tooltip: 'Compartilhar perfil',
+          ),
           IconButton(
             onPressed: _editProfile,
             tooltip: 'Editar perfil',

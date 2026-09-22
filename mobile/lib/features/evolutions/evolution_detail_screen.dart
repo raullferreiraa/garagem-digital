@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 
 final class EvolutionDetailScreen extends StatefulWidget {
   const EvolutionDetailScreen({
@@ -448,7 +450,15 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   Widget build(BuildContext context) {
     final evolution = widget.evolution;
     return Scaffold(
-      appBar: AppBar(title: const Text('Evolução do projeto')),
+      appBar: AppBar(
+        title: const Text('Evolução do projeto'),
+        actions: [
+          GdShareAction(
+            payload: ShareContent.evolution(evolution),
+            tooltip: 'Compartilhar evolução',
+          ),
+        ],
+      ),
       body: FutureBuilder<EvolutionInteractions>(
         future: _future,
         builder: (context, snapshot) {

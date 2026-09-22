@@ -196,11 +196,23 @@ void main() {
       await tester.pumpWidget(_app(layout.$2));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      const names = ['explorar', 'garagem', 'equipes', 'perfil', 'avisos'];
-      for (var index = 0; index < 5; index++) {
+      const names = ['explorar', 'garagem', 'equipes', 'perfil'];
+      for (var index = 0; index < 4; index++) {
         await tester.tap(find.byKey(ValueKey('nav-$index')));
         await tester.pumpAndSettle();
         expect(find.byType(GdNavigation), findsOneWidget);
+        if (index == 0) {
+          expect(find.byKey(const ValueKey('activity-bell')), findsOneWidget);
+          await tester.tap(find.byKey(const ValueKey('activity-bell')));
+          await tester.pumpAndSettle();
+          expect(find.text('Atividade'), findsOneWidget);
+          expect(find.byType(GdNavigation), findsNothing);
+          expect(tester.takeException(), isNull);
+          await tester.pageBack();
+          await tester.pumpAndSettle();
+        } else {
+          expect(find.byKey(const ValueKey('activity-bell')), findsNothing);
+        }
         expect(tester.takeException(), isNull, reason: 'Aba ${names[index]}');
         if (layout.$1 == 390) await _preview(tester, names[index]);
         final scrollables = find.byType(Scrollable);

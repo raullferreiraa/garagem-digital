@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
@@ -8,6 +9,7 @@ import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 
 typedef _ProfileData = ({PublicProfile profile, List<Car> cars});
 
@@ -189,7 +191,16 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       builder: (context, snapshot) {
         final data = _visibleData ?? snapshot.data;
         return Scaffold(
-          appBar: AppBar(title: const Text('Perfil')),
+          appBar: AppBar(
+            title: const Text('Perfil'),
+            actions: [
+              if (data != null)
+                GdShareAction(
+                  payload: ShareContent.profile(data.profile),
+                  tooltip: 'Compartilhar perfil',
+                ),
+            ],
+          ),
           body: data != null
               ? RefreshIndicator(
                   onRefresh: _reload,
