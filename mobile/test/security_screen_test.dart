@@ -83,6 +83,8 @@ void main() {
     await tester.enterText(fields.at(0), 'senha-atual-123');
     await tester.enterText(fields.at(1), 'senha-nova-456');
     await tester.enterText(fields.at(2), 'senha-diferente-789');
+    await tester.drag(find.byType(ListView), const Offset(0, -420));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Atualizar senha'));
     await tester.pumpAndSettle();
 

@@ -3,6 +3,7 @@ import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
@@ -18,6 +19,8 @@ final class TeamsScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.currentUserId,
     required this.usersRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
     required this.refreshRevision,
     required this.onSearch,
     super.key,
@@ -28,6 +31,8 @@ final class TeamsScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final String currentUserId;
   final UsersRepository usersRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
   final int refreshRevision;
   final VoidCallback onSearch;
 
@@ -100,6 +105,8 @@ class _TeamsScreenState extends State<TeamsScreen> {
           evolutionsRepository: widget.evolutionsRepository,
           currentUserId: widget.currentUserId,
           usersRepository: widget.usersRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );

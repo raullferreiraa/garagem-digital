@@ -11,6 +11,7 @@ from app.main import app
 from app.models import (  # noqa: F401
     Carro,
     ComentarioEvolucao,
+    ConversaDireta,
     ConviteEquipe,
     CurtidaComentarioEvolucao,
     CurtidaEvolucao,
@@ -18,6 +19,7 @@ from app.models import (  # noqa: F401
     Equipe,
     EvolucaoProjeto,
     MidiaEvolucao,
+    MensagemDireta,
     MembroEquipe,
     Notificacao,
     Seguidor,

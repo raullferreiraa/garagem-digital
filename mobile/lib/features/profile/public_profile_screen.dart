@@ -6,6 +6,8 @@ import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/conversation_screen.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
@@ -20,6 +22,8 @@ final class PublicProfileScreen extends StatefulWidget {
     required this.usersRepository,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
     super.key,
   });
 
@@ -28,6 +32,8 @@ final class PublicProfileScreen extends StatefulWidget {
   final UsersRepository usersRepository;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
 
   @override
   State<PublicProfileScreen> createState() => _PublicProfileScreenState();
@@ -37,6 +43,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   late Future<_ProfileData> _data;
   _ProfileData? _visibleData;
   bool _changingFollow = false;
+  bool _openingConversation = false;
 
   @override
   void initState() {
@@ -145,9 +152,41 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );
+  }
+
+  Future<void> _openConversation(PublicProfile profile) async {
+    if (_openingConversation) return;
+    setState(() => _openingConversation = true);
+    try {
+      final conversation =
+          await widget.messagesRepository.openDirect(profile.id);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(MaterialPageRoute(
+        builder: (_) => ConversationScreen(
+          conversation: conversation,
+          repository: widget.messagesRepository,
+          currentUserId: widget.currentUserId,
+          onProfileTap: (_) {
+            if (Navigator.of(context).canPop()) Navigator.of(context).pop();
+          },
+          onChanged: widget.onConversationChanged,
+        ),
+      ));
+      widget.onConversationChanged();
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _openingConversation = false);
+    }
   }
 
   Future<void> _openConnections(
@@ -317,22 +356,40 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
             ),
             if (!isMe) ...[
               const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                child: profile.followedByMe
-                    ? OutlinedButton.icon(
-                        onPressed:
-                            _changingFollow ? null : () => _toggleFollow(data),
-                        icon: const Icon(Icons.person_remove_outlined),
-                        label: const Text('Seguindo'),
-                      )
-                    : FilledButton.icon(
-                        onPressed:
-                            _changingFollow ? null : () => _toggleFollow(data),
-                        icon: const Icon(Icons.person_add_alt_1),
-                        label: const Text('Seguir'),
-                      ),
-              ),
+              Row(children: [
+                Expanded(
+                  child: profile.followedByMe
+                      ? OutlinedButton.icon(
+                          onPressed: _changingFollow
+                              ? null
+                              : () => _toggleFollow(data),
+                          icon: const Icon(Icons.person_remove_outlined),
+                          label: const Text('Seguindo'),
+                        )
+                      : FilledButton.icon(
+                          onPressed: _changingFollow
+                              ? null
+                              : () => _toggleFollow(data),
+                          icon: const Icon(Icons.person_add_alt_1),
+                          label: const Text('Seguir'),
+                        ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: _openingConversation
+                        ? null
+                        : () => _openConversation(profile),
+                    icon: _openingConversation
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.forum_outlined),
+                    label: const Text('Mensagem'),
+                  ),
+                ),
+              ]),
             ],
           ],
         )),

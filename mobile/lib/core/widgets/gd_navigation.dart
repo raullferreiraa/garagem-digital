@@ -2,15 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class GdNavigation extends StatelessWidget {
-  const GdNavigation(
-      {super.key, required this.selectedIndex, required this.onSelected});
+  const GdNavigation({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelected,
+    this.unreadMessages = 0,
+  });
   final int selectedIndex;
   final ValueChanged<int> onSelected;
+  final int unreadMessages;
 
   static const _items = [
     ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
     ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
     ('Equipes', Icons.groups_outlined, Icons.groups_rounded),
+    ('Conversas', Icons.forum_outlined, Icons.forum_rounded),
     ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
   ];
 
@@ -67,13 +73,55 @@ class GdNavigation extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 6),
                                 AnimatedScale(
-                                    scale: selected ? 1.08 : 1,
-                                    duration: duration,
-                                    child: Icon(selected ? item.$3 : item.$2,
-                                        size: 23,
-                                        color: selected
-                                            ? colors.primary
-                                            : colors.onSurfaceVariant)),
+                                  scale: selected ? 1.08 : 1,
+                                  duration: duration,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Icon(selected ? item.$3 : item.$2,
+                                          size: 23,
+                                          color: selected
+                                              ? colors.primary
+                                              : colors.onSurfaceVariant),
+                                      if (index == 3 && unreadMessages > 0)
+                                        Positioned(
+                                          right: -9,
+                                          top: -7,
+                                          child: Container(
+                                            constraints: const BoxConstraints(
+                                              minWidth: 16,
+                                              minHeight: 16,
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 4,
+                                              vertical: 1,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: colors.primary,
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: colors.surface,
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: Text(
+                                              unreadMessages > 99
+                                                  ? '99+'
+                                                  : '$unreadMessages',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 8,
+                                                height: 1.2,
+                                                fontWeight: FontWeight.w900,
+                                                color: colors.onPrimary,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                                 const SizedBox(height: 5),
                                 AnimatedDefaultTextStyle(
                                   duration: duration,

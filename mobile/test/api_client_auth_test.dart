@@ -160,7 +160,9 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.enterText(fields.at(0), 'raul');
     await tester.enterText(fields.at(1), 'senha-antiga-123');
-    await tester.tap(find.text('Entrar'));
+    final submit = find.text('Entrar');
+    await tester.ensureVisible(submit);
+    await tester.tap(submit);
     await tester.pumpAndSettle();
 
     expect(find.text('Entrar'), findsOneWidget);

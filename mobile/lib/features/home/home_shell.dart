@@ -16,6 +16,8 @@ import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart'
 import 'package:garagem_mobile/features/discovery/explore_screen.dart';
 import 'package:garagem_mobile/features/discovery/search_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/conversations_screen.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
@@ -32,6 +34,7 @@ final class HomeShell extends StatefulWidget {
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.messagesRepository,
     required this.notificationsRepository,
     required this.teamsRepository,
     required this.usersRepository,
@@ -41,6 +44,7 @@ final class HomeShell extends StatefulWidget {
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final MessagesRepository messagesRepository;
   final NotificationsRepository notificationsRepository;
   final TeamsRepository teamsRepository;
   final UsersRepository usersRepository;
@@ -55,23 +59,33 @@ final class _HomeShellState extends State<HomeShell>
   int _feedRevision = 0;
   int _garageRevision = 0;
   int _teamsRevision = 0;
+  int _messagesRevision = 0;
   int _profileRevision = 0;
   final _notificationsRevision = ValueNotifier<int>(0);
   bool _activityOpen = false;
   int _unreadNotifications = 0;
+  int _unreadMessages = 0;
   int _unreadRequest = 0;
+  int _unreadMessagesRequest = 0;
   bool _wasBackgrounded = false;
+  Timer? _messagesBadgeTimer;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshUnreadNotifications());
+    unawaited(_refreshUnreadMessages());
+    _messagesBadgeTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => unawaited(_refreshUnreadMessages()),
+    );
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _messagesBadgeTimer?.cancel();
     _notificationsRevision.dispose();
     super.dispose();
   }
@@ -84,10 +98,12 @@ final class _HomeShellState extends State<HomeShell>
     } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
       unawaited(_refreshUnreadNotifications());
+      unawaited(_refreshUnreadMessages());
       setState(() {
         _feedRevision++;
         _garageRevision++;
         _teamsRevision++;
+        _messagesRevision++;
       });
       _notificationsRevision.value++;
     }
@@ -104,6 +120,20 @@ final class _HomeShellState extends State<HomeShell>
       }
     } catch (_) {
       // A tela de atividade permite tentar novamente sem bloquear o app.
+    }
+  }
+
+  Future<void> _refreshUnreadMessages() async {
+    final request = ++_unreadMessagesRequest;
+    try {
+      final count = await widget.messagesRepository.unreadCount();
+      if (mounted &&
+          request == _unreadMessagesRequest &&
+          count != _unreadMessages) {
+        setState(() => _unreadMessages = count);
+      }
+    } catch (_) {
+      // A caixa de entrada permite tentar novamente sem bloquear o app.
     }
   }
 
@@ -163,6 +193,8 @@ final class _HomeShellState extends State<HomeShell>
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: _refreshUnreadMessages,
         ),
       ),
     );
@@ -195,6 +227,8 @@ final class _HomeShellState extends State<HomeShell>
               evolutionsRepository: widget.evolutionsRepository,
               currentUserId: widget.session.user!.id,
               usersRepository: widget.usersRepository,
+              messagesRepository: widget.messagesRepository,
+              onConversationChanged: _refreshUnreadMessages,
             ),
           ),
         );
@@ -276,6 +310,8 @@ final class _HomeShellState extends State<HomeShell>
           evolutionsRepository: widget.evolutionsRepository,
           currentUserId: widget.session.user!.id,
           usersRepository: widget.usersRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: _refreshUnreadMessages,
         ),
       ),
     );
@@ -352,6 +388,17 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         currentUserId: widget.session.user!.id,
         usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
+      ),
+      ConversationsScreen(
+        active: _index == 3,
+        refreshRevision: _messagesRevision,
+        repository: widget.messagesRepository,
+        currentUserId: widget.session.user!.id,
+        onUnreadChanged: _refreshUnreadMessages,
+        onProfileTap: _openPublicProfile,
+        onDiscover: () => setState(() => _index = 0),
       ),
       ProfileScreen(
         key: ValueKey('profile-$_profileRevision'),
@@ -359,6 +406,8 @@ final class _HomeShellState extends State<HomeShell>
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
       ),
     ];
 
@@ -372,15 +421,18 @@ final class _HomeShellState extends State<HomeShell>
           ])),
       bottomNavigationBar: GdNavigation(
         selectedIndex: _index,
+        unreadMessages: _unreadMessages,
         onSelected: (value) {
           setState(() {
             _index = value;
             if (value == 0) _feedRevision++;
             if (value == 1) _garageRevision++;
             if (value == 2) _teamsRevision++;
-            if (value == 3) _profileRevision++;
+            if (value == 3) _messagesRevision++;
+            if (value == 4) _profileRevision++;
           });
           unawaited(_refreshUnreadNotifications());
+          unawaited(_refreshUnreadMessages());
         },
       ),
     );

@@ -10,6 +10,7 @@ import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
@@ -24,6 +25,8 @@ final class ProfileScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.usersRepository,
+    required this.messagesRepository,
+    required this.onConversationChanged,
     super.key,
   });
 
@@ -31,6 +34,8 @@ final class ProfileScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final UsersRepository usersRepository;
+  final MessagesRepository messagesRepository;
+  final VoidCallback onConversationChanged;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -73,6 +78,8 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           usersRepository: widget.usersRepository,
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
+          messagesRepository: widget.messagesRepository,
+          onConversationChanged: widget.onConversationChanged,
         ),
       ),
     );

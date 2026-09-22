@@ -9,6 +9,7 @@ import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
@@ -72,6 +73,8 @@ void main() {
               'proximo_cursor': null,
             },
           '/notificacoes/nao-lidas' => <String, Object?>{'total': unread},
+          '/conversas/nao-lidas' => <String, Object?>{'total': 0},
+          '/conversas' => <Object?>[],
           '/notificacoes' => [
               {
                 'id': 'notice',
@@ -122,6 +125,7 @@ void main() {
         session: session,
         carsRepository: CarsRepository(api),
         evolutionsRepository: EvolutionsRepository(api),
+        messagesRepository: MessagesRepository(api),
         notificationsRepository: NotificationsRepository(api),
         teamsRepository: TeamsRepository(api),
         usersRepository: UsersRepository(api),
@@ -166,7 +170,7 @@ void main() {
       reason: 'O perfil preserva o estado durante a atualização do restante.',
     );
 
-    expect(find.byKey(const ValueKey('nav-4')), findsNothing);
+    expect(find.byKey(const ValueKey('nav-4')), findsOneWidget);
     expect(find.byKey(const ValueKey('activity-bell')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('nav-0')));
     await tester.pumpAndSettle();

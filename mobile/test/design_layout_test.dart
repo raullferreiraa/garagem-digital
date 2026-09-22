@@ -17,6 +17,7 @@ import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
+import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
@@ -104,6 +105,8 @@ Widget _app(double scale) {
           },
         ],
       '/notificacoes/nao-lidas' => {'total': 1},
+      '/conversas/nao-lidas' => {'total': 0},
+      '/conversas' => <Object?>[],
       '/notificacoes' => [
           {
             'id': 'notification',
@@ -150,6 +153,7 @@ Widget _app(double scale) {
             session: session,
             carsRepository: CarsRepository(api),
             evolutionsRepository: EvolutionsRepository(api),
+            messagesRepository: MessagesRepository(api),
             notificationsRepository: NotificationsRepository(api),
             teamsRepository: TeamsRepository(api),
             usersRepository: UsersRepository(api))),
