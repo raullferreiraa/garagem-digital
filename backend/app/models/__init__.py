@@ -8,7 +8,9 @@ from app.models.equipe import (
     CarroEquipe,
     ConviteEquipe,
     Equipe,
+    LeituraChatEquipe,
     MembroEquipe,
+    MensagemEquipe,
     SolicitacaoEquipe,
 )
 from app.models.midia_evolucao import MidiaEvolucao
@@ -25,7 +27,9 @@ __all__ = [
     "CurtidaEvolucao",
     "EvolucaoProjeto",
     "Equipe",
+    "LeituraChatEquipe",
     "MembroEquipe",
+    "MensagemEquipe",
     "SolicitacaoEquipe",
     "CarroEquipe",
     "ConviteEquipe",

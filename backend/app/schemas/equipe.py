@@ -89,5 +89,9 @@ class PapelMembroAtualizacao(BaseModel):
     papel: Literal["membro", "moderador", "administrador"]
 
 
+class TransferenciaLideranca(BaseModel):
+    usuario_id: UUID
+
+
 class EscolhaCarro(BaseModel):
     carro_id: UUID

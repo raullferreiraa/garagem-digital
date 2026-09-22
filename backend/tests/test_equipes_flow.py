@@ -167,3 +167,76 @@ def test_apenas_dono_edita_dados_da_equipe(client: TestClient) -> None:
     )
     assert invalida.status_code == 422
     assert client.get(caminho, headers=auth(dono)).json()["nome"] == "Equipe Nova"
+
+
+def test_usuario_so_pode_pertencer_a_uma_equipe(client: TestClient) -> None:
+    dono = cadastrar(client, "dono.cla")
+    candidato = cadastrar(client, "candidato.cla")
+    primeira = client.post(
+        "/api/v1/equipes",
+        headers=auth(dono),
+        json={"nome": "Clã de Origem"},
+    ).json()
+    segunda = client.post(
+        "/api/v1/equipes",
+        headers=auth(candidato),
+        json={"nome": "Outro Clã"},
+    ).json()
+
+    criar_outra = client.post(
+        "/api/v1/equipes",
+        headers=auth(dono),
+        json={"nome": "Terceiro Clã"},
+    )
+    assert criar_outra.status_code == 409
+    assert "já faz parte" in criar_outra.json()["detail"]
+
+    pedido = client.post(
+        f"/api/v1/equipes/{primeira['id']}/solicitacoes",
+        headers=auth(candidato),
+    )
+    assert pedido.status_code == 409
+    assert "já faz parte" in pedido.json()["detail"]
+
+    convite = client.post(
+        f"/api/v1/equipes/{primeira['id']}/convites",
+        headers=auth(dono),
+        json={"usuario_id": candidato["usuario"]["id"]},
+    )
+    assert convite.status_code == 409
+    assert "já faz parte" in convite.json()["detail"]
+    assert segunda["meu_papel"] == "dono"
+
+
+def test_dono_transfere_lideranca_e_novo_dono_pode_encerrar_equipe(
+    client: TestClient,
+) -> None:
+    dono = cadastrar(client, "dono.lideranca")
+    integrante = cadastrar(client, "integrante.lideranca")
+    equipe = client.post(
+        "/api/v1/equipes",
+        headers=auth(dono),
+        json={"nome": "Clã da Liderança"},
+    ).json()
+    base = f"/api/v1/equipes/{equipe['id']}"
+    assert client.post(f"{base}/solicitacoes", headers=auth(integrante)).status_code == 204
+    pedido_id = client.get(base, headers=auth(dono)).json()["solicitacoes_pendentes"][0]["id"]
+    assert client.patch(
+        f"{base}/solicitacoes/{pedido_id}",
+        headers=auth(dono),
+        json={"decisao": "aprovar"},
+    ).status_code == 204
+
+    transferida = client.patch(
+        f"{base}/lideranca",
+        headers=auth(dono),
+        json={"usuario_id": integrante["usuario"]["id"]},
+    )
+    assert transferida.status_code == 204
+    detalhe = client.get(base, headers=auth(integrante)).json()
+    assert detalhe["dono_id"] == integrante["usuario"]["id"]
+    assert detalhe["meu_papel"] == "dono"
+
+    encerrada = client.delete(base, headers=auth(integrante))
+    assert encerrada.status_code == 204
+    assert client.get(base, headers=auth(dono)).status_code == 404

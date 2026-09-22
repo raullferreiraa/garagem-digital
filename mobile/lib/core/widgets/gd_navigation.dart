@@ -7,21 +7,28 @@ class GdNavigation extends StatelessWidget {
     required this.selectedIndex,
     required this.onSelected,
     this.unreadMessages = 0,
+    this.unreadTeamMessages = 0,
+    this.hasTeam = false,
   });
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final int unreadMessages;
-
-  static const _items = [
-    ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
-    ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
-    ('Equipes', Icons.groups_outlined, Icons.groups_rounded),
-    ('Conversas', Icons.forum_outlined, Icons.forum_rounded),
-    ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
-  ];
+  final int unreadTeamMessages;
+  final bool hasTeam;
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
+      ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
+      (
+        hasTeam ? 'Minha equipe' : 'Equipes',
+        Icons.groups_outlined,
+        Icons.groups_rounded,
+      ),
+      ('Conversas', Icons.forum_outlined, Icons.forum_rounded),
+      ('Perfil', Icons.person_outline_rounded, Icons.person_rounded),
+    ];
     final colors = Theme.of(context).colorScheme;
     final duration = MediaQuery.disableAnimationsOf(context)
         ? Duration.zero
@@ -35,9 +42,14 @@ class GdNavigation extends StatelessWidget {
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
             child: Row(
-                children: List.generate(_items.length, (index) {
-              final item = _items[index];
+                children: List.generate(items.length, (index) {
+              final item = items[index];
               final selected = selectedIndex == index;
+              final badgeCount = index == 2
+                  ? unreadTeamMessages
+                  : index == 3
+                      ? unreadMessages
+                      : 0;
               return Expanded(
                   child: Semantics(
                 button: true,
@@ -83,7 +95,7 @@ class GdNavigation extends StatelessWidget {
                                           color: selected
                                               ? colors.primary
                                               : colors.onSurfaceVariant),
-                                      if (index == 3 && unreadMessages > 0)
+                                      if (badgeCount > 0)
                                         Positioned(
                                           right: -9,
                                           top: -7,
@@ -106,9 +118,9 @@ class GdNavigation extends StatelessWidget {
                                               ),
                                             ),
                                             child: Text(
-                                              unreadMessages > 99
+                                              badgeCount > 99
                                                   ? '99+'
-                                                  : '$unreadMessages',
+                                                  : '$badgeCount',
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontSize: 8,

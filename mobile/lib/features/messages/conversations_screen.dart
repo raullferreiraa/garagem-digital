@@ -6,6 +6,7 @@ import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/messages/conversation.dart';
 import 'package:garagem_mobile/features/messages/conversation_screen.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({
@@ -16,6 +17,9 @@ final class ConversationsScreen extends StatefulWidget {
     required this.onUnreadChanged,
     required this.onProfileTap,
     required this.onDiscover,
+    required this.teamChat,
+    required this.onTeamChatTap,
+    required this.onTeamChatChanged,
     super.key,
   });
 
@@ -26,6 +30,9 @@ final class ConversationsScreen extends StatefulWidget {
   final VoidCallback onUnreadChanged;
   final ValueChanged<String> onProfileTap;
   final VoidCallback onDiscover;
+  final TeamChatSummary? teamChat;
+  final VoidCallback onTeamChatTap;
+  final VoidCallback onTeamChatChanged;
 
   @override
   State<ConversationsScreen> createState() => _ConversationsScreenState();
@@ -79,6 +86,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
         _loading = false;
       });
       widget.onUnreadChanged();
+      widget.onTeamChatChanged();
     } catch (error) {
       if (!mounted || request != _request) return;
       setState(() {
@@ -142,8 +150,118 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
                 ),
           ),
           const SizedBox(height: 24),
-          if (items.isEmpty) _empty() else ...items.map(_conversationTile),
+          if (widget.teamChat != null) ...[
+            _teamChatTile(widget.teamChat!),
+            if (items.isNotEmpty) const SizedBox(height: 4),
+          ],
+          if (items.isEmpty && widget.teamChat == null)
+            _empty()
+          else
+            ...items.map(_conversationTile),
         ],
+      ),
+    );
+  }
+
+  Widget _teamChatTile(TeamChatSummary chat) {
+    final colors = Theme.of(context).colorScheme;
+    final unread = chat.unreadCount > 0;
+    final last = chat.lastMessage;
+    final mine = last?.authorId == widget.currentUserId;
+    final preview = last == null
+        ? 'Converse com os integrantes da sua equipe.'
+        : '${mine ? 'Você: ' : '${last.authorName}: '}${last.content.replaceAll('\n', ' ')}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: GdReveal(
+        child: Material(
+          color: unread
+              ? colors.primary.withValues(alpha: .09)
+              : colors.surfaceContainer,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(
+              color: unread
+                  ? colors.primary.withValues(alpha: .32)
+                  : colors.outlineVariant,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTeamChatTap,
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(children: [
+                GdAvatar(
+                  url: chat.teamAvatarUrl,
+                  name: chat.teamName,
+                  size: 52,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                            chat.teamName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  fontWeight: unread
+                                      ? FontWeight.w800
+                                      : FontWeight.w600,
+                                ),
+                          ),
+                        ),
+                        if (last != null)
+                          Text(
+                            _relativeDate(last.createdAt),
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          ),
+                      ]),
+                      const SizedBox(height: 3),
+                      Text(
+                        'Conversa da equipe',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: colors.primary,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                            preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: colors.onSurfaceVariant,
+                                      fontWeight: unread
+                                          ? FontWeight.w700
+                                          : FontWeight.w400,
+                                    ),
+                          ),
+                        ),
+                        if (unread) ...[
+                          const SizedBox(width: 10),
+                          _UnreadBadge(count: chat.unreadCount),
+                        ],
+                      ]),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -269,30 +387,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
                         ),
                         if (unread) ...[
                           const SizedBox(width: 10),
-                          Container(
-                            constraints: const BoxConstraints(minWidth: 22),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: colors.primary,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              conversation.unreadCount > 99
-                                  ? '99+'
-                                  : '${conversation.unreadCount}',
-                              textAlign: TextAlign.center,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: colors.onPrimary,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                            ),
-                          ),
+                          _UnreadBadge(count: conversation.unreadCount),
                         ],
                       ]),
                     ],
@@ -318,5 +413,32 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     if (difference == 1) return 'ontem';
     if (difference < 7) return '${difference}d';
     return '${local.day.toString().padLeft(2, '0')}/${local.month.toString().padLeft(2, '0')}';
+  }
+}
+
+final class _UnreadBadge extends StatelessWidget {
+  const _UnreadBadge({required this.count});
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      constraints: const BoxConstraints(minWidth: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: colors.primary,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        count > 99 ? '99+' : '$count',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: colors.onPrimary,
+              fontWeight: FontWeight.w900,
+            ),
+      ),
+    );
   }
 }

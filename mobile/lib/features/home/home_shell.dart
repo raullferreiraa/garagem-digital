@@ -25,6 +25,7 @@ import 'package:garagem_mobile/features/profile/profile_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
 import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 import 'package:garagem_mobile/features/teams/teams_screen.dart';
@@ -65,8 +66,10 @@ final class _HomeShellState extends State<HomeShell>
   bool _activityOpen = false;
   int _unreadNotifications = 0;
   int _unreadMessages = 0;
+  TeamChatSummary? _teamChatSummary;
   int _unreadRequest = 0;
   int _unreadMessagesRequest = 0;
+  int _teamChatRequest = 0;
   bool _wasBackgrounded = false;
   Timer? _messagesBadgeTimer;
 
@@ -76,9 +79,13 @@ final class _HomeShellState extends State<HomeShell>
     WidgetsBinding.instance.addObserver(this);
     unawaited(_refreshUnreadNotifications());
     unawaited(_refreshUnreadMessages());
+    unawaited(_refreshTeamChat());
     _messagesBadgeTimer = Timer.periodic(
       const Duration(seconds: 15),
-      (_) => unawaited(_refreshUnreadMessages()),
+      (_) {
+        unawaited(_refreshUnreadMessages());
+        unawaited(_refreshTeamChat());
+      },
     );
   }
 
@@ -99,6 +106,7 @@ final class _HomeShellState extends State<HomeShell>
       _wasBackgrounded = false;
       unawaited(_refreshUnreadNotifications());
       unawaited(_refreshUnreadMessages());
+      unawaited(_refreshTeamChat());
       setState(() {
         _feedRevision++;
         _garageRevision++;
@@ -134,6 +142,51 @@ final class _HomeShellState extends State<HomeShell>
       }
     } catch (_) {
       // A caixa de entrada permite tentar novamente sem bloquear o app.
+    }
+  }
+
+  Future<void> _refreshTeamChat() async {
+    final request = ++_teamChatRequest;
+    try {
+      final summary = await widget.teamsRepository.chatSummary();
+      if (!mounted || request != _teamChatRequest) return;
+      final current = _teamChatSummary;
+      if (current?.teamId == summary?.teamId &&
+          current?.teamName == summary?.teamName &&
+          current?.teamAvatarUrl == summary?.teamAvatarUrl &&
+          current?.unreadCount == summary?.unreadCount &&
+          current?.lastMessage?.id == summary?.lastMessage?.id) {
+        return;
+      }
+      setState(() => _teamChatSummary = summary);
+    } catch (_) {
+      // A equipe continua acessível e o badge tenta novamente no próximo ciclo.
+    }
+  }
+
+  Future<void> _openTeamChat() async {
+    final summary = _teamChatSummary;
+    if (summary == null) return;
+    try {
+      final team = await widget.teamsRepository.detail(summary.teamId);
+      if (!mounted) return;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => TeamChatScreen(
+            team: team,
+            repository: widget.teamsRepository,
+            currentUserId: widget.session.user!.id,
+          ),
+        ),
+      );
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) unawaited(_refreshTeamChat());
     }
   }
 
@@ -390,6 +443,8 @@ final class _HomeShellState extends State<HomeShell>
         usersRepository: widget.usersRepository,
         messagesRepository: widget.messagesRepository,
         onConversationChanged: _refreshUnreadMessages,
+        unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,
+        onTeamChatChanged: _refreshTeamChat,
       ),
       ConversationsScreen(
         active: _index == 3,
@@ -399,6 +454,9 @@ final class _HomeShellState extends State<HomeShell>
         onUnreadChanged: _refreshUnreadMessages,
         onProfileTap: _openPublicProfile,
         onDiscover: () => setState(() => _index = 0),
+        teamChat: _teamChatSummary,
+        onTeamChatTap: _openTeamChat,
+        onTeamChatChanged: _refreshTeamChat,
       ),
       ProfileScreen(
         key: ValueKey('profile-$_profileRevision'),
@@ -422,6 +480,8 @@ final class _HomeShellState extends State<HomeShell>
       bottomNavigationBar: GdNavigation(
         selectedIndex: _index,
         unreadMessages: _unreadMessages,
+        unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,
+        hasTeam: _teamChatSummary != null,
         onSelected: (value) {
           setState(() {
             _index = value;
@@ -433,6 +493,7 @@ final class _HomeShellState extends State<HomeShell>
           });
           unawaited(_refreshUnreadNotifications());
           unawaited(_refreshUnreadMessages());
+          unawaited(_refreshTeamChat());
         },
       ),
     );

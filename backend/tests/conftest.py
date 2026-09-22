@@ -21,6 +21,8 @@ from app.models import (  # noqa: F401
     MidiaEvolucao,
     MensagemDireta,
     MembroEquipe,
+    MensagemEquipe,
+    LeituraChatEquipe,
     Notificacao,
     Seguidor,
     SessaoRefresh,

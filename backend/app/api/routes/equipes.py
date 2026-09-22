@@ -18,7 +18,10 @@ from app.schemas.equipe import (
     EquipeResumo,
     PapelMembroAtualizacao,
     SolicitacaoDecisao,
+    TransferenciaLideranca,
 )
+from app.schemas.chat_equipe import MensagemEquipeCriacao, MensagemEquipeResposta, PaginaMensagensEquipe, ResumoChatEquipe
+from app.services.chat_equipe import enviar as enviar_chat, listar as listar_chat, resposta as resposta_chat, resumo as resumo_chat
 from app.services.equipes import (
     AcaoNaoPermitida,
     EquipeNaoEncontrada,
@@ -33,9 +36,11 @@ from app.services.equipes import (
     obter_equipe,
     alterar_papel_membro,
     atualizar_equipe,
+    encerrar_equipe,
     remover_carro_escolhido,
     remover_membro,
     solicitar_entrada,
+    transferir_lideranca,
 )
 
 from app.services.media import (
@@ -48,6 +53,38 @@ from app.services.media import (
 
 router = APIRouter()
 DbSession = Annotated[Session, Depends(get_db)]
+
+
+@router.get("/meu-chat/resumo", response_model=ResumoChatEquipe | None)
+def resumo_chat_equipe(
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> ResumoChatEquipe | None:
+    return resumo_chat(db, usuario.id)
+
+
+@router.get("/{equipe_id}/chat", response_model=PaginaMensagensEquipe)
+def mensagens_chat_equipe(
+    equipe_id: UUID, usuario: UsuarioAtual, db: DbSession,
+    limite: Annotated[int, Query(ge=1, le=50)] = 30, cursor: str | None = None,
+) -> PaginaMensagensEquipe:
+    try:
+        pagina = listar_chat(db, equipe_id, usuario.id, limite, cursor)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    if pagina is None:
+        raise HTTPException(status_code=404, detail="Chat da equipe nao encontrado.")
+    return pagina
+
+
+@router.post("/{equipe_id}/chat", response_model=MensagemEquipeResposta, status_code=status.HTTP_201_CREATED)
+def enviar_mensagem_chat_equipe(
+    equipe_id: UUID, dados: MensagemEquipeCriacao, usuario: UsuarioAtual, db: DbSession,
+) -> MensagemEquipeResposta:
+    mensagem = enviar_chat(db, equipe_id, usuario, dados.conteudo)
+    if mensagem is None:
+        raise HTTPException(status_code=404, detail="Chat da equipe nao encontrado.")
+    return resposta_chat(mensagem, usuario)
 
 
 def _erro(error: ValueError) -> HTTPException:
@@ -71,8 +108,11 @@ def equipes(
 def cadastrar_equipe(
     dados: EquipeCriacao, usuario: UsuarioAtual, db: DbSession
 ) -> EquipeDetalhe:
-    equipe = criar_equipe(db, usuario, dados)
-    return detalhar_equipe(db, equipe.id, usuario.id)
+    try:
+        equipe = criar_equipe(db, usuario, dados)
+        return detalhar_equipe(db, equipe.id, usuario.id)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
 
 
 @router.patch("/{equipe_id}", response_model=EquipeDetalhe)
@@ -84,6 +124,35 @@ def editar_equipe(
         return detalhar_equipe(db, equipe_id, usuario.id)
     except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
         raise _erro(error) from error
+
+
+@router.patch("/{equipe_id}/lideranca", status_code=status.HTTP_204_NO_CONTENT)
+def transferir_lideranca_equipe(
+    equipe_id: UUID,
+    dados: TransferenciaLideranca,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        transferir_lideranca(db, equipe_id, dados.usuario_id, usuario)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{equipe_id}", status_code=status.HTTP_204_NO_CONTENT)
+def encerrar_equipe_endpoint(
+    equipe_id: UUID,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    try:
+        avatar_url, capa_url = encerrar_equipe(db, equipe_id, usuario)
+    except (EquipeNaoEncontrada, AcaoNaoPermitida, EstadoInvalido) as error:
+        raise _erro(error) from error
+    remover_media(avatar_url)
+    remover_media(capa_url)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _equipe_do_dono(db: Session, equipe_id: UUID, usuario: UsuarioAtual) -> Equipe:

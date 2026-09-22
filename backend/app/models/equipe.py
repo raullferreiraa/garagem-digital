@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, ForeignKey, String, Text, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -146,5 +146,48 @@ class CarroEquipe(Base):
         index=True,
     )
     adicionado_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=agora_utc, server_default=func.now()
+    )
+
+
+class LeituraChatEquipe(Base):
+    __tablename__ = "leituras_chat_equipe"
+
+    equipe_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("equipes.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    usuario_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    ultima_leitura_em: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=agora_utc, server_default=func.now()
+    )
+
+
+class MensagemEquipe(Base):
+    __tablename__ = "mensagens_equipe"
+    __table_args__ = (
+        Index("ix_mensagens_equipe_equipe_criada_id", "equipe_id", "criada_em", "id"),
+    )
+
+    id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True), primary_key=True, default=uuid4
+    )
+    equipe_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("equipes.id", ondelete="CASCADE"),
+        index=True,
+    )
+    autor_id: Mapped[UUID] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("usuarios.id", ondelete="CASCADE"),
+        index=True,
+    )
+    conteudo: Mapped[str] = mapped_column(String(2000))
+    criada_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=agora_utc, server_default=func.now()
     )
