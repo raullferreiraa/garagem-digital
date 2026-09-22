@@ -8,8 +8,7 @@ final class ApiClient {
     required String baseUrl,
     required TokenStorage tokenStorage,
     Dio? refreshClient,
-  })
-      : _tokenStorage = tokenStorage,
+  })  : _tokenStorage = tokenStorage,
         _refreshClient = refreshClient ??
             Dio(
               BaseOptions(
@@ -76,6 +75,9 @@ final class ApiClient {
         handler.next(error);
         return;
       }
+    } on DioException catch (refreshError) {
+      handler.next(refreshError);
+      return;
     } catch (_) {
       handler.next(error);
       return;
@@ -114,9 +116,13 @@ final class ApiClient {
         refreshToken: data['refresh_token']! as String,
       );
       return true;
-    } on DioException {
-      await _tokenStorage.clear();
-      return false;
+    } on DioException catch (error) {
+      if (error.response?.statusCode == 401 ||
+          error.response?.statusCode == 403) {
+        await _tokenStorage.clear();
+        return false;
+      }
+      rethrow;
     }
   }
 }

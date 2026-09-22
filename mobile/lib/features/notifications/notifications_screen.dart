@@ -71,16 +71,24 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     if (items == null || items.every((item) => item.isRead)) return;
     _acknowledging = true;
     try {
-      await widget.repository.markAllRead();
+      final readIds =
+          items.where((item) => !item.isRead).map((item) => item.id).toSet();
+      for (final id in readIds) {
+        await widget.repository.markRead(id);
+      }
       if (!mounted) return;
       final now = DateTime.now();
       setState(() {
         _items = [
           for (final item in _items!)
-            if (item.isRead) item else item.copyWith(readAt: now),
+            if (!readIds.contains(item.id))
+              item
+            else
+              item.copyWith(readAt: now),
         ];
       });
-      widget.onUnreadChanged(0);
+      final unread = await widget.repository.unreadCount();
+      if (mounted) widget.onUnreadChanged(unread);
     } catch (_) {
       // Mantém o estado pendente; um novo acesso ou refresh tenta novamente.
     } finally {

@@ -8,6 +8,7 @@ import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
@@ -63,9 +64,17 @@ void main() {
           pendingEvolution = handler;
           return;
         }
-        if (options.path == '/notificacoes/lidas') {
+        if (options.path == '/notificacoes/notice/lida') {
           unread = 0;
           read = true;
+          handler.resolve(Response(requestOptions: options, data: {
+            'id': 'notice',
+            'tipo': 'solicitacao_equipe_recusada',
+            'mensagem': 'Seu pedido foi recusado.',
+            'criada_em': '2026-09-21T12:00:00Z',
+            'lida_em': '2026-09-21T13:00:00Z',
+          }));
+          return;
         }
         final Object data = switch (options.path) {
           '/carros' => <String, Object?>{
@@ -125,6 +134,7 @@ void main() {
         session: session,
         carsRepository: CarsRepository(api),
         evolutionsRepository: EvolutionsRepository(api),
+        eventsRepository: EventsRepository(api),
         messagesRepository: MessagesRepository(api),
         notificationsRepository: NotificationsRepository(api),
         teamsRepository: TeamsRepository(api),
@@ -134,28 +144,32 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(requests['/carros'], 1);
-    expect(requests['/carros/meus'], 2);
+    expect(requests['/carros/meus'], 1);
     expect(requests['/equipes'], 1);
     expect(requests['/notificacoes'], isNull);
     expect(requests['/notificacoes/nao-lidas'], 1);
     expect(requests['/usuarios/raul'], 1);
 
-    await tester.tap(find.text('Garagem'));
+    await tester.tap(find.text('Perfil'));
     await tester.pumpAndSettle();
-    expect(find.text('Sua garagem, sua história'), findsOneWidget);
+    expect(find.text('Minha coleção'), findsOneWidget);
 
     final beforeResume = Map<String, int>.from(requests);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.paused,
     );
     await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(
       AppLifecycleState.resumed,
     );
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('Sua garagem, sua história'), findsOneWidget);
+    expect(find.text('Minha coleção'), findsOneWidget);
     expect(requests['/carros'], beforeResume['/carros']! + 1);
     expect(requests['/carros/meus'], beforeResume['/carros/meus']! + 1);
     expect(requests['/equipes'], beforeResume['/equipes']! + 1);
@@ -166,8 +180,8 @@ void main() {
     );
     expect(
       requests['/usuarios/raul'],
-      1,
-      reason: 'O perfil preserva o estado durante a atualização do restante.',
+      beforeResume['/usuarios/raul']! + 1,
+      reason: 'A garagem dentro do perfil também atualiza ao voltar ao app.',
     );
 
     expect(find.byKey(const ValueKey('nav-4')), findsOneWidget);
@@ -179,9 +193,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Atividade'), findsOneWidget);
     expect(requests['/notificacoes'], 1);
-    expect(requests['/notificacoes/lidas'], 1);
+    expect(requests['/notificacoes/notice/lida'], 1);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump();
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
     await tester.pumpAndSettle();

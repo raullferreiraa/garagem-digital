@@ -41,6 +41,11 @@ def test_chat_exige_membro_e_ordena_mensagens(client: TestClient) -> None:
     assert resumo_novo["total_nao_lidas"] == 1
     assert resumo_novo["ultima_mensagem"]["conteudo"] == "Cheguei depois"
 
+    client.get(f"{base}/chat", headers=auth(membro), params={"cursor": pagina["proximo_cursor"]})
+    assert client.get("/api/v1/equipes/meu-chat/resumo", headers=auth(membro)).json()["total_nao_lidas"] == 1
+    assert client.get(f"{base}/chat", headers=auth(membro), params={"cursor": "invalido"}).status_code == 422
+    assert client.get("/api/v1/equipes/meu-chat/resumo", headers=auth(membro)).json()["total_nao_lidas"] == 1
+
     client.get(f"{base}/chat", headers=auth(membro))
     resumo_aberto = client.get("/api/v1/equipes/meu-chat/resumo", headers=auth(membro)).json()
     assert resumo_aberto["total_nao_lidas"] == 0

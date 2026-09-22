@@ -8,14 +8,14 @@ import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/car_list.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garagem_mobile/features/discovery/explore_screen.dart';
 import 'package:garagem_mobile/features/discovery/search_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
+import 'package:garagem_mobile/features/events/events_screen.dart';
 import 'package:garagem_mobile/features/messages/conversations_screen.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/app_notification.dart';
@@ -35,6 +35,7 @@ final class HomeShell extends StatefulWidget {
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
+    required this.eventsRepository,
     required this.messagesRepository,
     required this.notificationsRepository,
     required this.teamsRepository,
@@ -45,6 +46,7 @@ final class HomeShell extends StatefulWidget {
   final SessionController session;
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
+  final EventsRepository eventsRepository;
   final MessagesRepository messagesRepository;
   final NotificationsRepository notificationsRepository;
   final TeamsRepository teamsRepository;
@@ -58,7 +60,7 @@ final class _HomeShellState extends State<HomeShell>
     with WidgetsBindingObserver {
   int _index = 0;
   int _feedRevision = 0;
-  int _garageRevision = 0;
+  int _eventsRevision = 0;
   int _teamsRevision = 0;
   int _messagesRevision = 0;
   int _profileRevision = 0;
@@ -109,9 +111,10 @@ final class _HomeShellState extends State<HomeShell>
       unawaited(_refreshTeamChat());
       setState(() {
         _feedRevision++;
-        _garageRevision++;
+        _eventsRevision++;
         _teamsRevision++;
         _messagesRevision++;
+        _profileRevision++;
       });
       _notificationsRevision.value++;
     }
@@ -193,7 +196,7 @@ final class _HomeShellState extends State<HomeShell>
   void _refreshCars() {
     setState(() {
       _feedRevision++;
-      _garageRevision++;
+      _profileRevision++;
     });
   }
 
@@ -220,21 +223,6 @@ final class _HomeShellState extends State<HomeShell>
 
   void _refreshFeed() {
     if (mounted) setState(() => _feedRevision++);
-  }
-
-  Future<void> _openCreateCar() async {
-    final created = await Navigator.of(context).push<Car>(
-      MaterialPageRoute(
-        builder: (_) => CarFormScreen(repository: widget.carsRepository),
-      ),
-    );
-
-    if (created == null || !mounted) return;
-    setState(() => _index = 1);
-    _refreshCars();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Carro adicionado à sua garagem.')),
-    );
   }
 
   Future<void> _openPublicProfile(String userId) async {
@@ -422,16 +410,10 @@ final class _HomeShellState extends State<HomeShell>
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),
       ),
-      CarList(
-        refreshRevision: _garageRevision,
-        title: 'Garagem',
-        mode: CarListMode.garage,
-        emptyMessage:
-            'Adicione seu carro e comece a registrar a história dele.',
-        loader: widget.carsRepository.mine,
-        onCarTap: (car) => _openCar(car, canManage: true),
-        primaryActionLabel: 'Adicionar carro',
-        onPrimaryAction: _openCreateCar,
+      EventsScreen(
+        refreshRevision: _eventsRevision,
+        repository: widget.eventsRepository,
+        teamsRepository: widget.teamsRepository,
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
@@ -486,7 +468,7 @@ final class _HomeShellState extends State<HomeShell>
           setState(() {
             _index = value;
             if (value == 0) _feedRevision++;
-            if (value == 1) _garageRevision++;
+            if (value == 1) _eventsRevision++;
             if (value == 2) _teamsRevision++;
             if (value == 3) _messagesRevision++;
             if (value == 4) _profileRevision++;

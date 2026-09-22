@@ -5,6 +5,7 @@ from app.api.routes.carros import router as carros_router
 from app.api.routes.conversas import router as conversas_router
 from app.api.routes.evolucoes import router as evolucoes_router
 from app.api.routes.equipes import router as equipes_router
+from app.api.routes.eventos import router as eventos_router
 from app.api.routes.feed import router as feed_router
 from app.api.routes.health import router as health_router
 from app.api.routes.notificacoes import router as notificacoes_router
@@ -23,6 +24,7 @@ api_router.include_router(
 )
 api_router.include_router(evolucoes_router, prefix="/carros", tags=["evolucoes"])
 api_router.include_router(equipes_router, prefix="/equipes", tags=["equipes"])
+api_router.include_router(eventos_router, prefix="/eventos", tags=["eventos"])
 api_router.include_router(feed_router, prefix="/feed", tags=["feed"])
 api_router.include_router(
     notificacoes_router,

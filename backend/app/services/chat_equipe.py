@@ -37,12 +37,17 @@ def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: 
     if not _membro(db, equipe_id, usuario_id):
         return None
 
-    leitura = db.get(LeituraChatEquipe, (equipe_id, usuario_id))
-    if leitura is None:
-        db.add(LeituraChatEquipe(equipe_id=equipe_id, usuario_id=usuario_id))
+    # Paginar o histórico não significa ter visualizado mensagens novas.
+    # Valida o cursor antes de alterar o estado de leitura.
+    if cursor:
+        _ler_cursor(cursor)
     else:
-        leitura.ultima_leitura_em = datetime.now(timezone.utc)
-    db.commit()
+        leitura = db.get(LeituraChatEquipe, (equipe_id, usuario_id))
+        if leitura is None:
+            db.add(LeituraChatEquipe(equipe_id=equipe_id, usuario_id=usuario_id))
+        else:
+            leitura.ultima_leitura_em = datetime.now(timezone.utc)
+        db.commit()
 
     query = select(MensagemEquipe, Usuario).join(Usuario, Usuario.id == MensagemEquipe.autor_id).where(MensagemEquipe.equipe_id == equipe_id)
     if cursor:

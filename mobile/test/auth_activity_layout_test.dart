@@ -97,9 +97,11 @@ void main() {
       requests.add('${options.method} ${options.path}');
       handler.resolve(Response(
         requestOptions: options,
-        data: options.method == 'PATCH'
-            ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
-            : [item],
+        data: options.path == '/notificacoes/nao-lidas'
+            ? {'total': 0}
+            : options.method == 'PATCH'
+                ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
+                : [item],
       ));
     }));
     final unread = <int>[];
@@ -112,7 +114,8 @@ void main() {
     )));
     await tester.pumpAndSettle();
     expect(find.text('HOJE'), findsOneWidget);
-    expect(requests, contains('POST /notificacoes/lidas'));
+    expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
+    expect(requests, isNot(contains('POST /notificacoes/lidas')));
     expect(unread.last, 0);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(

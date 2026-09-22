@@ -4,6 +4,7 @@ from app.models.conversa import ConversaDireta, MensagemDireta
 from app.models.curtida_comentario_evolucao import CurtidaComentarioEvolucao
 from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.evolucao_projeto import EvolucaoProjeto
+from app.models.evento import Encontro, Evento, ParticipacaoEquipeEvento, PresencaEvento, SeguidorEncontro
 from app.models.equipe import (
     CarroEquipe,
     ConviteEquipe,
@@ -26,6 +27,8 @@ __all__ = [
     "CurtidaComentarioEvolucao",
     "CurtidaEvolucao",
     "EvolucaoProjeto",
+    "Evento",
+    "Encontro",
     "Equipe",
     "LeituraChatEquipe",
     "MembroEquipe",
@@ -36,7 +39,10 @@ __all__ = [
     "MidiaEvolucao",
     "MensagemDireta",
     "Notificacao",
+    "ParticipacaoEquipeEvento",
+    "PresencaEvento",
     "Seguidor",
+    "SeguidorEncontro",
     "SessaoRefresh",
     "Usuario",
 ]

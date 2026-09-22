@@ -68,6 +68,8 @@ def _equipe_do_usuario(db: Session, usuario_id: UUID) -> Equipe | None:
 
 
 def _exigir_sem_equipe(db: Session, usuario_id: UUID) -> None:
+    # Serializa aceitações simultâneas para o mesmo usuário no PostgreSQL.
+    db.scalar(select(Usuario).where(Usuario.id == usuario_id).with_for_update())
     equipe_atual = _equipe_do_usuario(db, usuario_id)
     if equipe_atual is not None:
         raise EstadoInvalido(

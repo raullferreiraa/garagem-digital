@@ -44,6 +44,7 @@ class Equipe(Base):
 
 class MembroEquipe(Base):
     __tablename__ = "membros_equipe"
+    __table_args__ = (UniqueConstraint("usuario_id", name="uq_membros_equipe_usuario"),)
 
     equipe_id: Mapped[UUID] = mapped_column(
         PostgresUUID(as_uuid=True),

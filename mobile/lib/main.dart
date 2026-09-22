@@ -11,6 +11,7 @@ import 'package:garagem_mobile/features/auth/auth_repository.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
@@ -39,6 +40,7 @@ Future<void> main() async {
       session: session,
       carsRepository: CarsRepository(apiClient),
       evolutionsRepository: EvolutionsRepository(apiClient),
+      eventsRepository: EventsRepository(apiClient),
       messagesRepository: MessagesRepository(apiClient),
       notificationsRepository: NotificationsRepository(apiClient),
       teamsRepository: TeamsRepository(apiClient),

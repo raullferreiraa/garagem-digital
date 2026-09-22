@@ -39,6 +39,7 @@ final class _MemoryTokens implements TokenStorage {
 
 final class _AuthAdapter implements HttpClientAdapter {
   int refreshRequests = 0;
+  int refreshStatus = 200;
   int protectedRequests = 0;
 
   @override
@@ -50,6 +51,8 @@ final class _AuthAdapter implements HttpClientAdapter {
     final path = options.uri.path;
     if (path.endsWith('/auth/refresh')) {
       refreshRequests++;
+      if (refreshStatus != 200)
+        return _json(refreshStatus, {'detail': 'Falha'});
       return _json(200, {
         'access_token': 'access-novo',
         'refresh_token': 'refresh-novo',
@@ -63,7 +66,7 @@ final class _AuthAdapter implements HttpClientAdapter {
     if (path.endsWith('/auth/alterar-senha')) {
       return _json(400, {'detail': 'A senha atual está incorreta.'});
     }
-    if (path.endsWith('/protegido')) {
+    if (path.endsWith('/protegido') || path.endsWith('/auth/me')) {
       protectedRequests++;
       if (options.headers['Authorization'] == 'Bearer access-novo') {
         return _json(200, {'resultado': 'ok'});
@@ -99,6 +102,34 @@ ApiClient _client(_MemoryTokens tokens, _AuthAdapter adapter) {
 }
 
 void main() {
+  test(
+      'restaurar sessão com renovação indisponível permite retry sem apagar tokens',
+      () async {
+    final tokens = _MemoryTokens()
+      ..accessToken = 'access-antigo'
+      ..refreshToken = 'refresh-antigo';
+    final adapter = _AuthAdapter()..refreshStatus = 503;
+    final client = _client(tokens, adapter);
+    final session =
+        SessionController(repository: AuthRepository(client, tokens));
+    addTearDown(session.dispose);
+    await session.restore();
+    expect(session.status, SessionStatus.unavailable);
+    expect(tokens.refreshToken, 'refresh-antigo');
+  });
+  for (final status in [503, 401]) {
+    test('renovação com $status preserva sessão apenas se falha transitória',
+        () async {
+      final tokens = _MemoryTokens()
+        ..accessToken = 'access-antigo'
+        ..refreshToken = 'refresh-antigo';
+      final adapter = _AuthAdapter()..refreshStatus = status;
+      final client = _client(tokens, adapter);
+      await expectLater(
+          client.dio.get<Object?>('/protegido'), throwsA(isA<DioException>()));
+      expect(tokens.refreshToken, status == 503 ? 'refresh-antigo' : isNull);
+    });
+  }
   test('401 de credenciais não tenta renovar a sessão', () async {
     final tokens = _MemoryTokens()
       ..accessToken = 'access-antigo'

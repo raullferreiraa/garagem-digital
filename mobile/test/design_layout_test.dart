@@ -16,6 +16,7 @@ import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/auth/user.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/home/home_shell.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
@@ -153,6 +154,7 @@ Widget _app(double scale) {
             session: session,
             carsRepository: CarsRepository(api),
             evolutionsRepository: EvolutionsRepository(api),
+            eventsRepository: EventsRepository(api),
             messagesRepository: MessagesRepository(api),
             notificationsRepository: NotificationsRepository(api),
             teamsRepository: TeamsRepository(api),
@@ -305,12 +307,15 @@ void main() {
     expect(find.text('Projetos para descobrir'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
-    // Entering through the owner's garage must retain their private data.
-    await tester.tap(find.byKey(const ValueKey('nav-1')));
+    // Entering through the owner's profile garage must retain private data.
+    await tester.tap(find.byKey(const ValueKey('nav-4')));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('Abrir projeto').first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Abrir projeto').first);
+    await tester.scrollUntilVisible(
+      find.textContaining('FUSCA'),
+      280,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(find.textContaining('FUSCA').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ABC1D23'), 250,
         scrollable: find.byType(Scrollable).first);

@@ -20,7 +20,7 @@ class GdNavigation extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = [
       ('Explorar', Icons.explore_outlined, Icons.explore_rounded),
-      ('Garagem', Icons.garage_outlined, Icons.garage_rounded),
+      ('Encontros', Icons.flag_outlined, Icons.flag_rounded),
       (
         hasTeam ? 'Minha equipe' : 'Equipes',
         Icons.groups_outlined,
