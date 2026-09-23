@@ -85,6 +85,9 @@ final class ApiClient {
 
     try {
       request.extra['retried_after_refresh'] = true;
+      if (request.data is FormData) {
+        request.data = (request.data as FormData).clone();
+      }
       final token = await _tokenStorage.readAccessToken();
       request.headers['Authorization'] = 'Bearer $token';
       handler.resolve(await _refreshClient.fetch<Object?>(request));
@@ -111,6 +114,8 @@ final class ApiClient {
       );
       final data = response.data;
       if (data == null) return false;
+      // Uma resposta atrasada não pode restaurar uma conta após sair/trocá-la.
+      if (await _tokenStorage.readRefreshToken() != refreshToken) return false;
       await _tokenStorage.write(
         accessToken: data['access_token']! as String,
         refreshToken: data['refresh_token']! as String,
@@ -119,7 +124,9 @@ final class ApiClient {
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 ||
           error.response?.statusCode == 403) {
-        await _tokenStorage.clear();
+        if (await _tokenStorage.readRefreshToken() == refreshToken) {
+          await _tokenStorage.clear();
+        }
         return false;
       }
       rethrow;
@@ -135,12 +142,25 @@ String apiErrorMessage(Object error) {
       if (detail is String) return detail;
       if (detail is List && detail.isNotEmpty) {
         final first = detail.first;
-        if (first is Map && first['msg'] is String)
-          return first['msg'] as String;
+        if (first is Map) {
+          final location = first['loc'];
+          final field =
+              location is List && location.isNotEmpty ? location.last : null;
+          if (field == 'modelo' &&
+              const {'string_too_short', 'missing'}.contains(first['type'])) {
+            return 'Informe o modelo do projeto.';
+          }
+          return 'Confira os campos informados e tente novamente.';
+        }
       }
     }
     if (error.type == DioExceptionType.connectionError) {
       return 'Não foi possível conectar à API.';
+    }
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
+      return 'A conexão demorou mais que o esperado. Tente novamente.';
     }
   }
   return 'Algo deu errado. Tente novamente.';

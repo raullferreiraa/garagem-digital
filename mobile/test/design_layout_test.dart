@@ -202,8 +202,8 @@ void main() {
       await tester.pumpWidget(_app(layout.$2));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      const names = ['explorar', 'garagem', 'equipes', 'perfil'];
-      for (var index = 0; index < 4; index++) {
+      const names = ['explorar', 'encontros', 'equipes', 'conversas', 'perfil'];
+      for (var index = 0; index < names.length; index++) {
         await tester.tap(find.byKey(ValueKey('nav-$index')));
         await tester.pumpAndSettle();
         expect(find.byType(GdNavigation), findsOneWidget);

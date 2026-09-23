@@ -29,6 +29,21 @@ class _EventsScreenState extends State<EventsScreen> {
   int _revision = 0;
   String _filter = 'Todos';
   String _search = '';
+  final _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _clearFilters() {
+    _searchController.clear();
+    setState(() {
+      _search = '';
+      _filter = 'Todos';
+    });
+  }
 
   @override
   void initState() {
@@ -108,6 +123,7 @@ class _EventsScreenState extends State<EventsScreen> {
       body: RefreshIndicator(
         onRefresh: _reload,
         child: CustomScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
@@ -125,9 +141,21 @@ class _EventsScreenState extends State<EventsScreen> {
                           style: TextStyle(color: colors.onSurfaceVariant)),
                       const SizedBox(height: 24),
                       TextField(
+                          controller: _searchController,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (_) => FocusScope.of(context).unfocus(),
                           onChanged: (value) => setState(() => _search = value),
-                          decoration: const InputDecoration(
-                              prefixIcon: Icon(Icons.search),
+                          decoration: InputDecoration(
+                              suffixIcon: _search.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      tooltip: 'Limpar busca',
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () {
+                                        _searchController.clear();
+                                        setState(() => _search = '');
+                                      }),
+                              prefixIcon: const Icon(Icons.search),
                               hintText: 'Buscar encontro ou cidade')),
                       const SizedBox(height: 14),
                       Wrap(spacing: 8, runSpacing: 8, children: [
@@ -154,6 +182,8 @@ class _EventsScreenState extends State<EventsScreen> {
               )),
               if (_events == null && _loading)
                 const SliverFillRemaining(child: GdSkeleton())
+              else if (_events == null && _error != null)
+                const SliverToBoxAdapter(child: SizedBox.shrink())
               else if (events.isEmpty)
                 SliverFillRemaining(
                     hasScrollBody: false,
@@ -166,18 +196,30 @@ class _EventsScreenState extends State<EventsScreen> {
                                 size: 48, color: colors.primary),
                             const SizedBox(height: 16),
                             Text(
-                                _filter == 'Seguindo'
-                                    ? 'Sua próxima conexão começa aqui.'
-                                    : 'Encontre pessoas que compartilham sua paixão.',
+                                _search.trim().isNotEmpty
+                                    ? 'Nenhum encontro encontrado.'
+                                    : _filter == 'Organizo'
+                                        ? 'Você ainda não organiza um encontro.'
+                                        : _filter == 'Seguindo'
+                                            ? 'Sua próxima conexão começa aqui.'
+                                            : 'Encontre pessoas que compartilham sua paixão.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
                             Text(
-                                _filter == 'Seguindo'
-                                    ? 'Siga um encontro para acompanhar sua comunidade.'
-                                    : 'Explore outra busca ou crie o seu encontro.',
+                                _search.trim().isNotEmpty
+                                    ? 'Tente outro nome ou cidade, ou limpe os filtros.'
+                                    : _filter == 'Seguindo'
+                                        ? 'Siga um encontro para acompanhar sua comunidade.'
+                                        : 'Explore outra busca ou crie o seu encontro.',
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 18),
+                            if (_search.isNotEmpty || _filter != 'Todos')
+                              TextButton.icon(
+                                  onPressed: _clearFilters,
+                                  icon:
+                                      const Icon(Icons.filter_alt_off_outlined),
+                                  label: const Text('Ver todos os encontros')),
                             OutlinedButton.icon(
                                 onPressed: _create,
                                 icon: const Icon(Icons.add),
@@ -371,6 +413,81 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
     }
   }
 
+  Future<void> _deleteCommunity() async {
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Excluir comunidade?'),
+              content: Text(
+                  '“${_event.name}” e todas as suas edições, seguidores e confirmações serão removidos permanentemente. Para cancelar apenas uma data, use Cancelar edição.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Voltar')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Excluir comunidade')),
+              ],
+            ));
+    if (confirmed != true || !mounted || _working) return;
+    ++_revision;
+    setState(() => _working = true);
+    try {
+      await widget.repository.delete(_event.id);
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (mounted)
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(apiErrorMessage(error))));
+    } finally {
+      if (mounted) setState(() => _working = false);
+    }
+  }
+
+  Future<void> _teamParticipation({bool membersOnly = false}) async {
+    if (_working) return;
+    final editionId = _event.editionId;
+    if (editionId == null) return;
+    final confirming =
+        membersOnly || _event.myTeamParticipation != 'confirmada';
+    var includeMembers = membersOnly;
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => StatefulBuilder(
+              builder: (context, update) => AlertDialog(
+                title: Text(confirming
+                    ? 'Levar ${_event.myTeamName}?'
+                    : 'Retirar participação da equipe?'),
+                content: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Text(confirming
+                      ? 'A participação vale somente para esta edição. Integrantes podem cancelar a própria presença depois. Quem já cancelou não será confirmado novamente.'
+                      : 'As presenças individuais serão mantidas. Cada integrante pode cancelar a própria confirmação.'),
+                  if (confirming)
+                    CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                            'Confirmar também os integrantes atuais (${_event.myTeamMemberCount})'),
+                        value: includeMembers,
+                        onChanged: (value) =>
+                            update(() => includeMembers = value ?? false)),
+                ]),
+                actions: [
+                  TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: const Text('Voltar')),
+                  FilledButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text(confirming ? 'Confirmar' : 'Retirar equipe')),
+                ],
+              ),
+            ));
+    if (confirmed != true || !mounted) return;
+    await _change(() => widget.repository.setTeamParticipation(_event.id,
+        confirmed: confirming,
+        editionId: editionId,
+        includeMembers: includeMembers));
+  }
+
   Future<void> _edit() async {
     final result = await Navigator.of(context).push<GarageEvent>(
         MaterialPageRoute(
@@ -461,6 +578,7 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                 if (value == 'edit') _edit();
                 if (value == 'cover') _cover();
                 if (value == 'edition') _schedule();
+                if (value == 'delete') _deleteCommunity();
               },
               itemBuilder: (_) => const [
                     PopupMenuItem(
@@ -468,6 +586,8 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                     PopupMenuItem(value: 'cover', child: Text('Alterar capa')),
                     PopupMenuItem(
                         value: 'edition', child: Text('Agendar edição')),
+                    PopupMenuItem(
+                        value: 'delete', child: Text('Excluir comunidade')),
                   ]),
       ]),
       body: RefreshIndicator(
@@ -491,9 +611,9 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                         ],
                         Wrap(spacing: 20, runSpacing: 12, children: [
                           _Metric(Icons.people_outline,
-                              '${_event.followersCount} seguidores'),
+                              '${_event.followersCount} ${_event.followersCount == 1 ? "seguidor" : "seguidores"}'),
                           _Metric(Icons.flag_outlined,
-                              '${_event.editions.length} edições'),
+                              '${_event.editions.length} ${_event.editions.length == 1 ? "edição" : "edições"}'),
                         ]),
                         const SizedBox(height: 18),
                         FilledButton.icon(
@@ -551,9 +671,9 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                             runSpacing: 8,
                                             children: [
                                               _Metric(Icons.people_outline,
-                                                  '${_event.confirmedCount} confirmados'),
+                                                  '${_event.confirmedCount} ${_event.confirmedCount == 1 ? "confirmado" : "confirmados"}'),
                                               _Metric(Icons.groups_outlined,
-                                                  '${_event.teamCount} equipes'),
+                                                  '${_event.teamCount} ${_event.teamCount == 1 ? "equipe" : "equipes"}'),
                                             ]),
                                         const SizedBox(height: 18),
                                         FilledButton.icon(
@@ -576,24 +696,37 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                                 ? 'Presença confirmada • Cancelar'
                                                 : 'Confirmar minha presença')),
                                         if (_event.canRepresentTeam &&
-                                            !(_event.organizerType == 'equipe' &&
+                                            !(_event.organizerType ==
+                                                    'equipe' &&
                                                 _event.organizerId ==
-                                                    _event.myTeamId))
+                                                    _event.myTeamId)) ...[
+                                          const SizedBox(height: 12),
                                           OutlinedButton.icon(
                                               onPressed: _working
                                                   ? null
-                                                  : () => _change(() => widget
-                                                      .repository
-                                                      .setTeamParticipation(
-                                                          _event.id,
-                                                          editionId:
-                                                              _event.editionId!,
-                                                          confirmed: _event
-                                                                  .myTeamParticipation !=
-                                                              'confirmada')),
-                                              icon:
-                                                  const Icon(Icons.groups_outlined),
-                                              label: Text(_event.myTeamParticipation == 'confirmada' ? 'Retirar participação da equipe' : 'Levar ${_event.myTeamName}')),
+                                                  : _teamParticipation,
+                                              icon: const Icon(
+                                                  Icons.groups_outlined),
+                                              label: Text(_event
+                                                          .myTeamParticipation ==
+                                                      'confirmada'
+                                                  ? 'Retirar participação da equipe'
+                                                  : 'Levar ${_event.myTeamName}')),
+                                        ],
+                                        if (_event.canRepresentTeam &&
+                                            _event.myTeamParticipation ==
+                                                'confirmada') ...[
+                                          const SizedBox(height: 12),
+                                          TextButton.icon(
+                                              onPressed: _working
+                                                  ? null
+                                                  : () => _teamParticipation(
+                                                      membersOnly: true),
+                                              icon: const Icon(
+                                                  Icons.group_add_outlined),
+                                              label: const Text(
+                                                  'Confirmar integrantes da equipe')),
+                                        ],
                                         if (_event.canManage &&
                                             currentEdition != null) ...[
                                           const SizedBox(height: 8),

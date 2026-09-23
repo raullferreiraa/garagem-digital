@@ -49,7 +49,8 @@ final class Team {
   final String? myInvite;
 
   String? get location {
-    final values = [city, state].whereType<String>().where((value) => value.isNotEmpty);
+    final values =
+        [city, state].whereType<String>().where((value) => value.isNotEmpty);
     return values.isEmpty ? null : values.join(' - ');
   }
 }
@@ -116,6 +117,8 @@ final class TeamDetail extends Team {
     required this.members,
     required this.cars,
     required this.pendingRequests,
+    this.currentTeamId,
+    this.currentTeamName,
     super.description,
     super.avatarUrl,
     super.coverUrl,
@@ -135,6 +138,8 @@ final class TeamDetail extends Team {
       visibility: summary.visibility,
       memberCount: summary.memberCount,
       ownerId: json['dono_id']! as String,
+      currentTeamId: json['minha_equipe_id'] as String?,
+      currentTeamName: json['minha_equipe_nome'] as String?,
       description: summary.description,
       avatarUrl: summary.avatarUrl,
       coverUrl: summary.coverUrl,
@@ -159,6 +164,8 @@ final class TeamDetail extends Team {
   }
 
   final String ownerId;
+  final String? currentTeamId, currentTeamName;
+  bool get belongsToAnotherTeam => currentTeamId != null && currentTeamId != id;
   final List<TeamMember> members;
   final List<Car> cars;
   final List<TeamRequest> pendingRequests;

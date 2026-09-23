@@ -26,7 +26,7 @@ def verificar_senha(senha: str, senha_hash: str) -> bool:
     return password_hash.verify(senha, senha_hash)
 
 
-def criar_access_token(usuario_id: UUID) -> tuple[str, int]:
+def criar_access_token(usuario_id: UUID, versao_auth: int = 0) -> tuple[str, int]:
     agora = datetime.now(timezone.utc)
     expira_em = agora + timedelta(minutes=settings.access_token_minutes)
     payload = {
@@ -35,6 +35,7 @@ def criar_access_token(usuario_id: UUID) -> tuple[str, int]:
         "iat": agora,
         "exp": expira_em,
         "jti": str(uuid4()),
+        "ver": versao_auth,
     }
     token = jwt.encode(
         payload,
@@ -45,6 +46,10 @@ def criar_access_token(usuario_id: UUID) -> tuple[str, int]:
 
 
 def decodificar_access_token(token: str) -> str:
+    return decodificar_sessao_access(token)[0]
+
+
+def decodificar_sessao_access(token: str) -> tuple[str, int]:
     try:
         payload = jwt.decode(
             token,
@@ -61,7 +66,11 @@ def decodificar_access_token(token: str) -> str:
     subject = payload.get("sub")
     if not isinstance(subject, str):
         raise TokenInvalido("Token sem identificador de usuario.")
-    return subject
+    # Tokens emitidos antes desta versão pertencem à geração inicial.
+    versao = payload.get("ver", 0)
+    if type(versao) is not int or versao < 0:
+        raise TokenInvalido("Versão de sessão inválida.")
+    return subject, versao
 
 
 def criar_refresh_token() -> tuple[str, str]:

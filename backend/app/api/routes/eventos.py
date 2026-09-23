@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
@@ -136,7 +136,7 @@ def confirmar_equipe(
     edicao_id: UUID | None = None,
 ) -> EventoResposta:
     try:
-        return service.registrar_equipe(db, evento_id, usuario.id, dados.status, edicao_id)
+        return service.registrar_equipe(db, evento_id, usuario.id, dados.status, edicao_id, dados.confirmar_integrantes)
     except (service.EventoNaoEncontrado, service.AcaoEventoNaoPermitida) as error:
         raise _erro(error) from error
 
@@ -156,6 +156,15 @@ def editar_encontro(evento_id: UUID, dados: EncontroAtualizacao, usuario: Usuari
         return service.atualizar(db, evento_id, usuario.id, dados)
     except (service.EventoNaoEncontrado, service.AcaoEventoNaoPermitida) as error:
         raise _erro(error) from error
+
+
+@router.delete("/{evento_id}", status_code=status.HTTP_204_NO_CONTENT)
+def excluir_encontro(evento_id: UUID, usuario: UsuarioAtual, db: DbSession) -> Response:
+    try:
+        service.excluir(db, evento_id, usuario.id)
+    except (service.EventoNaoEncontrado, service.AcaoEventoNaoPermitida) as error:
+        raise _erro(error) from error
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post("/{evento_id}/capa", response_model=EventoResposta)

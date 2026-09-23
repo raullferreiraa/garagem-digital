@@ -119,6 +119,8 @@ final class AuthRepository {
           data: {'refresh_token': refreshToken},
         );
       }
+    } on DioException {
+      // A indisponibilidade do servidor não deve impedir a saída local.
     } finally {
       await _tokens.clear();
     }

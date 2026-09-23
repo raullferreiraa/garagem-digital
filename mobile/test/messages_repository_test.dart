@@ -1,8 +1,16 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
+import 'package:garagem_mobile/features/messages/conversation.dart';
+import 'package:garagem_mobile/features/messages/conversation_screen.dart';
+import 'package:garagem_mobile/features/messages/conversations_screen.dart';
+import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garagem_mobile/core/theme/app_theme.dart';
 
 final class _EmptyTokenStorage implements TokenStorage {
   @override
@@ -44,6 +52,120 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  testWidgets(
+      'lista preserva conversas e mostra recuperação quando atualização falha',
+      (tester) async {
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _EmptyTokenStorage());
+    var fail = false;
+    var discoveries = 0;
+    final data = _conversation();
+    data['outro_usuario'] = <String, Object?>{
+      ...(data['outro_usuario'] as Map<String, Object?>),
+      'avatar_url': null,
+    };
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (fail) {
+        handler.reject(DioException(
+            requestOptions: options, type: DioExceptionType.connectionError));
+      } else {
+        handler.resolve(Response(requestOptions: options, data: [data]));
+      }
+    }));
+    Widget app(int revision) => MaterialApp(
+        theme: AppTheme.dark,
+        home: ConversationsScreen(
+            active: false,
+            repository: MessagesRepository(api),
+            currentUserId: 'me',
+            refreshRevision: revision,
+            onUnreadChanged: () {},
+            onProfileTap: (_) {},
+            onDiscover: () => discoveries++,
+            teamChat: null,
+            onTeamChatTap: () {},
+            onTeamChatChanged: () {}));
+    await tester.pumpWidget(app(0));
+    await tester.pumpAndSettle();
+    expect(find.text('Bia Garage'), findsOneWidget);
+    expect(find.text('Conexões reais'), findsNothing);
+    fail = true;
+    await tester.pumpWidget(app(1));
+    await tester.pumpAndSettle();
+    expect(find.text('Bia Garage'), findsOneWidget);
+    expect(find.text('Tentar novamente'), findsOneWidget);
+    await tester.tap(find.byTooltip('Encontrar pessoas'));
+    expect(discoveries, 1);
+    fail = false;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Tentar novamente'), findsNothing);
+  });
+  for (final teamChat in [false, true]) {
+    testWidgets('chat ${teamChat ? "da equipe" : "direto"} só atualiza visível',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final api = ApiClient(
+          baseUrl: 'http://localhost/api/v1',
+          tokenStorage: _EmptyTokenStorage());
+      var fetches = 0;
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method == 'GET') fetches++;
+        handler.resolve(Response(requestOptions: options, data: {
+          'itens': <Object?>[],
+          'proximo_cursor': null,
+        }));
+      }));
+      final navigator = GlobalKey<NavigatorState>();
+      await tester.pumpWidget(MaterialApp(
+        navigatorKey: navigator,
+        theme: AppTheme.dark,
+        home: teamChat
+            ? TeamChatScreen(
+                team: const Team(
+                    id: 'team',
+                    name: 'Equipe',
+                    slug: 'equipe',
+                    visibility: 'publica',
+                    memberCount: 2),
+                repository: TeamsRepository(api),
+                currentUserId: 'me')
+            : ConversationScreen(
+                conversation: DirectConversation.fromJson(_conversation()),
+                repository: MessagesRepository(api),
+                currentUserId: 'me',
+                onProfileTap: (_) {},
+                onChanged: () {}),
+      ));
+      await tester.pumpAndSettle();
+      expect(fetches, 1);
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(fetches, 2);
+      navigator.currentState!.push(MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Outra tela'))));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 16));
+      expect(fetches, 2);
+      navigator.currentState!.pop();
+      await tester.pumpAndSettle();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump(const Duration(seconds: 16));
+      expect(fetches, 2);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(fetches, 3);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   test('mapeia caixa de entrada, paginação, envio e leitura', () async {
     final api = ApiClient(
       baseUrl: 'http://localhost/api/v1',

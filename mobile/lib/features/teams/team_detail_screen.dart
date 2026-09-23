@@ -18,7 +18,7 @@ import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
-enum _TeamImageAction { avatar, cover, removeAvatar, removeCover }
+enum _TeamImageAction { details, avatar, cover, removeAvatar, removeCover }
 
 enum _OwnerAction { transferLeadership, endTeam }
 
@@ -121,10 +121,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
-        child: Column(
+        child: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Imagens da equipe')),
+            const ListTile(title: Text('Editar equipe')),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Editar dados da equipe'),
+              onTap: () => Navigator.of(context).pop(_TeamImageAction.details),
+            ),
             ListTile(
               leading: const Icon(Icons.account_circle_outlined),
               title: const Text('Alterar foto da equipe'),
@@ -151,11 +157,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               ),
             const SizedBox(height: 8),
           ],
-        ),
+        )),
       ),
     );
     if (!mounted || action == null) return;
     switch (action) {
+      case _TeamImageAction.details:
+        await _editTeam(team);
+        break;
       case _TeamImageAction.avatar:
       case _TeamImageAction.cover:
         final source = await showModalBottomSheet<ImageSource>(
@@ -692,27 +701,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   onPressed: widget.onExploreTeams,
                   icon: const Icon(Icons.travel_explore_rounded),
                 ),
-              if (team?.myRole != null)
-                IconButton(
-                  tooltip: 'Conversa da equipe',
-                  onPressed: () => _openTeamChat(team!),
-                  icon: Badge.count(
-                    count: widget.unreadChatCount,
-                    isLabelVisible: widget.unreadChatCount > 0,
-                    child: const Icon(Icons.forum_outlined),
-                  ),
-                ),
               if (team?.myRole == 'dono')
                 IconButton(
                   tooltip: 'Editar equipe',
-                  onPressed: _acting ? null : () => _editTeam(team!),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-              if (team?.myRole == 'dono')
-                IconButton(
-                  tooltip: 'Imagens da equipe',
                   onPressed: _acting ? null : () => _showImageOptions(team!),
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  icon: const Icon(Icons.edit_outlined),
                 ),
               if (team?.myRole == 'dono')
                 PopupMenuButton<_OwnerAction>(
@@ -774,7 +767,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       children: [
         GdReveal(child: _TeamHero(team: team)),
         const SizedBox(height: 16),
-        if (team.myRole == null && team.myInvite == 'pendente') ...[
+        if (team.myRole != null) ...[
+          FilledButton.icon(
+            onPressed: _acting ? null : () => _openTeamChat(team),
+            icon: Badge.count(
+              count: widget.unreadChatCount,
+              isLabelVisible: widget.unreadChatCount > 0,
+              child: const Icon(Icons.forum_outlined),
+            ),
+            label: Text(widget.unreadChatCount > 0
+                ? 'Conversa da equipe · ${widget.unreadChatCount} não lidas'
+                : 'Conversa da equipe'),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (team.belongsToAnotherTeam)
+          Card(
+            child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                    'Você já está na equipe ${team.currentTeamName ?? "atual"}. Só é possível participar de uma equipe por vez.')),
+          ),
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
+            team.myInvite == 'pendente') ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -815,7 +831,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             ],
           ),
         ],
-        if (team.myRole == null &&
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
             team.myRequest != 'pendente' &&
             team.myInvite != 'pendente')
           FilledButton.icon(
@@ -828,7 +845,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Pedir para entrar'),
           ),
-        if (team.myRole == null && team.myRequest == 'pendente')
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
+            team.myRequest == 'pendente')
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1098,14 +1117,14 @@ final class _TeamHero extends StatelessWidget {
                 child: _TeamStat(
               icon: Icons.people_outline,
               value: '${team.memberCount}',
-              label: 'integrantes',
+              label: team.memberCount == 1 ? 'integrante' : 'integrantes',
             )),
             const SizedBox(width: 10),
             Expanded(
                 child: _TeamStat(
               icon: Icons.directions_car_outlined,
               value: '${team.cars.length}',
-              label: 'projetos',
+              label: team.cars.length == 1 ? 'projeto' : 'projetos',
             )),
           ]),
         ),

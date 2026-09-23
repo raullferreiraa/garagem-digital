@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.core.database import Base, get_db
-from app.main import app
+from app.core.config import settings
+from app.main import create_app
 from app.models import (  # noqa: F401
     Carro,
     ComentarioEvolucao,
@@ -35,7 +36,9 @@ from app.models import (  # noqa: F401
 
 
 @pytest.fixture
-def client() -> Generator[TestClient, None, None]:
+def client(tmp_path, monkeypatch) -> Generator[TestClient, None, None]:
+    monkeypatch.setattr(settings, "media_root", tmp_path / "media")
+    app = create_app()
     engine = create_engine(
         "sqlite://",
         connect_args={"check_same_thread": False},

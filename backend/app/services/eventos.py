@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
@@ -98,9 +98,10 @@ def _resposta(db: Session, encontro: Encontro, edicao: Evento | None, usuario_id
         seguindo=db.get(SeguidorEncontro, (encontro.id, usuario_id)) is not None,
         total_confirmados=db.scalar(select(func.count()).select_from(PresencaEvento).where(PresencaEvento.evento_id == (edicao.id if edicao else None), PresencaEvento.status == "confirmada")) or 0,
         total_equipes=db.scalar(select(func.count()).select_from(ParticipacaoEquipeEvento).where(ParticipacaoEquipeEvento.evento_id == (edicao.id if edicao else None), ParticipacaoEquipeEvento.status == "confirmada")) or 0,
-        minha_presenca=presenca.status if presenca else None,
+        minha_presenca=presenca.status if presenca and presenca.status != "cancelada" else None,
         minha_equipe_id=equipe.id if equipe else None,
         minha_equipe_nome=equipe.nome if equipe else None,
+        minha_equipe_total_integrantes=(db.scalar(select(func.count()).select_from(MembroEquipe).where(MembroEquipe.equipe_id == equipe.id)) or 0) if equipe else 0,
         minha_equipe_papel=papel,
         minha_equipe_participacao=participacao.status if participacao else None,
         posso_gerenciar=pode_gerenciar,
@@ -274,6 +275,7 @@ def seguir(db: Session, encontro_id: UUID, usuario_id: UUID, ativo: bool) -> Enc
 
 
 def registrar_presenca(db: Session, encontro_id: UUID, usuario_id: UUID, status: str, carro_id: UUID | None, edicao_id: UUID | None = None) -> EncontroResposta:
+    db.scalar(select(Encontro).where(Encontro.id == encontro_id).with_for_update())
     resposta = detalhar(db, encontro_id, usuario_id)
     if edicao_id is not None and resposta.edicao_id != edicao_id:
         raise AcaoEventoNaoPermitida("A próxima edição mudou. Atualize o encontro antes de confirmar.")
@@ -291,19 +293,25 @@ def registrar_presenca(db: Session, encontro_id: UUID, usuario_id: UUID, status:
 
 
 def remover_presenca(db: Session, encontro_id: UUID, usuario_id: UUID, edicao_id: UUID | None = None) -> EncontroResposta:
+    db.scalar(select(Encontro).where(Encontro.id == encontro_id).with_for_update())
     resposta = detalhar(db, encontro_id, usuario_id)
     if edicao_id is not None and resposta.edicao_id != edicao_id:
         raise AcaoEventoNaoPermitida("A próxima edição mudou. Atualize o encontro antes de confirmar.")
     if resposta.edicao_id is None:
         raise AcaoEventoNaoPermitida("Não há uma próxima edição para confirmar presença.")
     presenca = db.get(PresencaEvento, (resposta.edicao_id, usuario_id))
-    if presenca:
-        db.delete(presenca)
-        db.commit()
+    if presenca is None:
+        presenca = PresencaEvento(evento_id=resposta.edicao_id, usuario_id=usuario_id)
+        db.add(presenca)
+    # Preserve the member's choice when a manager confirms the team again.
+    presenca.status = "cancelada"
+    presenca.carro_id = None
+    db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
 
-def registrar_equipe(db: Session, encontro_id: UUID, usuario_id: UUID, status: str, edicao_id: UUID | None = None) -> EncontroResposta:
+def registrar_equipe(db: Session, encontro_id: UUID, usuario_id: UUID, status: str, edicao_id: UUID | None = None, confirmar_integrantes: bool = False) -> EncontroResposta:
+    db.scalar(select(Encontro).where(Encontro.id == encontro_id).with_for_update())
     resposta = detalhar(db, encontro_id, usuario_id)
     if edicao_id is not None and resposta.edicao_id != edicao_id:
         raise AcaoEventoNaoPermitida("A próxima edição mudou. Atualize o encontro antes de confirmar.")
@@ -317,11 +325,18 @@ def registrar_equipe(db: Session, encontro_id: UUID, usuario_id: UUID, status: s
         participacao = ParticipacaoEquipeEvento(evento_id=resposta.edicao_id, equipe_id=equipe.id, registrada_por=usuario_id)
         db.add(participacao)
     participacao.status = status
+    if confirmar_integrantes and status == "confirmada":
+        integrantes = db.scalars(select(MembroEquipe.usuario_id).where(MembroEquipe.equipe_id == equipe.id)).all()
+        existentes = set(db.scalars(select(PresencaEvento.usuario_id).where(PresencaEvento.evento_id == resposta.edicao_id)))
+        for integrante in integrantes:
+            if integrante not in existentes:
+                db.add(PresencaEvento(evento_id=resposta.edicao_id, usuario_id=integrante, status="confirmada"))
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
 
 def remover_equipe(db: Session, encontro_id: UUID, usuario_id: UUID, edicao_id: UUID | None = None) -> EncontroResposta:
+    db.scalar(select(Encontro).where(Encontro.id == encontro_id).with_for_update())
     resposta = detalhar(db, encontro_id, usuario_id)
     if edicao_id is not None and resposta.edicao_id != edicao_id:
         raise AcaoEventoNaoPermitida("A próxima edição mudou. Atualize o encontro antes de confirmar.")
@@ -338,3 +353,17 @@ def remover_equipe(db: Session, encontro_id: UUID, usuario_id: UUID, edicao_id: 
         db.delete(participacao)
         db.commit()
     return detalhar(db, encontro_id, usuario_id)
+
+
+def excluir(db: Session, encontro_id: UUID, usuario_id: UUID) -> None:
+    encontro = gerenciavel(db, encontro_id, usuario_id, bloquear=True)
+    capa = encontro.capa_url
+    edicoes = select(Evento.id).where(Evento.encontro_id == encontro_id)
+    db.execute(delete(PresencaEvento).where(PresencaEvento.evento_id.in_(edicoes)))
+    db.execute(delete(ParticipacaoEquipeEvento).where(ParticipacaoEquipeEvento.evento_id.in_(edicoes)))
+    db.execute(delete(Evento).where(Evento.encontro_id == encontro_id))
+    db.execute(delete(SeguidorEncontro).where(SeguidorEncontro.encontro_id == encontro_id))
+    db.delete(encontro)
+    db.commit()
+    from app.services.media import remover_media
+    remover_media(capa)

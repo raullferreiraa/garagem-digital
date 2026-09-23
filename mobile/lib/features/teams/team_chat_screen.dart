@@ -30,6 +30,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
   Object? _error;
   bool _loadingOlder = false;
   bool _sending = false;
+  bool _refreshing = false;
   int _request = 0;
   Timer? _refreshTimer;
 
@@ -69,7 +70,12 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
   }
 
   Future<void> _refreshLatest() async {
-    if (_messages == null || _sending) return;
+    if (_messages == null ||
+        _sending ||
+        _refreshing ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ModalRoute.of(context)?.isCurrent != true) return;
+    _refreshing = true;
     try {
       final page = await widget.repository.chat(widget.team.id);
       if (!mounted) return;
@@ -85,6 +91,8 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
       if (nearEnd) _scrollToEnd();
     } catch (_) {
       // A atualização silenciosa tenta novamente no próximo ciclo.
+    } finally {
+      _refreshing = false;
     }
   }
 
@@ -182,7 +190,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     Text(
-                      '${widget.team.memberCount} integrantes',
+                      '${widget.team.memberCount} ${widget.team.memberCount == 1 ? "integrante" : "integrantes"}',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             color:
                                 Theme.of(context).colorScheme.onSurfaceVariant,
@@ -335,9 +343,9 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
                 Text(
                   '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        fontSize: 9,
+                        fontSize: 10,
                         color: mine
-                            ? colors.onPrimary.withValues(alpha: .65)
+                            ? colors.onPrimary.withValues(alpha: .8)
                             : colors.onSurfaceVariant,
                       ),
                 ),

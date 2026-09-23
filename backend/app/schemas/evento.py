@@ -67,6 +67,7 @@ class PresencaEventoEntrada(BaseModel):
 
 class ParticipacaoEquipeEntrada(BaseModel):
     status: Literal["interessada", "confirmada"] = "confirmada"
+    confirmar_integrantes: bool = False
 
 
 class EncontroResposta(BaseModel):
@@ -92,6 +93,7 @@ class EncontroResposta(BaseModel):
     minha_presenca: str | None
     minha_equipe_id: UUID | None
     minha_equipe_nome: str | None
+    minha_equipe_total_integrantes: int = 0
     minha_equipe_papel: str | None
     minha_equipe_participacao: str | None
     posso_gerenciar: bool

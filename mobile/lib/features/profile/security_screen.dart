@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
@@ -28,7 +29,9 @@ final class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   Future<void> _submit() async {
-    if (_saving || !_formKey.currentState!.validate()) return;
+    if (_saving) return;
+    FocusScope.of(context).unfocus();
+    if (!validateAndReveal(_formKey)) return;
     setState(() => _saving = true);
     try {
       await widget.session.changePassword(
@@ -62,7 +65,8 @@ final class _SecurityScreenState extends State<SecurityScreen> {
       appBar: AppBar(title: const Text('Segurança')),
       body: Form(
         key: _formKey,
-        child: ListView(
+        child: FormScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
           children: [
             GdReveal(
@@ -89,7 +93,7 @@ final class _SecurityScreenState extends State<SecurityScreen> {
                     const SizedBox(height: 10),
                     Text(
                       'Ao trocar a senha, os outros dispositivos perderão o '
-                      'acesso em até 15 minutos. Este aparelho continuará '
+                      'acesso imediatamente. Este aparelho continuará '
                       'conectado.',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: colors.onSurfaceVariant,

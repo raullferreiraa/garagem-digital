@@ -103,8 +103,11 @@ def atualizar_equipe(
     db.commit()
 
 
-def obter_equipe(db: Session, equipe_id: UUID) -> Equipe:
-    equipe = db.get(Equipe, equipe_id)
+def obter_equipe(db: Session, equipe_id: UUID, *, bloquear: bool = False) -> Equipe:
+    query = select(Equipe).where(Equipe.id == equipe_id)
+    if bloquear:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    equipe = db.scalar(query)
     if equipe is None:
         raise EquipeNaoEncontrada("Equipe nao encontrada.")
     return equipe
@@ -248,7 +251,10 @@ def detalhar_equipe(
             for solicitacao, membro in linhas_pendentes
         ]
 
+    minha_equipe = _equipe_do_usuario(db, usuario_id)
     return EquipeDetalhe(
+        minha_equipe_id=minha_equipe.id if minha_equipe else None,
+        minha_equipe_nome=minha_equipe.nome if minha_equipe else None,
         **resumo.model_dump(),
         dono_id=equipe.dono_id,
         membros=[
@@ -472,7 +478,7 @@ def alterar_papel_membro(
     papel: str,
     gestor: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != gestor.id:
         raise AcaoNaoPermitida("Apenas o dono pode alterar cargos.")
     membro = db.get(MembroEquipe, (equipe_id, membro_id))
@@ -501,7 +507,7 @@ def transferir_lideranca(
     novo_dono_id: UUID,
     dono_atual: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != dono_atual.id:
         raise AcaoNaoPermitida("Apenas o dono pode transferir a liderança.")
     if novo_dono_id == dono_atual.id:
@@ -533,7 +539,7 @@ def encerrar_equipe(
     equipe_id: UUID,
     dono: Usuario,
 ) -> tuple[str | None, str | None]:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != dono.id:
         raise AcaoNaoPermitida("Apenas o dono pode encerrar a equipe.")
     urls_imagens = (equipe.avatar_url, equipe.capa_url)
@@ -548,7 +554,7 @@ def remover_membro(
     membro_id: UUID,
     usuario: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     membro = db.get(MembroEquipe, (equipe_id, membro_id))
     if membro is None:
         raise EquipeNaoEncontrada("Integrante não encontrado.")

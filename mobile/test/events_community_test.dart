@@ -45,6 +45,119 @@ Map<String, Object?> community({bool scheduled = false}) => {
     };
 
 void main() {
+  testWidgets('busca vazia oferece limpar filtros e recupera encontros',
+      (tester) async {
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [community()]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'inexistente');
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhum encontro encontrado.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Limpar busca'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('falha inicial não é apresentada como lista vazia',
+      (tester) async {
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.reject(DioException(
+          requestOptions: options, type: DioExceptionType.connectionError));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    expect(find.text('Tentar novamente'), findsOneWidget);
+    expect(
+        find.text('Explore outra busca ou crie o seu encontro.'), findsNothing);
+  });
+  testWidgets(
+      'levar equipe exige confirmação explícita dos integrantes e separa ações',
+      (tester) async {
+    final data = community(scheduled: true)
+      ..['minha_equipe_id'] = 'equipe'
+      ..['minha_equipe_nome'] = 'Clássicos'
+      ..['minha_equipe_papel'] = 'dono'
+      ..['minha_equipe_total_integrantes'] = 3;
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    RequestOptions? sent;
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.method == 'PUT') sent = options;
+      handler.resolve(Response(requestOptions: options, data: data));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventCommunityScreen(
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api))));
+    await tester.pumpAndSettle();
+    final teamButton = find.widgetWithText(OutlinedButton, 'Levar Clássicos');
+    await tester.scrollUntilVisible(teamButton, 250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    final presenceButton =
+        find.widgetWithText(FilledButton, 'Confirmar minha presença');
+    expect(
+        tester.getTopLeft(teamButton).dy -
+            tester.getBottomLeft(presenceButton).dy,
+        greaterThanOrEqualTo(12));
+    await tester.tap(teamButton);
+    await tester.pumpAndSettle();
+    expect(sent, isNull);
+    expect(tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+        isFalse);
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.tap(find.widgetWithText(FilledButton, 'Confirmar'));
+    await tester.pumpAndSettle();
+    expect(sent!.data, {'status': 'confirmada', 'confirmar_integrantes': true});
+    expect(sent!.queryParameters, {'edicao_id': 'edicao'});
+  });
+
+  testWidgets('exclusão da comunidade pode ser cancelada sem enviar requisição',
+      (tester) async {
+    final data = community();
+    var deletes = 0;
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.method == 'DELETE') deletes++;
+      handler.resolve(Response(requestOptions: options, data: data));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventCommunityScreen(
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Gerenciar encontro'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Excluir comunidade'));
+    await tester.pumpAndSettle();
+    expect(find.text('Excluir comunidade?'), findsOneWidget);
+    await tester.tap(find.text('Voltar'));
+    await tester.pumpAndSettle();
+    expect(deletes, 0);
+  });
+
   test('comunidade sem data não cria uma edição implicitamente', () {
     const input = EventInput(
         name: 'Encontro',

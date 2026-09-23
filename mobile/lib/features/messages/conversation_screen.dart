@@ -34,6 +34,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   Object? _error;
   bool _loadingOlder = false;
   bool _sending = false;
+  bool _refreshing = false;
   int _request = 0;
   Timer? _refreshTimer;
 
@@ -74,7 +75,12 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Future<void> _refreshLatest() async {
-    if (_messages == null || _sending) return;
+    if (_messages == null ||
+        _sending ||
+        _refreshing ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ModalRoute.of(context)?.isCurrent != true) return;
+    _refreshing = true;
     try {
       final page = await widget.repository.messages(widget.conversation.id);
       if (!mounted) return;
@@ -92,13 +98,18 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       if (nearEnd) _scrollToEnd();
     } catch (_) {
       // A atualização silenciosa tenta novamente no próximo ciclo.
+    } finally {
+      _refreshing = false;
     }
   }
 
   Future<void> _markRead() async {
+    if (!mounted ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ModalRoute.of(context)?.isCurrent != true) return;
     try {
       await widget.repository.markRead(widget.conversation.id);
-      widget.onChanged();
+      if (mounted) widget.onChanged();
     } catch (_) {
       // A leitura será reconciliada na próxima atualização da conversa.
     }
@@ -344,9 +355,9 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             Text(
               '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
+                    fontSize: 10,
                     color: mine
-                        ? colors.onPrimary.withValues(alpha: .65)
+                        ? colors.onPrimary.withValues(alpha: .8)
                         : colors.onSurfaceVariant,
                   ),
             ),

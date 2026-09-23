@@ -1,3 +1,5 @@
+import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:flutter/services.dart';
@@ -32,6 +34,7 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
   String? _category;
   DateTime? _occurredAt;
   bool _submitting = false;
+  Uint8List? _photo;
   String? _errorMessage;
 
   bool get _editing => widget.evolution != null;
@@ -84,8 +87,9 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
   }
 
   Future<void> _submit() async {
+    if (_submitting) return;
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+    if (!validateAndReveal(_formKey)) return;
 
     setState(() {
       _submitting = true;
@@ -101,13 +105,21 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
         occurredAt: _occurredAt,
         mileageKm: mileage.isEmpty ? null : int.parse(mileage),
       );
-      final evolution = _editing
+      var evolution = _editing
           ? await widget.repository.update(
               widget.carId,
               widget.evolution!.id,
               input,
             )
           : await widget.repository.create(widget.carId, input);
+      if (_photo != null && mounted) {
+        final id = evolution.id;
+        evolution = await uploadFormPhoto(
+            context,
+            evolution,
+            () => widget.repository.addPhoto(widget.carId, id,
+                bytes: _photo!, fileName: 'evolucao.jpg'));
+      }
       if (mounted) Navigator.of(context).pop(evolution);
     } catch (error) {
       if (!mounted) return;
@@ -126,139 +138,150 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_editing ? 'Editar evolução' : 'Registrar evolução'),
-      ),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              GdSectionTitle(
-                eyebrow: 'Diário de bordo',
-                title: widget.carModel,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _editing
-                    ? 'Atualize este registro do diário.'
-                    : 'Registre uma nova etapa na história deste projeto.',
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _titleController,
-                autofocus: !_editing,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'Título *',
-                  hintText: 'Ex.: Primeira revisão completa',
-                  prefixIcon: Icon(Icons.auto_awesome_outlined),
-                ),
-                maxLength: 120,
-                validator: (value) =>
-                    _requiredText(value, 'Informe um título para a evolução.'),
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'O que mudou? *',
-                  hintText: 'Conte o que foi feito e como ficou.',
-                  alignLabelWithHint: true,
-                ),
-                minLines: 4,
-                maxLines: 8,
-                maxLength: 10000,
-                validator: (value) =>
-                    _requiredText(value, 'Descreva o que mudou no projeto.'),
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _category,
-                decoration: const InputDecoration(
-                  labelText: 'Categoria',
-                  prefixIcon: Icon(Icons.category_outlined),
-                ),
-                items: evolutionCategoryLabels.entries
-                    .map(
-                      (entry) => DropdownMenuItem(
-                        value: entry.key,
-                        child: Text(entry.value),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _submitting
-                    ? null
-                    : (value) => setState(() => _category = value),
-              ),
-              const SizedBox(height: 20),
-              Row(
+    return FormSaveGuard(
+        saving: _submitting,
+        child: Scaffold(
+          appBar: AppBar(
+            title: Text(_editing ? 'Editar evolução' : 'Registrar evolução'),
+          ),
+          body: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: FormScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _submitting ? null : _pickDate,
-                      icon: const Icon(Icons.calendar_today_outlined),
-                      label: Text(
-                        _occurredAt == null
-                            ? 'Adicionar data'
-                            : _formatDate(_occurredAt!),
+                  GdSectionTitle(
+                    eyebrow: 'Diário de bordo',
+                    title: widget.carModel,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _editing
+                        ? 'Atualize este registro do diário.'
+                        : 'Registre uma nova etapa na história deste projeto.',
+                  ),
+                  const SizedBox(height: 24),
+                  if (!_editing)
+                    FormPhoto(
+                        label: 'Foto da evolução',
+                        bytes: _photo,
+                        enabled: !_submitting,
+                        onChanged: (value) => setState(() => _photo = value)),
+                  TextFormField(
+                    controller: _titleController,
+                    autofocus: false,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'Título *',
+                      hintText: 'Ex.: Primeira revisão completa',
+                      prefixIcon: Icon(Icons.auto_awesome_outlined),
+                    ),
+                    maxLength: 120,
+                    validator: (value) => _requiredText(
+                        value, 'Informe um título para a evolução.'),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _descriptionController,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'O que mudou? *',
+                      hintText: 'Conte o que foi feito e como ficou.',
+                      alignLabelWithHint: true,
+                    ),
+                    minLines: 4,
+                    maxLines: 8,
+                    maxLength: 10000,
+                    validator: (value) => _requiredText(
+                        value, 'Descreva o que mudou no projeto.'),
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _category,
+                    decoration: const InputDecoration(
+                      labelText: 'Categoria',
+                      prefixIcon: Icon(Icons.category_outlined),
+                    ),
+                    items: evolutionCategoryLabels.entries
+                        .map(
+                          (entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _submitting
+                        ? null
+                        : (value) => setState(() => _category = value),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _submitting ? null : _pickDate,
+                          icon: const Icon(Icons.calendar_today_outlined),
+                          label: Text(
+                            _occurredAt == null
+                                ? 'Adicionar data'
+                                : _formatDate(_occurredAt!),
+                          ),
+                        ),
                       ),
+                      if (_occurredAt != null)
+                        IconButton(
+                          onPressed: _submitting
+                              ? null
+                              : () => setState(() => _occurredAt = null),
+                          tooltip: 'Remover data',
+                          icon: const Icon(Icons.close),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _mileageController,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    decoration: const InputDecoration(
+                      labelText: 'Quilometragem',
+                      hintText: 'Opcional',
+                      suffixText: 'km',
+                      prefixIcon: Icon(Icons.speed_outlined),
+                    ),
+                    validator: _validateMileage,
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _errorMessage!,
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: 28),
+                  FilledButton.icon(
+                    onPressed: _submitting ? null : _submit,
+                    icon: _submitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.add),
+                    label: Text(
+                      _submitting
+                          ? 'Salvando...'
+                          : _editing
+                              ? 'Salvar alterações'
+                              : 'Registrar evolução',
                     ),
                   ),
-                  if (_occurredAt != null)
-                    IconButton(
-                      onPressed: _submitting
-                          ? null
-                          : () => setState(() => _occurredAt = null),
-                      tooltip: 'Remover data',
-                      icon: const Icon(Icons.close),
-                    ),
                 ],
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _mileageController,
-                keyboardType: TextInputType.number,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                decoration: const InputDecoration(
-                  labelText: 'Quilometragem',
-                  hintText: 'Opcional',
-                  suffixText: 'km',
-                  prefixIcon: Icon(Icons.speed_outlined),
-                ),
-                validator: _validateMileage,
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 16),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 28),
-              FilledButton.icon(
-                onPressed: _submitting ? null : _submit,
-                icon: _submitting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add),
-                label: Text(
-                  _submitting
-                      ? 'Salvando...'
-                      : _editing
-                          ? 'Salvar alterações'
-                          : 'Registrar evolução',
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }

@@ -100,14 +100,25 @@ final class EventsRepository {
   }
 
   Future<GarageEvent> setTeamParticipation(String id,
-      {required bool confirmed, required String editionId}) async {
+      {required bool confirmed,
+      required String editionId,
+      bool includeMembers = false}) async {
     final response = confirmed
         ? await _api.dio.put<Map<String, Object?>>('/eventos/$id/minha-equipe',
-            queryParameters: {'edicao_id': editionId},
-            data: {'status': 'confirmada'})
+            queryParameters: {
+                'edicao_id': editionId
+              },
+            data: {
+                'status': 'confirmada',
+                'confirmar_integrantes': includeMembers
+              })
         : await _api.dio.delete<Map<String, Object?>>(
             '/eventos/$id/minha-equipe',
             queryParameters: {'edicao_id': editionId});
     return GarageEvent.fromJson(response.data!);
+  }
+
+  Future<void> delete(String id) async {
+    await _api.dio.delete<void>('/eventos/$id');
   }
 }

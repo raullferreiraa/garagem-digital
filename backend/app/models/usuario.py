@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Boolean, DateTime, String, Text, func
+from sqlalchemy import Boolean, DateTime, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -20,6 +20,7 @@ class Usuario(Base):
     username: Mapped[str] = mapped_column(String(30), unique=True, index=True)
     email: Mapped[str] = mapped_column(String(254), unique=True, index=True)
     senha_hash: Mapped[str] = mapped_column(Text)
+    versao_auth: Mapped[int] = mapped_column(Integer, default=0, server_default="0")
     avatar_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     bio: Mapped[str | None] = mapped_column(String(280), nullable=True)
     cidade: Mapped[str | None] = mapped_column(String(120), nullable=True)

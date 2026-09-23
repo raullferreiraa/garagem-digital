@@ -67,6 +67,8 @@ class SolicitacaoEquipeResposta(BaseModel):
 
 
 class EquipeDetalhe(EquipeResumo):
+    minha_equipe_id: UUID | None = None
+    minha_equipe_nome: str | None = None
     dono_id: UUID
     membros: list[MembroEquipeResposta]
     carros: list[CarroPublico]

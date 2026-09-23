@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -19,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _email = TextEditingController();
   final _password = TextEditingController();
   bool _submitting = false;
+  Uint8List? _photo;
   bool _showPassword = false;
 
   @override
@@ -32,7 +36,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Future<void> _submit() async {
     if (_submitting) return;
-    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
+    if (!validateAndReveal(_formKey)) return;
     setState(() => _submitting = true);
     try {
       await widget.session.register(
@@ -41,6 +46,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         email: _email.text.trim().toLowerCase(),
         password: _password.text,
       );
+      if (_photo != null && mounted) {
+        await uploadFormPhoto<bool>(context, false, () async {
+          await widget.session
+              .uploadAvatar(bytes: _photo!, fileName: 'perfil.jpg');
+          return true;
+        });
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) {
@@ -55,131 +67,144 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Criar conta')),
-      body: SafeArea(
-        child: Center(
-            child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: AutofillGroup(
-                child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const GdReveal(
-                      child: AuthRacingHeader(
-                    title: 'Toda paixão',
-                    accent: 'tem um começo.',
-                    description:
-                        'Crie seu perfil e dê um lugar para a história '
-                        'do seu projeto.',
-                    compact: true,
-                  )),
-                  const SizedBox(height: 28),
-                  TextFormField(
-                    controller: _name,
-                    textInputAction: TextInputAction.next,
-                    textCapitalization: TextCapitalization.words,
-                    autofillHints: const [AutofillHints.name],
-                    decoration: const InputDecoration(
-                        labelText: 'Nome',
-                        prefixIcon: Icon(Icons.person_outline_rounded)),
-                    validator: (value) =>
-                        value == null || value.trim().length < 2
-                            ? 'Informe seu nome.'
-                            : null,
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _username,
-                    textInputAction: TextInputAction.next,
-                    autocorrect: false,
-                    autofillHints: const [AutofillHints.newUsername],
-                    decoration: const InputDecoration(
-                      labelText: 'Nome de usuário',
-                      prefixText: '@',
-                      prefixIcon: Icon(Icons.alternate_email_rounded),
-                    ),
-                    validator: (value) {
-                      final username = value?.trim() ?? '';
-                      return RegExp(r'^[a-z0-9._]{3,30}$').hasMatch(username)
-                          ? null
-                          : 'Use 3 a 30 letras minúsculas, números, ponto ou _.';
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _email,
-                    keyboardType: TextInputType.emailAddress,
-                    textInputAction: TextInputAction.next,
-                    autocorrect: false,
-                    autofillHints: const [AutofillHints.email],
-                    decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.mail_outline_rounded)),
-                    validator: (value) => value != null && value.contains('@')
-                        ? null
-                        : 'Informe um email válido.',
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _password,
-                    obscureText: !_showPassword,
-                    autofillHints: const [AutofillHints.newPassword],
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      labelText: 'Senha',
-                      prefixIcon: const Icon(Icons.lock_outline_rounded),
-                      helperText: 'Pelo menos 8 caracteres.',
-                      suffixIcon: IconButton(
-                        tooltip:
-                            _showPassword ? 'Ocultar senha' : 'Mostrar senha',
-                        onPressed: () =>
-                            setState(() => _showPassword = !_showPassword),
-                        icon: Icon(_showPassword
-                            ? Icons.visibility_off_outlined
-                            : Icons.visibility_outlined),
+    return FormSaveGuard(
+        saving: _submitting,
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Criar conta')),
+          body: SafeArea(
+            child: Center(
+                child: SingleChildScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: AutofillGroup(
+                    child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const GdReveal(
+                          child: AuthRacingHeader(
+                        title: 'Toda paixão',
+                        accent: 'tem um começo.',
+                        description:
+                            'Crie seu perfil e dê um lugar para a história '
+                            'do seu projeto.',
+                        compact: true,
+                      )),
+                      const SizedBox(height: 28),
+                      FormPhoto(
+                          label: 'Foto do perfil',
+                          bytes: _photo,
+                          aspectRatio: 1,
+                          enabled: !_submitting,
+                          onChanged: (value) => setState(() => _photo = value)),
+                      TextFormField(
+                        controller: _name,
+                        textInputAction: TextInputAction.next,
+                        textCapitalization: TextCapitalization.words,
+                        autofillHints: const [AutofillHints.name],
+                        decoration: const InputDecoration(
+                            labelText: 'Nome',
+                            prefixIcon: Icon(Icons.person_outline_rounded)),
+                        validator: (value) =>
+                            value == null || value.trim().length < 2
+                                ? 'Informe seu nome.'
+                                : null,
                       ),
-                    ),
-                    validator: (value) => value == null || value.length < 8
-                        ? 'Use pelo menos 8 caracteres.'
-                        : null,
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _username,
+                        textInputAction: TextInputAction.next,
+                        autocorrect: false,
+                        autofillHints: const [AutofillHints.newUsername],
+                        decoration: const InputDecoration(
+                          labelText: 'Nome de usuário',
+                          prefixText: '@',
+                          prefixIcon: Icon(Icons.alternate_email_rounded),
+                        ),
+                        validator: (value) {
+                          final username = value?.trim() ?? '';
+                          return RegExp(r'^[a-z0-9._]{3,30}$')
+                                  .hasMatch(username)
+                              ? null
+                              : 'Use 3 a 30 letras minúsculas, números, ponto ou _.';
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _email,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autocorrect: false,
+                        autofillHints: const [AutofillHints.email],
+                        decoration: const InputDecoration(
+                            labelText: 'Email',
+                            prefixIcon: Icon(Icons.mail_outline_rounded)),
+                        validator: (value) =>
+                            value != null && value.contains('@')
+                                ? null
+                                : 'Informe um email válido.',
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _password,
+                        obscureText: !_showPassword,
+                        autofillHints: const [AutofillHints.newPassword],
+                        autocorrect: false,
+                        enableSuggestions: false,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _submit(),
+                        decoration: InputDecoration(
+                          labelText: 'Senha',
+                          prefixIcon: const Icon(Icons.lock_outline_rounded),
+                          helperText: 'Pelo menos 8 caracteres.',
+                          suffixIcon: IconButton(
+                            tooltip: _showPassword
+                                ? 'Ocultar senha'
+                                : 'Mostrar senha',
+                            onPressed: () =>
+                                setState(() => _showPassword = !_showPassword),
+                            icon: Icon(_showPassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined),
+                          ),
+                        ),
+                        validator: (value) => value == null || value.length < 8
+                            ? 'Use pelo menos 8 caracteres.'
+                            : null,
+                      ),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: _submitting ? null : _submit,
+                          child: _submitting
+                              ? const SizedBox.square(
+                                  dimension: 20,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Flexible(
+                                        child: Text('Criar conta',
+                                            textAlign: TextAlign.center)),
+                                    SizedBox(width: 12),
+                                    Icon(Icons.arrow_forward_rounded, size: 20)
+                                  ],
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: _submitting ? null : _submit,
-                      child: _submitting
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Flexible(
-                                    child: Text('Criar conta',
-                                        textAlign: TextAlign.center)),
-                                SizedBox(width: 12),
-                                Icon(Icons.arrow_forward_rounded, size: 20)
-                              ],
-                            ),
-                    ),
-                  ),
-                ],
+                )),
               ),
             )),
           ),
-        )),
-      ),
-    );
+        ));
   }
 }
 

@@ -112,7 +112,12 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversas')),
+      appBar: AppBar(title: const Text('Conversas'), actions: [
+        IconButton(
+            onPressed: widget.onDiscover,
+            tooltip: 'Encontrar pessoas',
+            icon: const Icon(Icons.person_search_outlined)),
+      ]),
       body: _body(),
     );
   }
@@ -123,11 +128,16 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: FilledButton.icon(
-            onPressed: _reload,
-            icon: const Icon(Icons.refresh_rounded),
-            label: Text(apiErrorMessage(_error!)),
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(apiErrorMessage(_error!), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Tentar novamente')),
+          ]),
         ),
       );
     }
@@ -138,18 +148,33 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          const GdSectionTitle(
-            eyebrow: 'NA PISTA',
-            title: 'Conexões reais',
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Troque ideias, detalhes e histórias com outros apaixonados.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 24),
+          if (_error != null) ...[
+            Text(
+                'Não foi possível atualizar as conversas. O conteúdo anterior foi mantido.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                    onPressed: _reload, child: const Text('Tentar novamente'))),
+          ],
+          if (items.isEmpty && widget.teamChat == null) ...[
+            const GdSectionTitle(
+              eyebrow: 'NA PISTA',
+              title: 'Conexões reais',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Troque ideias, detalhes e histórias com outros apaixonados.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 24),
+          ] else ...[
+            Text('Suas conversas',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+          ],
           if (widget.teamChat != null) ...[
             _teamChatTile(widget.teamChat!),
             if (items.isNotEmpty) const SizedBox(height: 4),

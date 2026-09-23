@@ -55,6 +55,7 @@ class GdNavigation extends StatelessWidget {
                 button: true,
                 selected: selected,
                 label: item.$1,
+                value: badgeCount > 0 ? '$badgeCount não lidas' : null,
                 child: Material(
                     color: Colors.transparent,
                     child: InkWell(
