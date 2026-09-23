@@ -44,6 +44,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   _ProfileData? _visibleData;
   bool _changingFollow = false;
   bool _openingConversation = false;
+  bool _reporting = false;
 
   @override
   void initState() {
@@ -189,6 +190,116 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
   }
 
+  Future<void> _reportProfile(PublicProfile profile) async {
+    if (_reporting) return;
+    final detailsController = TextEditingController();
+    String reason = 'spam';
+    String? validationError;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Denunciar perfil'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'A denúncia será analisada. O perfil não será avisado sobre quem denunciou.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 16),
+                DropdownButtonFormField<String>(
+                  initialValue: reason,
+                  decoration: const InputDecoration(labelText: 'Motivo'),
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'spam', child: Text('Spam ou golpe')),
+                    DropdownMenuItem(
+                        value: 'assedio',
+                        child: Text('Assédio ou intimidação')),
+                    DropdownMenuItem(
+                        value: 'conteudo_improprio',
+                        child: Text('Conteúdo impróprio')),
+                    DropdownMenuItem(
+                        value: 'identidade_falsa',
+                        child: Text('Identidade falsa')),
+                    DropdownMenuItem(
+                        value: 'outro', child: Text('Outro motivo')),
+                  ],
+                  onChanged: (value) => setDialogState(() {
+                    reason = value ?? reason;
+                    validationError = null;
+                  }),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: detailsController,
+                  maxLength: 500,
+                  minLines: 2,
+                  maxLines: 4,
+                  textCapitalization: TextCapitalization.sentences,
+                  decoration: InputDecoration(
+                    labelText: reason == 'outro'
+                        ? 'Explique o motivo *'
+                        : 'Detalhes (opcional)',
+                    errorText: validationError,
+                    alignLabelWithHint: true,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (reason == 'outro' &&
+                    detailsController.text.trim().isEmpty) {
+                  setDialogState(
+                      () => validationError = 'Explique o motivo da denúncia.');
+                  return;
+                }
+                Navigator.of(dialogContext).pop(true);
+              },
+              child: const Text('Enviar denúncia'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (confirmed != true || !mounted) {
+      detailsController.dispose();
+      return;
+    }
+    setState(() => _reporting = true);
+    try {
+      await widget.usersRepository.report(
+        profile.id,
+        reason: reason,
+        details: detailsController.text,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Denúncia enviada para análise.')),
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      detailsController.dispose();
+      if (mounted) setState(() => _reporting = false);
+    }
+  }
+
   Future<void> _openConnections(
     PublicProfile profile, {
     required bool following,
@@ -237,6 +348,22 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 GdShareAction(
                   payload: ShareContent.profile(data.profile),
                   tooltip: 'Compartilhar perfil',
+                ),
+              if (data != null && data.profile.id != widget.currentUserId)
+                PopupMenuButton<String>(
+                  tooltip: 'Mais opções',
+                  enabled: !_reporting,
+                  onSelected: (_) => _reportProfile(data.profile),
+                  itemBuilder: (_) => const [
+                    PopupMenuItem(
+                      value: 'report',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(Icons.flag_outlined),
+                        title: Text('Denunciar perfil'),
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),

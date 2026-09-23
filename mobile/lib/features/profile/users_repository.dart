@@ -58,4 +58,18 @@ final class UsersRepository {
   Future<void> unfollow(String userId) async {
     await _api.dio.delete<void>('/usuarios/$userId/seguir');
   }
+
+  Future<void> report(
+    String userId, {
+    required String reason,
+    String? details,
+  }) async {
+    await _api.dio.post<void>(
+      '/usuarios/$userId/denuncias',
+      data: {
+        'motivo': reason,
+        if (details?.trim().isNotEmpty == true) 'detalhes': details!.trim(),
+      },
+    );
+  }
 }

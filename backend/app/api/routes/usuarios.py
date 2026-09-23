@@ -12,17 +12,20 @@ from fastapi import (
     status,
 )
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.carro import Carro
+from app.models.denuncia_usuario import DenunciaUsuario
 from app.models.seguidor import Seguidor
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
 from app.schemas.usuario import (
     PerfilAtualizacao,
+    DenunciaUsuarioCriacao,
     PerfilPrivado,
     PerfilSocial,
     UsuarioResumo,
@@ -213,6 +216,49 @@ def deixar_de_seguir_usuario(
     if vinculo is not None:
         db.delete(vinculo)
         db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/{usuario_id}/denuncias", status_code=status.HTTP_204_NO_CONTENT)
+def denunciar_usuario(
+    usuario_id: UUID,
+    dados: DenunciaUsuarioCriacao,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    if usuario_id == usuario_atual.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Você não pode denunciar seu próprio perfil.",
+        )
+    _buscar_usuario_ativo(db, usuario_id)
+    existente = db.scalar(
+        select(DenunciaUsuario.id).where(
+            DenunciaUsuario.denunciante_id == usuario_atual.id,
+            DenunciaUsuario.denunciado_id == usuario_id,
+        )
+    )
+    if existente is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="Você já denunciou este perfil. A denúncia está em análise.",
+        )
+    db.add(
+        DenunciaUsuario(
+            denunciante_id=usuario_atual.id,
+            denunciado_id=usuario_id,
+            motivo=dados.motivo,
+            detalhes=dados.detalhes,
+        )
+    )
+    try:
+        db.commit()
+    except IntegrityError as error:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="Você já denunciou este perfil. A denúncia está em análise.",
+        ) from error
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

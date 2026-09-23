@@ -13,6 +13,7 @@ from app.models import (  # noqa: F401
     Carro,
     ComentarioEvolucao,
     ConversaDireta,
+    DenunciaUsuario,
     ConviteEquipe,
     CurtidaComentarioEvolucao,
     CurtidaEvolucao,
