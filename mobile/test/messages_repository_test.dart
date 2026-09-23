@@ -109,9 +109,27 @@ void main() {
           baseUrl: 'http://localhost/api/v1',
           tokenStorage: _EmptyTokenStorage());
       var fetches = 0;
+      RequestInterceptorHandler? initialHandler;
+      RequestOptions? initialOptions;
+      var sends = 0;
       api.dio.interceptors
           .add(InterceptorsWrapper(onRequest: (options, handler) {
-        if (options.method == 'GET') fetches++;
+        if (options.method == 'GET') {
+          fetches++;
+          if (fetches == 1) {
+            initialHandler = handler;
+            initialOptions = options;
+            return;
+          }
+        }
+        if (options.method == 'POST' &&
+            (options.path.endsWith('/mensagens') ||
+                options.path.endsWith('/chat'))) {
+          sends++;
+          handler.reject(DioException(
+              requestOptions: options, type: DioExceptionType.connectionError));
+          return;
+        }
         handler.resolve(Response(requestOptions: options, data: {
           'itens': <Object?>[],
           'proximo_cursor': null,
@@ -138,8 +156,39 @@ void main() {
                 onProfileTap: (_) {},
                 onChanged: () {}),
       ));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isFalse);
+      expect(initialHandler, isNotNull);
+      initialHandler!.resolve(Response(requestOptions: initialOptions!, data: {
+        'itens': <Object?>[],
+        'proximo_cursor': null,
+      }));
       await tester.pumpAndSettle();
       expect(fetches, 1);
+      expect(tester.widget<TextField>(find.byType(TextField)).enabled, isTrue);
+      final sendButton = find.byWidgetPredicate((widget) =>
+          widget is IconButton && widget.tooltip == 'Enviar mensagem');
+      expect(tester.widget<IconButton>(sendButton).onPressed, isNull);
+      await tester.enterText(find.byType(TextField), '   ');
+      await tester.pump();
+      expect(tester.widget<IconButton>(sendButton).onPressed, isNull);
+      await tester.enterText(find.byType(TextField), 'Olá, equipe!');
+      await tester.pump();
+      expect(tester.widget<IconButton>(sendButton).onPressed, isNotNull);
+      await tester.tap(sendButton);
+      await tester.pumpAndSettle();
+      expect(sends, 1);
+      expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+          'Olá, equipe!');
+      expect(tester.widget<IconButton>(sendButton).onPressed, isNotNull);
+      await tester.enterText(find.byType(TextField), 'a' * 1800);
+      await tester.pump();
+      expect(find.text('1800/2000'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), '');
+      await tester.pump();
+      expect(find.text('1800/2000'), findsNothing);
+      expect(tester.widget<IconButton>(sendButton).onPressed, isNull);
       await tester.pump(const Duration(seconds: 8));
       await tester.pumpAndSettle();
       expect(fetches, 2);

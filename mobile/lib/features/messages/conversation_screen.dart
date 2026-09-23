@@ -154,7 +154,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
 
   Future<void> _send() async {
     final content = _composer.text.trim();
-    if (content.isEmpty || _sending) return;
+    if (content.isEmpty || _sending || _messages == null) return;
     setState(() => _sending = true);
     try {
       final message = await widget.repository.send(
@@ -344,7 +344,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Flexible(
-              child: Text(
+              child: SelectableText(
                 message.content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: mine ? colors.onPrimary : colors.onSurface,
@@ -382,15 +382,18 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             Expanded(
               child: TextField(
                 controller: _composer,
-                enabled: !_sending,
+                onChanged: (_) => setState(() {}),
+                enabled: !_sending && _messages != null,
                 minLines: 1,
                 maxLines: 5,
                 maxLength: 2000,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Mensagem',
-                  counterText: '',
-                  contentPadding: EdgeInsets.symmetric(
+                  counterText: _composer.text.characters.length >= 1800
+                      ? '${_composer.text.characters.length}/2000'
+                      : '',
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
@@ -401,7 +404,10 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             const SizedBox(width: 8),
             IconButton.filled(
               tooltip: 'Enviar mensagem',
-              onPressed: _sending ? null : _send,
+              onPressed:
+                  _sending || _messages == null || _composer.text.trim().isEmpty
+                      ? null
+                      : _send,
               icon: _sending
                   ? const SizedBox.square(
                       dimension: 18,

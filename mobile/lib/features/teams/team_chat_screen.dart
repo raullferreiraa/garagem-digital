@@ -132,7 +132,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
 
   Future<void> _send() async {
     final content = _composer.text.trim();
-    if (content.isEmpty || _sending) return;
+    if (content.isEmpty || _sending || _messages == null) return;
     setState(() => _sending = true);
     try {
       final message = await widget.repository.sendChat(widget.team.id, content);
@@ -332,7 +332,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Flexible(
-                  child: Text(
+                  child: SelectableText(
                     message.content,
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: mine ? colors.onPrimary : colors.onSurface,
@@ -372,16 +372,19 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
             Expanded(
               child: TextField(
                 controller: _composer,
-                enabled: !_sending,
+                onChanged: (_) => setState(() {}),
+                enabled: !_sending && _messages != null,
                 minLines: 1,
                 maxLines: 5,
                 maxLength: 2000,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Mensagem para a equipe',
-                  counterText: '',
+                  counterText: _composer.text.characters.length >= 1800
+                      ? '${_composer.text.characters.length}/2000'
+                      : '',
                   contentPadding:
-                      EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 ),
                 onSubmitted: (_) => _send(),
               ),
@@ -389,7 +392,10 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
             const SizedBox(width: 8),
             IconButton.filled(
               tooltip: 'Enviar mensagem',
-              onPressed: _sending ? null : _send,
+              onPressed:
+                  _sending || _messages == null || _composer.text.trim().isEmpty
+                      ? null
+                      : _send,
               icon: _sending
                   ? const SizedBox.square(
                       dimension: 18,
