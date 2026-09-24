@@ -2,7 +2,6 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi.testclient import TestClient
 from uuid import UUID
-from app.main import app
 from app.core.database import get_db
 from app.models.evento import Evento
 
@@ -151,7 +150,7 @@ def test_comunidade_sem_data_edicoes_independentes_e_historico(client: TestClien
     primeira = client.post(f"{base}/edicoes", headers=auth(dono), json=data).json()
     assert primeira["edicao_id"]
     client.put(f"{base}/minha-presenca", headers=auth(visitante), json={})
-    with next(app.dependency_overrides[get_db]()) as db:
+    with next(client.app.dependency_overrides[get_db]()) as db:
         edicao = db.get(Evento, UUID(primeira["edicao_id"]))
         edicao.inicio = datetime.now(timezone.utc) - timedelta(days=1)
         db.commit()

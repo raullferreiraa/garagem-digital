@@ -64,9 +64,13 @@ class SolicitacaoEquipeResposta(BaseModel):
     usuario: UsuarioResumo
     status: str
     criada_em: datetime
+    bloqueio_para_aprovacao: bool = False
 
 
 class EquipeDetalhe(EquipeResumo):
+    minha_equipe_id: UUID | None = None
+    minha_equipe_nome: str | None = None
+    bloqueio_dono: bool = False
     dono_id: UUID
     membros: list[MembroEquipeResposta]
     carros: list[CarroPublico]

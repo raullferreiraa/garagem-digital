@@ -49,7 +49,9 @@ final class _FollowingFeedState extends State<FollowingFeed> {
 
   Future<void> _reload() async {
     final future = _load();
-    setState(() => _items = future);
+    setState(() {
+      _items = future;
+    });
     try {
       await future;
     } catch (_) {

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import (
@@ -33,6 +33,7 @@ class PerfilSocial(PerfilPublico):
     total_seguidores: int
     total_seguindo: int
     seguido_por_mim: bool
+    bloqueado_por_mim: bool = False
 
 
 class PerfilPrivado(PerfilPublico):
@@ -67,4 +68,29 @@ class PerfilAtualizacao(BaseModel):
     def nome_nao_pode_ser_nulo(self) -> "PerfilAtualizacao":
         if "nome" in self.model_fields_set and self.nome is None:
             raise ValueError("O nome nao pode ser nulo.")
+        return self
+
+
+class DenunciaUsuarioCriacao(BaseModel):
+    motivo: Literal[
+        "spam",
+        "assedio",
+        "conteudo_improprio",
+        "identidade_falsa",
+        "outro",
+    ]
+    detalhes: Annotated[str | None, Field(max_length=500)] = None
+
+    @field_validator("detalhes")
+    @classmethod
+    def limpar_detalhes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = " ".join(value.split())
+        return value or None
+
+    @model_validator(mode="after")
+    def outro_exige_detalhes(self) -> "DenunciaUsuarioCriacao":
+        if self.motivo == "outro" and not self.detalhes:
+            raise ValueError("Explique o motivo da denúncia.")
         return self

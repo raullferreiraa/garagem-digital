@@ -147,6 +147,9 @@ abstract final class AppTheme {
         focusedBorder: inputBorder(colors.primary, 1.5),
         errorBorder: inputBorder(colors.error),
         focusedErrorBorder: inputBorder(colors.error, 1.5),
+        hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        errorMaxLines: 3,
+        helperMaxLines: 3,
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 72,
@@ -218,10 +221,41 @@ abstract final class AppTheme {
         thickness: 1,
         space: 1,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: colors.surfaceContainer,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: textTheme.headlineSmall,
+        contentTextStyle: textTheme.bodyMedium,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: colors.outlineVariant),
+        ),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: colors.surfaceContainerHigh,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        textStyle: textTheme.bodyMedium,
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: colors.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: colors.outlineVariant),
+        ),
+        textStyle: textTheme.bodySmall?.copyWith(color: colors.onSurface),
+      ),
+      textSelectionTheme: TextSelectionThemeData(
+        cursorColor: colors.primary,
+        selectionColor: colors.primary.withValues(alpha: .25),
+        selectionHandleColor: colors.primary,
+      ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: colors.surfaceContainer,
         modalBackgroundColor: colors.surfaceContainer,
         showDragHandle: true,
+        dragHandleColor: colors.onSurfaceVariant.withValues(alpha: .5),
+        dragHandleSize: const Size(36, 4),
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       ),
@@ -232,6 +266,7 @@ abstract final class AppTheme {
             textTheme.bodyMedium?.copyWith(color: colors.onSurface),
         actionTextColor: colors.primary,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(
         color: colors.primary,

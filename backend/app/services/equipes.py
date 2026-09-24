@@ -25,6 +25,7 @@ from app.schemas.equipe import (
     SolicitacaoEquipeResposta,
 )
 from app.schemas.usuario import UsuarioResumo
+from app.services.bloqueios import existe_bloqueio
 from app.services.notificacoes import criar_notificacao
 
 
@@ -103,8 +104,11 @@ def atualizar_equipe(
     db.commit()
 
 
-def obter_equipe(db: Session, equipe_id: UUID) -> Equipe:
-    equipe = db.get(Equipe, equipe_id)
+def obter_equipe(db: Session, equipe_id: UUID, *, bloquear: bool = False) -> Equipe:
+    query = select(Equipe).where(Equipe.id == equipe_id)
+    if bloquear:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    equipe = db.scalar(query)
     if equipe is None:
         raise EquipeNaoEncontrada("Equipe nao encontrada.")
     return equipe
@@ -244,11 +248,19 @@ def detalhar_equipe(
                 usuario=UsuarioResumo.model_validate(membro),
                 status=solicitacao.status,
                 criada_em=solicitacao.criada_em,
+                bloqueio_para_aprovacao=(
+                    existe_bloqueio(db, membro.id, equipe.dono_id)
+                    or existe_bloqueio(db, membro.id, usuario_id)
+                ),
             )
             for solicitacao, membro in linhas_pendentes
         ]
 
+    minha_equipe = _equipe_do_usuario(db, usuario_id)
     return EquipeDetalhe(
+        minha_equipe_id=minha_equipe.id if minha_equipe else None,
+        minha_equipe_nome=minha_equipe.nome if minha_equipe else None,
+        bloqueio_dono=existe_bloqueio(db, usuario_id, equipe.dono_id),
         **resumo.model_dump(),
         dono_id=equipe.dono_id,
         membros=[
@@ -268,6 +280,8 @@ def solicitar_entrada(
     db: Session, equipe_id: UUID, usuario: Usuario
 ) -> SolicitacaoEquipe:
     equipe = obter_equipe(db, equipe_id)
+    if existe_bloqueio(db, usuario.id, equipe.dono_id):
+        raise AcaoNaoPermitida("Não é possível pedir entrada nesta equipe.")
     if db.get(MembroEquipe, (equipe_id, usuario.id)) is not None:
         raise EstadoInvalido("Você já faz parte desta equipe.")
     _exigir_sem_equipe(db, usuario.id)
@@ -317,6 +331,10 @@ def decidir_solicitacao(
     if solicitacao.status != "pendente":
         raise EstadoInvalido("Esta solicitacao ja foi analisada.")
     if decisao == "aprovar":
+        if existe_bloqueio(db, solicitacao.usuario_id, equipe.dono_id) or existe_bloqueio(
+            db, solicitacao.usuario_id, gestor.id
+        ):
+            raise AcaoNaoPermitida("Não é possível aprovar este pedido enquanto houver bloqueio.")
         if db.get(MembroEquipe, (equipe_id, solicitacao.usuario_id)) is None:
             _exigir_sem_equipe(db, solicitacao.usuario_id)
             db.add(
@@ -369,6 +387,10 @@ def convidar_usuario(
     convidado = db.get(Usuario, usuario_id)
     if convidado is None:
         raise EquipeNaoEncontrada("Usuário não encontrado.")
+    if existe_bloqueio(db, gestor.id, usuario_id) or existe_bloqueio(
+        db, equipe.dono_id, usuario_id
+    ):
+        raise AcaoNaoPermitida("Não é possível convidar este perfil.")
     if db.get(MembroEquipe, (equipe_id, usuario_id)) is not None:
         raise EstadoInvalido("Este usuário já faz parte da equipe.")
     _exigir_sem_equipe(db, usuario_id)
@@ -432,6 +454,10 @@ def decidir_convite(
     if convite.status != "pendente":
         raise EstadoInvalido("Este convite já foi respondido.")
     if decisao == "aceitar":
+        if existe_bloqueio(db, usuario.id, convite.convidado_por) or existe_bloqueio(
+            db, usuario.id, equipe.dono_id
+        ):
+            raise AcaoNaoPermitida("Não é possível aceitar este convite enquanto houver bloqueio.")
         if db.get(MembroEquipe, (equipe_id, usuario.id)) is None:
             _exigir_sem_equipe(db, usuario.id)
             db.add(
@@ -472,7 +498,7 @@ def alterar_papel_membro(
     papel: str,
     gestor: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != gestor.id:
         raise AcaoNaoPermitida("Apenas o dono pode alterar cargos.")
     membro = db.get(MembroEquipe, (equipe_id, membro_id))
@@ -501,7 +527,7 @@ def transferir_lideranca(
     novo_dono_id: UUID,
     dono_atual: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != dono_atual.id:
         raise AcaoNaoPermitida("Apenas o dono pode transferir a liderança.")
     if novo_dono_id == dono_atual.id:
@@ -533,7 +559,7 @@ def encerrar_equipe(
     equipe_id: UUID,
     dono: Usuario,
 ) -> tuple[str | None, str | None]:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     if equipe.dono_id != dono.id:
         raise AcaoNaoPermitida("Apenas o dono pode encerrar a equipe.")
     urls_imagens = (equipe.avatar_url, equipe.capa_url)
@@ -548,7 +574,7 @@ def remover_membro(
     membro_id: UUID,
     usuario: Usuario,
 ) -> None:
-    equipe = obter_equipe(db, equipe_id)
+    equipe = obter_equipe(db, equipe_id, bloquear=True)
     membro = db.get(MembroEquipe, (equipe_id, membro_id))
     if membro is None:
         raise EquipeNaoEncontrada("Integrante não encontrado.")

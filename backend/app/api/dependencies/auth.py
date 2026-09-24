@@ -6,7 +6,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.security import TokenInvalido, decodificar_access_token
+from app.core.security import TokenInvalido, decodificar_sessao_access
 from app.models.usuario import Usuario
 
 
@@ -28,7 +28,8 @@ def obter_usuario_atual(
         )
 
     try:
-        usuario_id = UUID(decodificar_access_token(credentials.credentials))
+        subject, versao = decodificar_sessao_access(credentials.credentials)
+        usuario_id = UUID(subject)
     except (TokenInvalido, ValueError) as error:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -38,7 +39,7 @@ def obter_usuario_atual(
 
     usuario = db.get(Usuario, usuario_id)
 
-    if usuario is None or not usuario.ativo:
+    if usuario is None or not usuario.ativo or usuario.versao_auth != versao:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Usuario indisponivel.",

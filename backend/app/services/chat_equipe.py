@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 from datetime import datetime, timezone
 from uuid import UUID
@@ -29,7 +30,7 @@ def _ler_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         data = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
         return datetime.fromisoformat(data["criada_em"]), UUID(data["id"])
-    except (ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+    except (ValueError, KeyError, TypeError, binascii.Error) as error:
         raise ValueError("Cursor de paginacao invalido.") from error
 
 

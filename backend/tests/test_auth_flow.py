@@ -128,6 +128,10 @@ def test_alterar_senha_renova_sessao_e_revoga_as_anteriores(
     assert nova_sessao["refresh_token"] != sessao_inicial["refresh_token"]
 
     for sessao in (sessao_inicial, outra_sessao.json()):
+        assert client.get(
+            "/api/v1/auth/me",
+            headers={"Authorization": f"Bearer {sessao['access_token']}"},
+        ).status_code == 401
         resposta = client.post(
             "/api/v1/auth/refresh",
             json={"refresh_token": sessao["refresh_token"]},
@@ -139,6 +143,10 @@ def test_alterar_senha_renova_sessao_e_revoga_as_anteriores(
         json={"refresh_token": nova_sessao["refresh_token"]},
     )
     assert refresh_atual.status_code == 200
+    assert client.get(
+        "/api/v1/auth/me",
+        headers={"Authorization": f"Bearer {nova_sessao['access_token']}"},
+    ).status_code == 200
 
     login_antigo = client.post(
         "/api/v1/auth/login",

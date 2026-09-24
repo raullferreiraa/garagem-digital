@@ -145,6 +145,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         messagesRepository: widget.messagesRepository,
         onConversationChanged: widget.onConversationChanged,
         isMyTeamHome: true,
+        refreshRevision: widget.refreshRevision,
         onExploreTeams: () => setState(() => _exploringDirectory = true),
         unreadChatCount: widget.unreadTeamMessages,
         onTeamChatChanged: widget.onTeamChatChanged,

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -41,6 +42,8 @@ final class _AuthAdapter implements HttpClientAdapter {
   int refreshRequests = 0;
   int refreshStatus = 200;
   int protectedRequests = 0;
+  Completer<void>? refreshGate;
+  final refreshStarted = Completer<void>();
 
   @override
   Future<ResponseBody> fetch(
@@ -51,6 +54,8 @@ final class _AuthAdapter implements HttpClientAdapter {
     final path = options.uri.path;
     if (path.endsWith('/auth/refresh')) {
       refreshRequests++;
+      if (!refreshStarted.isCompleted) refreshStarted.complete();
+      await refreshGate?.future;
       if (refreshStatus != 200)
         return _json(refreshStatus, {'detail': 'Falha'});
       return _json(200, {
@@ -102,6 +107,74 @@ ApiClient _client(_MemoryTokens tokens, _AuthAdapter adapter) {
 }
 
 void main() {
+  test(
+      'erros estruturados de validação não exibem mensagens técnicas em inglês',
+      () {
+    final request = RequestOptions(path: '/carros');
+    DioException error(String type, String field) => DioException(
+          requestOptions: request,
+          response: Response(requestOptions: request, statusCode: 422, data: {
+            'detail': [
+              {
+                'loc': ['body', field],
+                'type': type,
+                'msg': 'String should have at least 1 character'
+              }
+            ],
+          }),
+        );
+    expect(apiErrorMessage(error('string_too_short', 'modelo')),
+        'Informe o modelo do projeto.');
+    expect(apiErrorMessage(error('string_too_short', 'nome')),
+        'Confira os campos informados e tente novamente.');
+  });
+  test('sair com API indisponível encerra a sessão local', () async {
+    final tokens = _MemoryTokens()
+      ..accessToken = 'access-antigo'
+      ..refreshToken = 'refresh-antigo';
+    final session = SessionController(
+      repository: AuthRepository(_client(tokens, _AuthAdapter()), tokens),
+    )..status = SessionStatus.authenticated;
+    addTearDown(session.dispose);
+    await session.logout();
+    expect(session.status, SessionStatus.signedOut);
+    expect(session.user, isNull);
+    expect(tokens.refreshToken, isNull);
+  });
+
+  for (final status in [200, 401]) {
+    test('refresh atrasado ($status) não altera uma nova sessão', () async {
+      final tokens = _MemoryTokens()
+        ..accessToken = 'access-antigo'
+        ..refreshToken = 'refresh-antigo';
+      final adapter = _AuthAdapter()
+        ..refreshStatus = status
+        ..refreshGate = Completer<void>();
+      final client = _client(tokens, adapter);
+      final failed = expectLater(
+          client.dio.get<Object?>('/protegido'), throwsA(isA<DioException>()));
+      await adapter.refreshStarted.future;
+      await tokens.write(
+          accessToken: 'outra-conta', refreshToken: 'outra-sessao');
+      adapter.refreshGate!.complete();
+      await failed;
+      expect(tokens.accessToken, 'outra-conta');
+      expect(tokens.refreshToken, 'outra-sessao');
+    });
+  }
+
+  test('upload pode ser repetido depois de renovar o token', () async {
+    final tokens = _MemoryTokens()
+      ..accessToken = 'access-antigo'
+      ..refreshToken = 'refresh-antigo';
+    final client = _client(tokens, _AuthAdapter());
+    final response = await client.dio.post<Object?>('/protegido',
+        data: FormData.fromMap({
+          'arquivo': MultipartFile.fromBytes([1, 2, 3], filename: 'foto.jpg'),
+        }));
+    expect(response.statusCode, 200);
+  });
+
   test(
       'restaurar sessão com renovação indisponível permite retry sem apagar tokens',
       () async {

@@ -25,6 +25,7 @@ final class GarageEvent {
       this.myPresence,
       this.myTeamId,
       this.myTeamName,
+      this.myTeamMemberCount = 0,
       this.myTeamRole,
       this.myTeamParticipation});
 
@@ -53,6 +54,7 @@ final class GarageEvent {
         myPresence: json['minha_presenca'] as String?,
         myTeamId: json['minha_equipe_id'] as String?,
         myTeamName: json['minha_equipe_nome'] as String?,
+        myTeamMemberCount: json['minha_equipe_total_integrantes'] as int? ?? 0,
         myTeamRole: json['minha_equipe_papel'] as String?,
         myTeamParticipation: json['minha_equipe_participacao'] as String?,
         canManage: json['posso_gerenciar']! as bool,
@@ -80,6 +82,7 @@ final class GarageEvent {
   final DateTime? startsAt;
   final DateTime? endsAt;
   final int confirmedCount, teamCount, followersCount;
+  final int myTeamMemberCount;
   final bool canManage, following;
   final String? coverUrl;
   final List<EventEdition> editions;

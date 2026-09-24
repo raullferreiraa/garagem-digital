@@ -13,6 +13,7 @@ import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
+import 'package:garagem_mobile/features/profile/blocked_users_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/security_screen.dart';
@@ -334,6 +335,20 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   subtitle: const Text('Proteja o acesso à sua garagem'),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: _openSecurity,
+                ),
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  leading: const Icon(Icons.block_outlined),
+                  title: const Text('Perfis bloqueados'),
+                  subtitle: const Text('Gerencie quem você bloqueou'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => Navigator.of(context).push<void>(
+                    MaterialPageRoute(
+                      builder: (_) => BlockedUsersScreen(
+                        repository: widget.usersRepository,
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 OutlinedButton.icon(

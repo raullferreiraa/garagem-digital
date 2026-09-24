@@ -169,9 +169,10 @@ def test_cursor_de_mensagem_invalido(client: TestClient) -> None:
         json={"usuario_id": usuario_id(usuario_b)},
     ).json()
 
-    resposta = client.get(
-        f"/api/v1/conversas/{conversa['id']}/mensagens",
-        headers=auth_header(usuario_a),
-        params={"cursor": "cursor-invalido"},
-    )
-    assert resposta.status_code == 422
+    for cursor in ("cursor-invalido", "a"):
+        resposta = client.get(
+            f"/api/v1/conversas/{conversa['id']}/mensagens",
+            headers=auth_header(usuario_a),
+            params={"cursor": cursor},
+        )
+        assert resposta.status_code == 422

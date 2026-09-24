@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
@@ -45,7 +47,7 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _chooseAvatar() async {
-    if (_updatingAvatar) return;
+    if (_updatingAvatar || _saving) return;
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
       showDragHandle: true,
@@ -91,31 +93,30 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
       ),
     );
     if (source == null || !mounted) return;
-
-    final selected = await ImagePicker().pickImage(
-      source: source,
-      imageQuality: 95,
-      maxWidth: 4096,
-      maxHeight: 4096,
-    );
-    if (selected == null || !mounted) return;
-    final selectedBytes = await selected.readAsBytes();
-    if (!mounted) return;
-
-    final cropped = await Navigator.of(context).push<Uint8List>(
-      MaterialPageRoute(
-        builder: (_) => PhotoCropScreen(
-          image: selectedBytes,
-          aspectRatio: 1,
-          title: 'Enquadrar perfil',
-          instructions: 'Centralize seu rosto e ajuste o enquadramento.',
-        ),
-      ),
-    );
-    if (cropped == null || !mounted) return;
-
     setState(() => _updatingAvatar = true);
     try {
+      final selected = await ImagePicker().pickImage(
+        source: source,
+        imageQuality: 95,
+        maxWidth: 4096,
+        maxHeight: 4096,
+      );
+      if (selected == null || !mounted) return;
+      final selectedBytes = await selected.readAsBytes();
+      if (!mounted) return;
+
+      final cropped = await Navigator.of(context).push<Uint8List>(
+        MaterialPageRoute(
+          builder: (_) => PhotoCropScreen(
+            image: selectedBytes,
+            aspectRatio: 1,
+            title: 'Enquadrar perfil',
+            instructions: 'Centralize seu rosto e ajuste o enquadramento.',
+          ),
+        ),
+      );
+      if (cropped == null || !mounted) return;
+
       await widget.session.uploadAvatar(
         bytes: cropped,
         fileName: 'avatar.jpg',
@@ -137,6 +138,23 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _removeAvatar() async {
+    if (_saving || _updatingAvatar) return;
+    final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+              title: const Text('Remover foto de perfil?'),
+              content: const Text(
+                  'Seu perfil passará a mostrar sua inicial. Você pode adicionar outra foto depois.'),
+              actions: [
+                TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Manter foto')),
+                FilledButton(
+                    onPressed: () => Navigator.pop(context, true),
+                    child: const Text('Remover foto')),
+              ],
+            ));
+    if (!mounted || confirmed != true) return;
     setState(() => _updatingAvatar = true);
     try {
       await widget.session.removeAvatar();
@@ -203,7 +221,9 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+    if (_saving || _updatingAvatar) return;
+    FocusScope.of(context).unfocus();
+    if (!validateAndReveal(_formKey)) return;
     setState(() => _saving = true);
     try {
       await widget.session.updateProfile(
@@ -224,96 +244,101 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Editar perfil')),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            children: [
-              Text(
-                'Sua identidade na garagem',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Essas informações aparecem no seu perfil e ajudam outros entusiastas a conhecer você.',
-                style: Theme.of(context).textTheme.bodyLarge,
-              ),
-              const SizedBox(height: 22),
-              _avatarEditor(),
-              const SizedBox(height: 22),
-              TextFormField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                maxLength: 100,
-                decoration: const InputDecoration(
-                  labelText: 'Nome',
-                  prefixIcon: Icon(Icons.person_outline),
-                ),
-                validator: (value) {
-                  if ((value ?? '').trim().length < 2) {
-                    return 'Informe um nome com pelo menos 2 caracteres.';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _bioController,
-                textCapitalization: TextCapitalization.sentences,
-                maxLength: 280,
-                minLines: 3,
-                maxLines: 5,
-                decoration: const InputDecoration(
-                  labelText: 'Sobre você',
-                  hintText: 'Conte sua relação com carros e projetos.',
-                  alignLabelWithHint: true,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return FormSaveGuard(
+        saving: _saving || _updatingAvatar,
+        child: Scaffold(
+          appBar: AppBar(title: const Text('Editar perfil')),
+          body: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: FormScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
                 children: [
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      controller: _cityController,
-                      textCapitalization: TextCapitalization.words,
-                      maxLength: 120,
-                      decoration: const InputDecoration(
-                        labelText: 'Cidade',
-                        prefixIcon: Icon(Icons.location_city_outlined),
-                      ),
+                  Text(
+                    'Sua identidade na garagem',
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Essas informações aparecem no seu perfil e ajudam outros entusiastas a conhecer você.',
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 22),
+                  _avatarEditor(),
+                  const SizedBox(height: 22),
+                  TextFormField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    maxLength: 100,
+                    decoration: const InputDecoration(
+                      labelText: 'Nome',
+                      prefixIcon: Icon(Icons.person_outline),
+                    ),
+                    validator: (value) {
+                      if ((value ?? '').trim().length < 2) {
+                        return 'Informe um nome com pelo menos 2 caracteres.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _bioController,
+                    textCapitalization: TextCapitalization.sentences,
+                    maxLength: 280,
+                    minLines: 3,
+                    maxLines: 5,
+                    decoration: const InputDecoration(
+                      labelText: 'Sobre você',
+                      hintText: 'Conte sua relação com carros e projetos.',
+                      alignLabelWithHint: true,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stateController,
-                      textCapitalization: TextCapitalization.characters,
-                      maxLength: 120,
-                      decoration: const InputDecoration(labelText: 'Estado'),
-                    ),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: TextFormField(
+                          controller: _cityController,
+                          textCapitalization: TextCapitalization.words,
+                          maxLength: 120,
+                          decoration: const InputDecoration(
+                            labelText: 'Cidade',
+                            prefixIcon: Icon(Icons.location_city_outlined),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _stateController,
+                          textCapitalization: TextCapitalization.characters,
+                          maxLength: 120,
+                          decoration:
+                              const InputDecoration(labelText: 'Estado'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: _saving ? null : _save,
+                    icon: _saving
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.check),
+                    label: Text(_saving ? 'Salvando...' : 'Salvar alterações'),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _saving ? null : _save,
-                icon: _saving
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.check),
-                label: Text(_saving ? 'Salvando...' : 'Salvar alterações'),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 }

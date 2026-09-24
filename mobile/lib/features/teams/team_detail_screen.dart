@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -18,7 +19,7 @@ import 'package:garagem_mobile/features/teams/team_form_screen.dart';
 import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
-enum _TeamImageAction { avatar, cover, removeAvatar, removeCover }
+enum _TeamImageAction { details, avatar, cover, removeAvatar, removeCover }
 
 enum _OwnerAction { transferLeadership, endTeam }
 
@@ -37,6 +38,7 @@ final class TeamDetailScreen extends StatefulWidget {
     this.onMembershipChanged,
     this.unreadChatCount = 0,
     this.onTeamChatChanged,
+    this.refreshRevision = 0,
     super.key,
   });
 
@@ -53,6 +55,7 @@ final class TeamDetailScreen extends StatefulWidget {
   final VoidCallback? onMembershipChanged;
   final int unreadChatCount;
   final VoidCallback? onTeamChatChanged;
+  final int refreshRevision;
 
   @override
   State<TeamDetailScreen> createState() => _TeamDetailScreenState();
@@ -62,6 +65,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   late Future<TeamDetail> _team;
   TeamDetail? _currentTeam;
   bool _acting = false;
+  int _reloadRequest = 0;
 
   @override
   void initState() {
@@ -69,9 +73,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     _team = widget.repository.detail(widget.teamId);
   }
 
+  @override
+  void didUpdateWidget(covariant TeamDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.teamId != oldWidget.teamId) {
+      _reloadRequest++;
+      _currentTeam = null;
+      _team = widget.repository.detail(widget.teamId);
+    } else if (widget.refreshRevision != oldWidget.refreshRevision) {
+      unawaited(_refreshSilently());
+    }
+  }
+
+  Future<void> _refreshSilently() async {
+    try {
+      await _reload();
+    } catch (_) {
+      // Mantém o detalhe anterior; o usuário ainda pode atualizar manualmente.
+    }
+  }
+
   Future<void> _reload() async {
+    final request = ++_reloadRequest;
     final updated = await widget.repository.detail(widget.teamId);
-    if (!mounted) return;
+    if (!mounted || request != _reloadRequest) return;
     setState(() => _currentTeam = updated);
   }
 
@@ -80,6 +105,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     try {
       await action();
     } catch (error) {
+      await _refreshSilently();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
@@ -121,10 +147,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(
-        child: Column(
+        child: SingleChildScrollView(
+            child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const ListTile(title: Text('Imagens da equipe')),
+            const ListTile(title: Text('Editar equipe')),
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Editar dados da equipe'),
+              onTap: () => Navigator.of(context).pop(_TeamImageAction.details),
+            ),
             ListTile(
               leading: const Icon(Icons.account_circle_outlined),
               title: const Text('Alterar foto da equipe'),
@@ -151,11 +183,14 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               ),
             const SizedBox(height: 8),
           ],
-        ),
+        )),
       ),
     );
     if (!mounted || action == null) return;
     switch (action) {
+      case _TeamImageAction.details:
+        await _editTeam(team);
+        break;
       case _TeamImageAction.avatar:
       case _TeamImageAction.cover:
         final source = await showModalBottomSheet<ImageSource>(
@@ -297,6 +332,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     try {
       await widget.repository.decideInvite(team.id, accept: accept);
     } catch (error) {
+      await _refreshSilently();
       if (!mounted) return;
       setState(() => _acting = false);
       ScaffoldMessenger.of(context).showSnackBar(
@@ -347,6 +383,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       visibility: team.visibility,
       memberCount: team.memberCount > 0 ? team.memberCount - 1 : 0,
       ownerId: team.ownerId,
+      ownerBlocked: team.ownerBlocked,
       members: team.members
           .where((item) => item.userId != member.userId)
           .toList(growable: false),
@@ -692,27 +729,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   onPressed: widget.onExploreTeams,
                   icon: const Icon(Icons.travel_explore_rounded),
                 ),
-              if (team?.myRole != null)
-                IconButton(
-                  tooltip: 'Conversa da equipe',
-                  onPressed: () => _openTeamChat(team!),
-                  icon: Badge.count(
-                    count: widget.unreadChatCount,
-                    isLabelVisible: widget.unreadChatCount > 0,
-                    child: const Icon(Icons.forum_outlined),
-                  ),
-                ),
               if (team?.myRole == 'dono')
                 IconButton(
                   tooltip: 'Editar equipe',
-                  onPressed: _acting ? null : () => _editTeam(team!),
-                  icon: const Icon(Icons.edit_outlined),
-                ),
-              if (team?.myRole == 'dono')
-                IconButton(
-                  tooltip: 'Imagens da equipe',
                   onPressed: _acting ? null : () => _showImageOptions(team!),
-                  icon: const Icon(Icons.add_photo_alternate_outlined),
+                  icon: const Icon(Icons.edit_outlined),
                 ),
               if (team?.myRole == 'dono')
                 PopupMenuButton<_OwnerAction>(
@@ -774,7 +795,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       children: [
         GdReveal(child: _TeamHero(team: team)),
         const SizedBox(height: 16),
-        if (team.myRole == null && team.myInvite == 'pendente') ...[
+        if (team.myRole != null) ...[
+          FilledButton.icon(
+            onPressed: _acting ? null : () => _openTeamChat(team),
+            icon: Badge.count(
+              count: widget.unreadChatCount,
+              isLabelVisible: widget.unreadChatCount > 0,
+              child: const Icon(Icons.forum_outlined),
+            ),
+            label: Text(widget.unreadChatCount > 0
+                ? 'Conversa da equipe · ${widget.unreadChatCount} não lidas'
+                : 'Conversa da equipe'),
+          ),
+          const SizedBox(height: 16),
+        ],
+        if (team.belongsToAnotherTeam)
+          Card(
+            child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(
+                    'Você já está na equipe ${team.currentTeamName ?? "atual"}. Só é possível participar de uma equipe por vez.')),
+          ),
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
+            team.myInvite == 'pendente') ...[
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -794,6 +838,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             ),
           ),
           const SizedBox(height: 10),
+          if (team.ownerBlocked) ...[
+            const Text(
+              'Não é possível aceitar enquanto houver bloqueio com o dono da equipe.',
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -807,17 +857,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
-                  onPressed:
-                      _acting ? null : () => _respondInvite(team, accept: true),
+                  onPressed: _acting || team.ownerBlocked
+                      ? null
+                      : () => _respondInvite(team, accept: true),
                   child: const Text('Aceitar convite'),
                 ),
               ),
             ],
           ),
         ],
-        if (team.myRole == null &&
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
             team.myRequest != 'pendente' &&
-            team.myInvite != 'pendente')
+            team.myInvite != 'pendente' &&
+            !team.ownerBlocked)
           FilledButton.icon(
             onPressed: _acting
                 ? null
@@ -828,7 +881,20 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Pedir para entrar'),
           ),
-        if (team.myRole == null && team.myRequest == 'pendente')
+        if (!team.belongsToAnotherTeam &&
+            team.ownerBlocked &&
+            team.myRole == null &&
+            team.myRequest != 'pendente' &&
+            team.myInvite != 'pendente')
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'Não é possível pedir entrada enquanto houver bloqueio com o dono da equipe.',
+            ),
+          ),
+        if (!team.belongsToAnotherTeam &&
+            team.myRole == null &&
+            team.myRequest == 'pendente')
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
@@ -1098,14 +1164,14 @@ final class _TeamHero extends StatelessWidget {
                 child: _TeamStat(
               icon: Icons.people_outline,
               value: '${team.memberCount}',
-              label: 'integrantes',
+              label: team.memberCount == 1 ? 'integrante' : 'integrantes',
             )),
             const SizedBox(width: 10),
             Expanded(
                 child: _TeamStat(
               icon: Icons.directions_car_outlined,
               value: '${team.cars.length}',
-              label: 'projetos',
+              label: team.cars.length == 1 ? 'projeto' : 'projetos',
             )),
           ]),
         ),
@@ -1258,6 +1324,12 @@ final class _RequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          if (request.blockedForApproval) ...[
+            const Text(
+              'A aprovação ficará disponível quando não houver bloqueio entre os perfis.',
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -1269,7 +1341,8 @@ final class _RequestCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
-                  onPressed: acting ? null : onApprove,
+                  onPressed:
+                      acting || request.blockedForApproval ? null : onApprove,
                   child: const Text('Aprovar'),
                 ),
               ),

@@ -24,6 +24,7 @@ final class PhotoCropScreen extends StatefulWidget {
 class _PhotoCropScreenState extends State<PhotoCropScreen> {
   final _controller = CropController();
   bool _cropping = false;
+  bool _initialScalePending = true;
   String? _errorMessage;
 
   void _crop() {
@@ -60,9 +61,11 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
                 controller: _controller,
                 onCropped: _onCropped,
                 aspectRatio: widget.aspectRatio,
-                initialRectBuilder: InitialRectBuilder.withSizeAndRatio(
-                  size: 0.92,
-                  aspectRatio: widget.aspectRatio,
+                initialRectBuilder: InitialRectBuilder.withBuilder(
+                  (_, imageRect) {
+                    _initialScalePending = true;
+                    return initialPhotoCropRect(imageRect, widget.aspectRatio);
+                  },
                 ),
                 interactive: true,
                 fixCropRect: true,
@@ -71,7 +74,15 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
                 radius: 8,
                 filterQuality: FilterQuality.high,
                 progressIndicator: const CircularProgressIndicator(),
-                willUpdateScale: (scale) => scale <= 8,
+                willUpdateScale: (scale) {
+                  // The library auto-scales to cover the viewport after building
+                  // the initial rectangle. Keep the fitted image instead.
+                  if (_initialScalePending) {
+                    _initialScalePending = false;
+                    return false;
+                  }
+                  return scale >= 1 && scale <= 8;
+                },
               ),
             ),
             Padding(
@@ -114,4 +125,13 @@ class _PhotoCropScreenState extends State<PhotoCropScreen> {
       ),
     );
   }
+}
+
+/// Largest centered crop inside the fitted image: no additional initial zoom.
+Rect initialPhotoCropRect(Rect imageRect, double aspectRatio) {
+  final width = imageRect.width / imageRect.height > aspectRatio
+      ? imageRect.height * aspectRatio
+      : imageRect.width;
+  return Rect.fromCenter(
+      center: imageRect.center, width: width, height: width / aspectRatio);
 }

@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/events/event.dart';
@@ -25,6 +28,7 @@ class _EventFormScreenState extends State<EventFormScreen> {
   String _organizer = 'usuario';
   String _visibility = 'publico';
   bool _saving = false;
+  Uint8List? _photo;
   bool _scheduleNow = false;
 
   @override
@@ -64,7 +68,9 @@ class _EventFormScreenState extends State<EventFormScreen> {
   }
 
   Future<void> _save() async {
-    if (!_form.currentState!.validate()) return;
+    if (_saving) return;
+    FocusScope.of(context).unfocus();
+    if (!validateAndReveal(_form)) return;
     setState(() => _saving = true);
     try {
       final input = EventInput(
@@ -77,9 +83,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
         organizer: _organizer,
         visibility: _visibility,
       );
-      final event = widget.event == null
+      var event = widget.event == null
           ? await widget.repository.create(input)
           : await widget.repository.update(widget.event!.id, input);
+      if (_photo != null && mounted) {
+        final id = event.id;
+        event = await uploadFormPhoto(context, event,
+            () => widget.repository.uploadCover(id, _photo!, 'encontro.jpg'));
+      }
       if (mounted) Navigator.of(context).pop(event);
     } catch (error) {
       if (!mounted) return;
@@ -90,115 +101,130 @@ class _EventFormScreenState extends State<EventFormScreen> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
+  Widget build(BuildContext context) => FormSaveGuard(
+      saving: _saving,
+      child: Scaffold(
         appBar: AppBar(
             title: Text(
                 widget.event == null ? 'Criar encontro' : 'Editar encontro')),
         body: Form(
           key: _form,
-          child: ListView(padding: const EdgeInsets.all(20), children: [
-            Text('Crie um ponto de encontro permanente',
-                style: Theme.of(context).textTheme.headlineMedium),
-            const SizedBox(height: 8),
-            const Text(
-                'Conte o que reúne vocês. A comunidade continua viva entre uma edição e outra.'),
-            const SizedBox(height: 24),
-            TextFormField(
-              controller: _name,
-              maxLength: 140,
-              decoration:
-                  const InputDecoration(labelText: 'Nome do encontro *'),
-              validator: (value) => value == null || value.trim().length < 3
-                  ? 'Informe um nome com pelo menos 3 caracteres.'
-                  : null,
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-                controller: _description,
-                maxLength: 2000,
-                maxLines: 4,
-                decoration: const InputDecoration(labelText: 'Descrição')),
-            const SizedBox(height: 12),
-            if (widget.event == null)
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Agendar primeira edição'),
-                subtitle: const Text('Você também pode definir a data depois.'),
-                value: _scheduleNow,
-                onChanged: _saving
-                    ? null
-                    : (value) => setState(() => _scheduleNow = value),
-              ),
-            if (_scheduleNow) ...[
-              OutlinedButton.icon(
-                  onPressed: _pickDate,
-                  icon: const Icon(Icons.calendar_month_outlined),
-                  label: Text(_dateLabel(_startsAt))),
-              const SizedBox(height: 12),
-              TextFormField(
-                  controller: _address,
-                  decoration: const InputDecoration(
-                      labelText: 'Local público',
-                      hintText: 'Ex.: estacionamento, praça ou autódromo')),
-              const SizedBox(height: 12),
-            ],
-            Row(children: [
-              Expanded(
-                  child: TextFormField(
-                      controller: _city,
-                      decoration: const InputDecoration(labelText: 'Cidade'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: TextFormField(
-                      controller: _state,
-                      decoration: const InputDecoration(labelText: 'Estado'))),
-            ]),
-            if (widget.team != null && widget.event == null) ...[
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _organizer,
-                decoration: const InputDecoration(labelText: 'Organizar como'),
-                items: [
-                  const DropdownMenuItem(
-                      value: 'usuario', child: Text('Meu perfil')),
-                  DropdownMenuItem(
-                      value: 'equipe', child: Text(widget.team!.name))
+          child: FormScrollView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.all(20),
+              children: [
+                Text('Crie um ponto de encontro permanente',
+                    style: Theme.of(context).textTheme.headlineMedium),
+                const SizedBox(height: 8),
+                const Text(
+                    'Conte o que reúne vocês. A comunidade continua viva entre uma edição e outra.'),
+                const SizedBox(height: 24),
+                if (widget.event == null)
+                  FormPhoto(
+                      label: 'Capa do encontro',
+                      bytes: _photo,
+                      enabled: !_saving,
+                      onChanged: (value) => setState(() => _photo = value)),
+                TextFormField(
+                  controller: _name,
+                  maxLength: 140,
+                  decoration:
+                      const InputDecoration(labelText: 'Nome do encontro *'),
+                  validator: (value) => value == null || value.trim().length < 3
+                      ? 'Informe um nome com pelo menos 3 caracteres.'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                    controller: _description,
+                    maxLength: 2000,
+                    maxLines: 4,
+                    decoration: const InputDecoration(labelText: 'Descrição')),
+                const SizedBox(height: 12),
+                if (widget.event == null)
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Agendar primeira edição'),
+                    subtitle:
+                        const Text('Você também pode definir a data depois.'),
+                    value: _scheduleNow,
+                    onChanged: _saving
+                        ? null
+                        : (value) => setState(() => _scheduleNow = value),
+                  ),
+                if (_scheduleNow) ...[
+                  OutlinedButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.calendar_month_outlined),
+                      label: Text(_dateLabel(_startsAt))),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                      controller: _address,
+                      decoration: const InputDecoration(
+                          labelText: 'Local público',
+                          hintText: 'Ex.: estacionamento, praça ou autódromo')),
+                  const SizedBox(height: 12),
                 ],
-                onChanged: (value) => setState(() {
-                  _organizer = value!;
-                  if (value == 'usuario') _visibility = 'publico';
-                }),
-              ),
-            ],
-            if (_organizer == 'equipe') ...[
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Somente para a equipe'),
-                subtitle:
-                    const Text('O encontro não aparece para outras pessoas.'),
-                value: _visibility == 'somente_equipe',
-                onChanged: (value) => setState(
-                    () => _visibility = value ? 'somente_equipe' : 'publico'),
-              ),
-            ],
-            const SizedBox(height: 28),
-            FilledButton.icon(
-              onPressed: _saving ? null : _save,
-              icon: _saving
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.flag_outlined),
-              label: Text(_saving
-                  ? 'Salvando…'
-                  : widget.event == null
-                      ? 'Criar encontro'
-                      : 'Salvar alterações'),
-            ),
-          ]),
+                Row(children: [
+                  Expanded(
+                      child: TextFormField(
+                          controller: _city,
+                          decoration:
+                              const InputDecoration(labelText: 'Cidade'))),
+                  const SizedBox(width: 12),
+                  Expanded(
+                      child: TextFormField(
+                          controller: _state,
+                          decoration:
+                              const InputDecoration(labelText: 'Estado'))),
+                ]),
+                if (widget.team != null && widget.event == null) ...[
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _organizer,
+                    decoration:
+                        const InputDecoration(labelText: 'Organizar como'),
+                    items: [
+                      const DropdownMenuItem(
+                          value: 'usuario', child: Text('Meu perfil')),
+                      DropdownMenuItem(
+                          value: 'equipe', child: Text(widget.team!.name))
+                    ],
+                    onChanged: (value) => setState(() {
+                      _organizer = value!;
+                      if (value == 'usuario') _visibility = 'publico';
+                    }),
+                  ),
+                ],
+                if (_organizer == 'equipe') ...[
+                  const SizedBox(height: 12),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Somente para a equipe'),
+                    subtitle: const Text(
+                        'O encontro não aparece para outras pessoas.'),
+                    value: _visibility == 'somente_equipe',
+                    onChanged: (value) => setState(() =>
+                        _visibility = value ? 'somente_equipe' : 'publico'),
+                  ),
+                ],
+                const SizedBox(height: 28),
+                FilledButton.icon(
+                  onPressed: _saving ? null : _save,
+                  icon: _saving
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.flag_outlined),
+                  label: Text(_saving
+                      ? 'Salvando…'
+                      : widget.event == null
+                          ? 'Criar encontro'
+                          : 'Salvar alterações'),
+                ),
+              ]),
         ),
-      );
+      ));
 }
 
 String _dateLabel(DateTime value) {

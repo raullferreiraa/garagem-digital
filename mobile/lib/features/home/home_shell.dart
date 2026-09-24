@@ -8,6 +8,7 @@ import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
+import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
@@ -198,6 +199,19 @@ final class _HomeShellState extends State<HomeShell>
       _feedRevision++;
       _profileRevision++;
     });
+  }
+
+  Future<void> _createCar() async {
+    final created = await Navigator.of(context).push<Car>(
+      MaterialPageRoute(
+        builder: (_) => CarFormScreen(repository: widget.carsRepository),
+      ),
+    );
+    if (created == null || !mounted) return;
+    _refreshCars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Projeto adicionado à sua garagem.')),
+    );
   }
 
   Future<void> _openActivity() async {
@@ -409,6 +423,7 @@ final class _HomeShellState extends State<HomeShell>
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),
+        onCreateProject: _createCar,
       ),
       EventsScreen(
         refreshRevision: _eventsRevision,

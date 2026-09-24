@@ -9,6 +9,7 @@ final class PublicProfile {
     required this.followerCount,
     required this.followingCount,
     required this.followedByMe,
+    this.blockedByMe = false,
     this.avatarUrl,
     this.bio,
     this.city,
@@ -28,6 +29,7 @@ final class PublicProfile {
       followerCount: json['total_seguidores']! as int,
       followingCount: json['total_seguindo']! as int,
       followedByMe: json['seguido_por_mim']! as bool,
+      blockedByMe: json['bloqueado_por_mim'] as bool? ?? false,
     );
   }
 
@@ -42,6 +44,7 @@ final class PublicProfile {
   final int followerCount;
   final int followingCount;
   final bool followedByMe;
+  final bool blockedByMe;
 }
 
 final class SocialUser {

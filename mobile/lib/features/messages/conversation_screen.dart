@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -26,20 +27,27 @@ final class ConversationScreen extends StatefulWidget {
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-final class _ConversationScreenState extends State<ConversationScreen> {
+final class _ConversationScreenState extends State<ConversationScreen>
+    with WidgetsBindingObserver {
   final _composer = TextEditingController();
   final _scroll = ScrollController();
   List<DirectMessage>? _messages;
   String? _nextCursor;
   Object? _error;
+  bool _unavailable = false;
   bool _loadingOlder = false;
   bool _sending = false;
+  bool _refreshing = false;
+  bool _hasNewMessages = false;
   int _request = 0;
   Timer? _refreshTimer;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _scroll.addListener(_clearNewMessagesAtEnd);
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -49,10 +57,26 @@ final class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _composer.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      if (_messages == null) {
+        unawaited(_loadInitial());
+      } else {
+        unawaited(_refreshLatest());
+      }
+    }
   }
 
   Future<void> _loadInitial() async {
@@ -64,20 +88,41 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         _messages = page.items;
         _nextCursor = page.nextCursor;
         _error = null;
+        _unavailable = false;
+        _hasNewMessages = false;
       });
       await _markRead();
       _scrollToEnd();
     } catch (error) {
       if (!mounted || request != _request) return;
-      setState(() => _error = error);
+      setState(() {
+        _unavailable = _isUnavailable(error);
+        _error = _unavailable ? null : error;
+      });
     }
   }
 
   Future<void> _refreshLatest() async {
-    if (_messages == null || _sending) return;
+    if (_messages == null ||
+        _sending ||
+        _refreshing ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ModalRoute.of(context)?.isCurrent != true) return;
+    _refreshing = true;
     try {
       final page = await widget.repository.messages(widget.conversation.id);
       if (!mounted) return;
+      if (_unavailable) {
+        setState(() {
+          _messages = page.items;
+          _nextCursor = page.nextCursor;
+          _unavailable = false;
+          _hasNewMessages = false;
+        });
+        await _markRead();
+        _scrollToEnd();
+        return;
+      }
       final current = _messages!;
       final known = current.map((item) => item.id).toSet();
       final additions = page.items.where((item) => known.add(item.id)).toList();
@@ -87,18 +132,31 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       setState(() {
         _messages = [...current, ...additions]
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _hasNewMessages = !nearEnd;
       });
       await _markRead();
       if (nearEnd) _scrollToEnd();
-    } catch (_) {
-      // A atualização silenciosa tenta novamente no próximo ciclo.
+    } catch (error) {
+      if (mounted && !_unavailable && _isUnavailable(error)) {
+        setState(() {
+          _unavailable = true;
+          _hasNewMessages = false;
+        });
+        widget.onChanged();
+      }
+      // Falhas de rede continuam silenciosas; a próxima atualização tenta novamente.
+    } finally {
+      _refreshing = false;
     }
   }
 
   Future<void> _markRead() async {
+    if (!mounted ||
+        WidgetsBinding.instance.lifecycleState != AppLifecycleState.resumed ||
+        ModalRoute.of(context)?.isCurrent != true) return;
     try {
       await widget.repository.markRead(widget.conversation.id);
-      widget.onChanged();
+      if (mounted) widget.onChanged();
     } catch (_) {
       // A leitura será reconciliada na próxima atualização da conversa.
     }
@@ -132,6 +190,10 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       });
     } catch (error) {
       if (mounted) {
+        if (_isUnavailable(error)) {
+          setState(() => _unavailable = true);
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
@@ -143,7 +205,8 @@ final class _ConversationScreenState extends State<ConversationScreen> {
 
   Future<void> _send() async {
     final content = _composer.text.trim();
-    if (content.isEmpty || _sending) return;
+    if (content.isEmpty || _sending || _messages == null || _unavailable)
+      return;
     setState(() => _sending = true);
     try {
       final message = await widget.repository.send(
@@ -160,6 +223,11 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       _scrollToEnd();
     } catch (error) {
       if (mounted) {
+        if (_isUnavailable(error)) {
+          setState(() => _unavailable = true);
+          widget.onChanged();
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
@@ -170,6 +238,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   void _scrollToEnd() {
+    if (_hasNewMessages) setState(() => _hasNewMessages = false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
       _scroll.animateTo(
@@ -180,6 +249,14 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  void _clearNewMessagesAtEnd() {
+    if (_hasNewMessages &&
+        _scroll.hasClients &&
+        _scroll.position.maxScrollExtent - _scroll.offset < 120) {
+      setState(() => _hasNewMessages = false);
+    }
   }
 
   @override
@@ -218,13 +295,51 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         ),
       ),
       body: Column(children: [
-        Expanded(child: _body()),
+        Expanded(
+          child: Stack(children: [
+            Positioned.fill(child: _body()),
+            if (_hasNewMessages && !_unavailable)
+              Positioned(
+                bottom: 12,
+                right: 16,
+                child: FilledButton.tonalIcon(
+                  onPressed: _scrollToEnd,
+                  icon: const Icon(Icons.arrow_downward_rounded),
+                  label: const Text('Novas mensagens'),
+                ),
+              ),
+          ]),
+        ),
         _composerBar(),
       ]),
     );
   }
 
   Widget _body() {
+    if (_unavailable) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 36),
+              const SizedBox(height: 12),
+              const Text(
+                'Esta conversa não está disponível no momento.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: _messages == null ? _loadInitial : _refreshLatest,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (_messages == null && _error == null)
       return const GdSkeleton(compact: true);
     if (_messages == null) {
@@ -333,7 +448,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Flexible(
-              child: Text(
+              child: SelectableText(
                 message.content,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: mine ? colors.onPrimary : colors.onSurface,
@@ -344,9 +459,9 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             Text(
               '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    fontSize: 9,
+                    fontSize: 10,
                     color: mine
-                        ? colors.onPrimary.withValues(alpha: .65)
+                        ? colors.onPrimary.withValues(alpha: .8)
                         : colors.onSurfaceVariant,
                   ),
             ),
@@ -357,6 +472,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Widget _composerBar() {
+    if (_unavailable) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -371,15 +487,18 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             Expanded(
               child: TextField(
                 controller: _composer,
-                enabled: !_sending,
+                onChanged: (_) => setState(() {}),
+                enabled: !_sending && _messages != null,
                 minLines: 1,
                 maxLines: 5,
                 maxLength: 2000,
                 textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Mensagem',
-                  counterText: '',
-                  contentPadding: EdgeInsets.symmetric(
+                  counterText: _composer.text.characters.length >= 1800
+                      ? '${_composer.text.characters.length}/2000'
+                      : '',
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
@@ -390,7 +509,10 @@ final class _ConversationScreenState extends State<ConversationScreen> {
             const SizedBox(width: 8),
             IconButton.filled(
               tooltip: 'Enviar mensagem',
-              onPressed: _sending ? null : _send,
+              onPressed:
+                  _sending || _messages == null || _composer.text.trim().isEmpty
+                      ? null
+                      : _send,
               icon: _sending
                   ? const SizedBox.square(
                       dimension: 18,
@@ -411,4 +533,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         first.month == second.month &&
         first.day == second.day;
   }
+
+  bool _isUnavailable(Object error) =>
+      error is DioException && error.response?.statusCode == 404;
 }

@@ -1,3 +1,5 @@
+import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
@@ -211,9 +213,12 @@ class _CarFormScreenState extends State<CarFormScreen> {
         ..._selectedFuels.where((fuel) => !_fuelOptions.contains(fuel)),
       ];
 
+  Uint8List? _photo;
+
   Future<void> _submit() async {
+    if (_submitting) return;
     FocusScope.of(context).unfocus();
-    if (!_formKey.currentState!.validate()) return;
+    if (!validateAndReveal(_formKey)) return;
 
     setState(() {
       _submitting = true;
@@ -222,9 +227,17 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
     try {
       final input = _input();
-      final car = _editing
+      var car = _editing
           ? await widget.repository.update(widget.car!.id, input)
           : await widget.repository.create(input);
+      if (_photo != null && mounted) {
+        final id = car.id;
+        car = await uploadFormPhoto(
+            context,
+            car,
+            () => widget.repository
+                .uploadMainPhoto(id, bytes: _photo!, fileName: 'projeto.jpg'));
+      }
       if (mounted) Navigator.of(context).pop(car);
     } catch (error) {
       if (!mounted) return;
@@ -237,308 +250,328 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar:
-          AppBar(title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
-      body: SafeArea(
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-            children: [
-              GdSectionTitle(
-                eyebrow: 'Sua garagem / Identidade',
-                title: _editing ? 'Dados do projeto' : 'Comece pelo essencial',
-              ),
-              const SizedBox(height: 8),
-              Text(
-                _editing
-                    ? 'Mantenha a história e a ficha do carro atualizadas.'
-                    : 'Você poderá completar e atualizar o projeto a qualquer momento.',
-              ),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _modelController,
-                autofocus: !_editing,
-                textCapitalization: TextCapitalization.characters,
-                inputFormatters: const [_UpperCaseTextFormatter()],
-                decoration: const InputDecoration(
-                  labelText: 'Modelo *',
-                  hintText: 'Ex.: GOL CL',
-                  prefixIcon: Icon(Icons.directions_car_outlined),
-                ),
-                maxLength: 100,
-                validator: _validateModel,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return FormSaveGuard(
+        saving: _submitting,
+        child: Scaffold(
+          appBar: AppBar(
+              title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
+          body: SafeArea(
+            child: Form(
+              key: _formKey,
+              child: FormScrollView(
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _yearController,
-                      keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      decoration: const InputDecoration(labelText: 'Ano'),
-                      maxLength: 4,
-                      validator: _validateYear,
-                    ),
+                  GdSectionTitle(
+                    eyebrow: 'Sua garagem / Identidade',
+                    title:
+                        _editing ? 'Dados do projeto' : 'Comece pelo essencial',
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _colorController,
-                      textCapitalization: TextCapitalization.characters,
-                      inputFormatters: const [_UpperCaseTextFormatter()],
-                      decoration: const InputDecoration(labelText: 'Cor'),
-                      maxLength: 50,
-                    ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _editing
+                        ? 'Mantenha a história e a ficha do carro atualizadas.'
+                        : 'Você poderá completar e atualizar o projeto a qualquer momento.',
                   ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: _projectStatus,
-                decoration: const InputDecoration(
-                  labelText: 'Fase do projeto',
-                  prefixIcon: Icon(Icons.build_outlined),
-                ),
-                items: _statusOptions()
-                    .map(
-                      (status) => DropdownMenuItem(
-                        value: status,
-                        child: Text(status),
-                      ),
-                    )
-                    .toList(growable: false),
-                onChanged: _submitting
-                    ? null
-                    : (value) => setState(() => _projectStatus = value),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _historyController,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  labelText: 'História do carro',
-                  hintText: 'Como esse projeto começou?',
-                  alignLabelWithHint: true,
-                ),
-                minLines: 3,
-                maxLines: 6,
-                maxLength: 10000,
-              ),
-              const SizedBox(height: 8),
-              ExpansionTile(
-                tilePadding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainer,
-                collapsedBackgroundColor:
-                    Theme.of(context).colorScheme.surfaceContainer,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                collapsedShape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16)),
-                leading: Icon(Icons.tune_rounded,
-                    color: Theme.of(context).colorScheme.primary),
-                title: const Text('Ficha técnica'),
-                subtitle: const Text('Motor, câmbio, rodas e preparação'),
-                children: [
-                  _OptionalField(
-                    controller: _engineController,
-                    label: 'Motor',
+                  const SizedBox(height: 24),
+                  if (!_editing)
+                    FormPhoto(
+                        label: 'Foto do projeto',
+                        bytes: _photo,
+                        enabled: !_submitting,
+                        onChanged: (value) => setState(() => _photo = value)),
+                  TextFormField(
+                    controller: _modelController,
+                    autofocus: false,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: const [_UpperCaseTextFormatter()],
+                    decoration: const InputDecoration(
+                      labelText: 'Modelo *',
+                      hintText: 'Ex.: GOL CL',
+                      prefixIcon: Icon(Icons.directions_car_outlined),
+                    ),
                     maxLength: 100,
-                    uppercase: true,
+                    validator: _validateModel,
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _transmission ?? '',
-                      decoration: const InputDecoration(labelText: 'Câmbio'),
-                      items: [
-                        const DropdownMenuItem(
-                          value: '',
-                          child: Text('Não informar'),
+                  const SizedBox(height: 12),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          controller: _yearController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                          decoration: const InputDecoration(labelText: 'Ano'),
+                          maxLength: 4,
+                          validator: _validateYear,
                         ),
-                        ..._availableTransmissionOptions.map(
-                          (transmission) => DropdownMenuItem(
-                            value: transmission,
-                            child: Text(transmission),
-                          ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          controller: _colorController,
+                          textCapitalization: TextCapitalization.characters,
+                          inputFormatters: const [_UpperCaseTextFormatter()],
+                          decoration: const InputDecoration(labelText: 'Cor'),
+                          maxLength: 50,
                         ),
-                      ],
-                      onChanged: _submitting
-                          ? null
-                          : (value) => setState(
-                                () => _transmission =
-                                    value == null || value.isEmpty
-                                        ? null
-                                        : value,
-                              ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    initialValue: _projectStatus,
+                    decoration: const InputDecoration(
+                      labelText: 'Fase do projeto',
+                      prefixIcon: Icon(Icons.build_outlined),
                     ),
+                    items: _statusOptions()
+                        .map(
+                          (status) => DropdownMenuItem(
+                            value: status,
+                            child: Text(status),
+                          ),
+                        )
+                        .toList(growable: false),
+                    onChanged: _submitting
+                        ? null
+                        : (value) => setState(() => _projectStatus = value),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 18, bottom: 8),
-                    child: Align(
-                      alignment: Alignment.centerLeft,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Combustível',
-                            style: Theme.of(context).textTheme.titleSmall,
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Selecione uma ou mais opções.',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                          const SizedBox(height: 10),
-                          Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
+                  const SizedBox(height: 20),
+                  TextFormField(
+                    controller: _historyController,
+                    textCapitalization: TextCapitalization.sentences,
+                    decoration: const InputDecoration(
+                      labelText: 'História do carro',
+                      hintText: 'Como esse projeto começou?',
+                      alignLabelWithHint: true,
+                    ),
+                    minLines: 3,
+                    maxLines: 6,
+                    maxLength: 10000,
+                  ),
+                  const SizedBox(height: 8),
+                  ExpansionTile(
+                    tilePadding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainer,
+                    collapsedBackgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainer,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    collapsedShape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
+                    leading: Icon(Icons.tune_rounded,
+                        color: Theme.of(context).colorScheme.primary),
+                    title: const Text('Ficha técnica'),
+                    subtitle: const Text('Motor, câmbio, rodas e preparação'),
+                    children: [
+                      _OptionalField(
+                        controller: _engineController,
+                        label: 'Motor',
+                        maxLength: 100,
+                        uppercase: true,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _transmission ?? '',
+                          decoration:
+                              const InputDecoration(labelText: 'Câmbio'),
+                          items: [
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('Não informar'),
+                            ),
+                            ..._availableTransmissionOptions.map(
+                              (transmission) => DropdownMenuItem(
+                                value: transmission,
+                                child: Text(transmission),
+                              ),
+                            ),
+                          ],
+                          onChanged: _submitting
+                              ? null
+                              : (value) => setState(
+                                    () => _transmission =
+                                        value == null || value.isEmpty
+                                            ? null
+                                            : value,
+                                  ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 18, bottom: 8),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              for (final fuel in _availableFuelOptions)
-                                FilterChip(
-                                  label: Text(fuel),
-                                  selected: _selectedFuels.contains(fuel),
-                                  onSelected: _submitting
-                                      ? null
-                                      : (selected) {
-                                          setState(() {
-                                            if (selected) {
-                                              _selectedFuels.add(fuel);
-                                            } else {
-                                              _selectedFuels.remove(fuel);
-                                            }
-                                          });
-                                        },
-                                ),
+                              Text(
+                                'Combustível',
+                                style: Theme.of(context).textTheme.titleSmall,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Selecione uma ou mais opções.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              const SizedBox(height: 10),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final fuel in _availableFuelOptions)
+                                    FilterChip(
+                                      label: Text(fuel),
+                                      selected: _selectedFuels.contains(fuel),
+                                      onSelected: _submitting
+                                          ? null
+                                          : (selected) {
+                                              setState(() {
+                                                if (selected) {
+                                                  _selectedFuels.add(fuel);
+                                                } else {
+                                                  _selectedFuels.remove(fuel);
+                                                }
+                                              });
+                                            },
+                                    ),
+                                ],
+                              ),
                             ],
                           ),
+                        ),
+                      ),
+                      TextFormField(
+                        controller: _powerController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
                         ],
-                      ),
-                    ),
-                  ),
-                  TextFormField(
-                    controller: _powerController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(
-                      labelText: 'Potência estimada',
-                      hintText: 'Ex.: 180',
-                      suffixText: 'cv',
-                      helperText: 'Digite somente o número.',
-                    ),
-                    maxLength: 4,
-                    validator: _validatePower,
-                  ),
-                  _OptionalField(
-                    controller: _preparationController,
-                    label: 'Preparação',
-                    maxLength: 100,
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: DropdownButtonFormField<String>(
-                      initialValue: _suspension ?? '',
-                      decoration: const InputDecoration(
-                        labelText: 'Suspensão',
-                      ),
-                      items: [
-                        const DropdownMenuItem(
-                          value: '',
-                          child: Text('Não informar'),
+                        decoration: const InputDecoration(
+                          labelText: 'Potência estimada',
+                          hintText: 'Ex.: 180',
+                          suffixText: 'cv',
+                          helperText: 'Digite somente o número.',
                         ),
-                        ..._availableSuspensionOptions.map(
-                          (suspension) => DropdownMenuItem(
-                            value: suspension,
-                            child: Text(suspension),
+                        maxLength: 4,
+                        validator: _validatePower,
+                      ),
+                      _OptionalField(
+                        controller: _preparationController,
+                        label: 'Preparação',
+                        maxLength: 100,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 12),
+                        child: DropdownButtonFormField<String>(
+                          initialValue: _suspension ?? '',
+                          decoration: const InputDecoration(
+                            labelText: 'Suspensão',
                           ),
-                        ),
-                      ],
-                      onChanged: _submitting
-                          ? null
-                          : (value) => setState(
-                                () => _suspension =
-                                    value == null || value.isEmpty
-                                        ? null
-                                        : value,
+                          items: [
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('Não informar'),
+                            ),
+                            ..._availableSuspensionOptions.map(
+                              (suspension) => DropdownMenuItem(
+                                value: suspension,
+                                child: Text(suspension),
                               ),
-                    ),
+                            ),
+                          ],
+                          onChanged: _submitting
+                              ? null
+                              : (value) => setState(
+                                    () => _suspension =
+                                        value == null || value.isEmpty
+                                            ? null
+                                            : value,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _wheelSizeController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
+                        decoration: const InputDecoration(
+                          labelText: 'Aro da roda',
+                          helperText: 'Somente números, entre 1 e 40.',
+                        ),
+                        maxLength: 2,
+                        validator: _validateWheelSize,
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
                   TextFormField(
-                    controller: _wheelSizeController,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                    controller: _plateController,
+                    textCapitalization: TextCapitalization.characters,
                     decoration: const InputDecoration(
-                      labelText: 'Aro da roda',
-                      helperText: 'Somente números, entre 1 e 40.',
+                      labelText: 'Placa',
+                      hintText: 'Ex.: ABC1D23',
+                      helperText: 'Também aceita ABC1234 ou AB1234.',
+                      prefixIcon: Icon(Icons.badge_outlined),
                     ),
-                    maxLength: 2,
-                    validator: _validateWheelSize,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
+                      const _UpperCaseTextFormatter(),
+                      LengthLimitingTextInputFormatter(7),
+                    ],
+                    validator: _validatePlate,
+                  ),
+                  SwitchListTile.adaptive(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Mostrar placa publicamente'),
+                    subtitle: const Text(
+                      'Desativado por padrão para proteger sua privacidade.',
+                    ),
+                    value: _plateVisible,
+                    onChanged: _submitting
+                        ? null
+                        : (value) => setState(() => _plateVisible = value),
+                  ),
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      _errorMessage!,
+                      style:
+                          TextStyle(color: Theme.of(context).colorScheme.error),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: _submitting ? null : _submit,
+                    icon: _submitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(_editing ? Icons.save_outlined : Icons.add),
+                    label: Text(
+                      _submitting
+                          ? 'Salvando...'
+                          : _editing
+                              ? 'Salvar alterações'
+                              : 'Adicionar à garagem',
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _plateController,
-                textCapitalization: TextCapitalization.characters,
-                decoration: const InputDecoration(
-                  labelText: 'Placa',
-                  hintText: 'Ex.: ABC1D23',
-                  helperText: 'Também aceita ABC1234 ou AB1234.',
-                  prefixIcon: Icon(Icons.badge_outlined),
-                ),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
-                  const _UpperCaseTextFormatter(),
-                  LengthLimitingTextInputFormatter(7),
-                ],
-                validator: _validatePlate,
-              ),
-              SwitchListTile.adaptive(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Mostrar placa publicamente'),
-                subtitle: const Text(
-                  'Desativado por padrão para proteger sua privacidade.',
-                ),
-                value: _plateVisible,
-                onChanged: _submitting
-                    ? null
-                    : (value) => setState(() => _plateVisible = value),
-              ),
-              if (_errorMessage != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  _errorMessage!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ],
-              const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: _submitting ? null : _submit,
-                icon: _submitting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Icon(_editing ? Icons.save_outlined : Icons.add),
-                label: Text(
-                  _submitting
-                      ? 'Salvando...'
-                      : _editing
-                          ? 'Salvar alterações'
-                          : 'Adicionar à garagem',
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
-      ),
-    );
+        ));
   }
 
   List<String> _statusOptions() {

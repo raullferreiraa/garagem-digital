@@ -1,4 +1,5 @@
 import base64
+import binascii
 import json
 from datetime import datetime, timezone
 from uuid import UUID
@@ -8,6 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models.conversa import ConversaDireta, MensagemDireta
+from app.services.bloqueios import existe_bloqueio, ids_com_bloqueio
 from app.models.usuario import Usuario
 from app.schemas.conversa import ConversaResumo, MensagemResposta, PaginaMensagens
 from app.schemas.usuario import UsuarioResumo
@@ -54,6 +56,13 @@ def buscar_conversa(
     )
     if conversa is None or not _participa(conversa, usuario_id):
         return None
+    outro_id = (
+        conversa.usuario_b_id
+        if conversa.usuario_a_id == usuario_id
+        else conversa.usuario_a_id
+    )
+    if existe_bloqueio(db, usuario_id, outro_id):
+        return None
     return conversa
 
 
@@ -64,6 +73,8 @@ def criar_ou_obter_conversa(
 ) -> ConversaDireta | None:
     if usuario_id == outro_usuario_id:
         raise ValueError("Voce nao pode iniciar uma conversa consigo mesmo.")
+    if existe_bloqueio(db, usuario_id, outro_usuario_id):
+        return None
     outro_usuario = db.scalar(
         select(Usuario).where(
             Usuario.id == outro_usuario_id,
@@ -160,7 +171,11 @@ def listar_conversas(db: Session, usuario_id: UUID) -> list[ConversaResumo]:
             or_(
                 ConversaDireta.usuario_a_id == usuario_id,
                 ConversaDireta.usuario_b_id == usuario_id,
-            )
+            ),
+            case(
+                (ConversaDireta.usuario_a_id == usuario_id, ConversaDireta.usuario_b_id),
+                else_=ConversaDireta.usuario_a_id,
+            ).not_in(ids_com_bloqueio(db, usuario_id)),
         )
         .order_by(ConversaDireta.atualizada_em.desc(), ConversaDireta.id.desc())
     ).unique()
@@ -187,6 +202,10 @@ def total_conversas_nao_lidas(db: Session, usuario_id: UUID) -> int:
                     ConversaDireta.usuario_a_id == usuario_id,
                     ConversaDireta.usuario_b_id == usuario_id,
                 ),
+                case(
+                    (ConversaDireta.usuario_a_id == usuario_id, ConversaDireta.usuario_b_id),
+                    else_=ConversaDireta.usuario_a_id,
+                ).not_in(ids_com_bloqueio(db, usuario_id)),
                 MensagemDireta.remetente_id != usuario_id,
                 or_(
                     ultima_leitura.is_(None),
@@ -241,7 +260,7 @@ def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
         return datetime.fromisoformat(dados["criada_em"]), UUID(dados["id"])
-    except (KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+    except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorInvalido("Cursor de paginacao invalido.") from error
 
 

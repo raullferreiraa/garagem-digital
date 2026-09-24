@@ -73,7 +73,7 @@ def autenticar_usuario(db: Session, dados: CredenciaisLogin) -> Usuario:
                 func.lower(Usuario.email) == dados.identificador,
                 Usuario.username == dados.identificador,
             )
-        )
+        ).with_for_update()
     )
 
     if (
@@ -99,7 +99,7 @@ def _adicionar_sessao_refresh(db: Session, usuario: Usuario) -> str:
 
 
 def _montar_resposta(usuario: Usuario, refresh_token: str) -> TokenResposta:
-    access_token, expires_in = criar_access_token(usuario.id)
+    access_token, expires_in = criar_access_token(usuario.id, usuario.versao_auth)
     return TokenResposta(
         access_token=access_token,
         refresh_token=refresh_token,
@@ -110,9 +110,9 @@ def _montar_resposta(usuario: Usuario, refresh_token: str) -> TokenResposta:
 
 def emitir_tokens(db: Session, usuario: Usuario) -> TokenResposta:
     refresh_token = _adicionar_sessao_refresh(db, usuario)
+    resposta = _montar_resposta(usuario, refresh_token)
     db.commit()
-    db.refresh(usuario)
-    return _montar_resposta(usuario, refresh_token)
+    return resposta
 
 
 def alterar_senha(
@@ -121,6 +121,7 @@ def alterar_senha(
     senha_atual: str,
     nova_senha: str,
 ) -> TokenResposta:
+    db.refresh(usuario, with_for_update=True)
     if not verificar_senha(senha_atual, usuario.senha_hash):
         raise SenhaAtualIncorreta("A senha atual está incorreta.")
     if verificar_senha(nova_senha, usuario.senha_hash):
@@ -128,6 +129,7 @@ def alterar_senha(
 
     agora = datetime.now(timezone.utc)
     usuario.senha_hash = gerar_hash_senha(nova_senha)
+    usuario.versao_auth += 1
     db.execute(
         update(SessaoRefresh)
         .where(
@@ -137,13 +139,24 @@ def alterar_senha(
         .values(revogada_em=agora)
     )
     refresh_token = _adicionar_sessao_refresh(db, usuario)
+    resposta = _montar_resposta(usuario, refresh_token)
     db.commit()
-    db.refresh(usuario)
-    return _montar_resposta(usuario, refresh_token)
+    return resposta
 
 
 def rotacionar_refresh_token(db: Session, token: str) -> TokenResposta:
     agora = datetime.now(timezone.utc)
+    # Mesma ordem de bloqueios da troca de senha: usuário, depois sessões.
+    usuario_id = db.scalar(
+        select(SessaoRefresh.usuario_id).where(
+            SessaoRefresh.token_hash == hash_refresh_token(token)
+        )
+    )
+    if usuario_id is None:
+        raise RefreshTokenInvalido("Sessão expirada ou revogada.")
+    usuario = db.scalar(
+        select(Usuario).where(Usuario.id == usuario_id).with_for_update()
+    )
     sessao = db.scalar(
         select(SessaoRefresh)
         .where(SessaoRefresh.token_hash == hash_refresh_token(token))
@@ -157,15 +170,14 @@ def rotacionar_refresh_token(db: Session, token: str) -> TokenResposta:
     ):
         raise RefreshTokenInvalido("Sessao expirada ou revogada.")
 
-    usuario = db.get(Usuario, sessao.usuario_id)
     if usuario is None or not usuario.ativo:
         raise RefreshTokenInvalido("Usuario indisponivel.")
 
     sessao.revogada_em = agora
     novo_refresh_token = _adicionar_sessao_refresh(db, usuario)
+    resposta = _montar_resposta(usuario, novo_refresh_token)
     db.commit()
-    db.refresh(usuario)
-    return _montar_resposta(usuario, novo_refresh_token)
+    return resposta
 
 
 def revogar_refresh_token(db: Session, token: str) -> None:

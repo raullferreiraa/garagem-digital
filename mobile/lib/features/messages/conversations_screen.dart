@@ -39,6 +39,7 @@ final class ConversationsScreen extends StatefulWidget {
 }
 
 final class _ConversationsScreenState extends State<ConversationsScreen> {
+  final _search = TextEditingController();
   List<DirectConversation>? _items;
   Object? _error;
   bool _loading = true;
@@ -55,13 +56,17 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   void dispose() {
     _refreshTimer?.cancel();
+    _search.dispose();
     super.dispose();
   }
 
   @override
   void didUpdateWidget(covariant ConversationsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.refreshRevision != oldWidget.refreshRevision) _reload();
+    if (widget.refreshRevision != oldWidget.refreshRevision ||
+        widget.active && !oldWidget.active) {
+      _reload();
+    }
     if (widget.active != oldWidget.active) _configureRefreshTimer();
   }
 
@@ -112,7 +117,12 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Conversas')),
+      appBar: AppBar(title: const Text('Conversas'), actions: [
+        IconButton(
+            onPressed: widget.onDiscover,
+            tooltip: 'Encontrar pessoas',
+            icon: const Icon(Icons.person_search_outlined)),
+      ]),
       body: _body(),
     );
   }
@@ -123,45 +133,128 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: FilledButton.icon(
-            onPressed: _reload,
-            icon: const Icon(Icons.refresh_rounded),
-            label: Text(apiErrorMessage(_error!)),
-          ),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.cloud_off_outlined, size: 36),
+            const SizedBox(height: 12),
+            Text(apiErrorMessage(_error!), textAlign: TextAlign.center),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Tentar novamente')),
+          ]),
         ),
       );
     }
     final items = _items ?? const <DirectConversation>[];
+    final query =
+        _searchKey(_search.text.trim().replaceFirst(RegExp(r'^@'), ''));
+    final visibleItems = query.isEmpty
+        ? items
+        : items.where((conversation) {
+            final user = conversation.otherUser;
+            return _searchKey(user.name).contains(query) ||
+                _searchKey(user.username).contains(query);
+          }).toList();
+    final teamChat = widget.teamChat;
+    final visibleTeamChat = teamChat != null &&
+            (query.isEmpty || _searchKey(teamChat.teamName).contains(query))
+        ? teamChat
+        : null;
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
         children: [
-          const GdSectionTitle(
-            eyebrow: 'NA PISTA',
-            title: 'Conexões reais',
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Troque ideias, detalhes e histórias com outros apaixonados.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 24),
-          if (widget.teamChat != null) ...[
-            _teamChatTile(widget.teamChat!),
-            if (items.isNotEmpty) const SizedBox(height: 4),
+          if (items.isNotEmpty ||
+              teamChat != null ||
+              _search.text.isNotEmpty) ...[
+            TextField(
+              controller: _search,
+              onChanged: (_) => setState(() {}),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Buscar nas conversas',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _search.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpar busca',
+                        onPressed: () => setState(_search.clear),
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 22),
           ],
-          if (items.isEmpty && widget.teamChat == null)
+          if (_error != null) ...[
+            Text(
+                'Não foi possível atualizar as conversas. O conteúdo anterior foi mantido.',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+            Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton(
+                    onPressed: _reload, child: const Text('Tentar novamente'))),
+          ],
+          if (items.isEmpty && teamChat == null && query.isEmpty) ...[
+            const GdSectionTitle(
+              eyebrow: 'NA PISTA',
+              title: 'Conexões reais',
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Troque ideias, detalhes e histórias com outros apaixonados.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 24),
+          ] else ...[
+            Text('Suas conversas',
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 16),
+          ],
+          if (visibleTeamChat != null) ...[
+            _teamChatTile(visibleTeamChat),
+            if (visibleItems.isNotEmpty) const SizedBox(height: 4),
+          ],
+          if (query.isNotEmpty &&
+              visibleItems.isEmpty &&
+              visibleTeamChat == null)
+            _noSearchResults()
+          else if (items.isEmpty && teamChat == null)
             _empty()
           else
-            ...items.map(_conversationTile),
+            ...visibleItems.map(_conversationTile),
         ],
       ),
     );
   }
+
+  Widget _noSearchResults() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 36),
+        child: Column(children: [
+          Icon(Icons.search_off_rounded,
+              size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          const Text('Nenhuma conversa encontrada.'),
+          const SizedBox(height: 8),
+          TextButton(
+            onPressed: () => setState(_search.clear),
+            child: const Text('Limpar busca'),
+          ),
+        ]),
+      );
+
+  String _searchKey(String value) => value
+      .toLowerCase()
+      .replaceAll(RegExp('[áàâãä]'), 'a')
+      .replaceAll(RegExp('[éèêë]'), 'e')
+      .replaceAll(RegExp('[íìîï]'), 'i')
+      .replaceAll(RegExp('[óòôõö]'), 'o')
+      .replaceAll(RegExp('[úùûü]'), 'u')
+      .replaceAll('ç', 'c');
 
   Widget _teamChatTile(TeamChatSummary chat) {
     final colors = Theme.of(context).colorScheme;

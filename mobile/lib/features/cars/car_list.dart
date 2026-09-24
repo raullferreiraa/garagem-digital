@@ -105,7 +105,9 @@ class _CarListState extends State<CarList> {
 
   Future<void> _reload() async {
     final next = _load();
-    setState(() => _cars = next);
+    setState(() {
+      _cars = next;
+    });
     try {
       await next;
     } catch (_) {

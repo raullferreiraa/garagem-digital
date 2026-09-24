@@ -77,3 +77,46 @@ def test_feed_em_alta_prioriza_projetos_com_interacoes(
 def test_feed_rejeita_ordem_desconhecida(client: TestClient) -> None:
     response = client.get("/api/v1/carros?ordem=aleatoria")
     assert response.status_code == 422
+
+
+def test_feed_em_alta_pagina_sem_duplicar_ou_omitir_projetos(
+    client: TestClient,
+) -> None:
+    dono = cadastrar(client, "dono.paginacao")
+    visitante = cadastrar(client, "visitante.paginacao")
+    popular = criar_carro(client, dono, "Projeto Popular")
+    outros = [
+        criar_carro(client, dono, f"Projeto {numero}")
+        for numero in range(3)
+    ]
+    evolucao = client.post(
+        f"/api/v1/carros/{popular['id']}/evolucoes",
+        headers=auth(dono),
+        json={"titulo": "Evolução", "descricao": "Pronto para a pista."},
+    )
+    assert evolucao.status_code == 201
+    assert client.put(
+        f"/api/v1/carros/{popular['id']}/evolucoes/{evolucao.json()['id']}/curtida",
+        headers=auth(visitante),
+    ).status_code == 204
+
+    ids = []
+    cursor = None
+    for indice in range(4):
+        resposta = client.get(
+            "/api/v1/carros",
+            params={"ordem": "em_alta", "limite": 1, **({"cursor": cursor} if cursor else {})},
+        )
+        assert resposta.status_code == 200
+        pagina = resposta.json()
+        assert len(pagina["itens"]) == 1
+        ids.append(pagina["itens"][0]["id"])
+        cursor = pagina["proximo_cursor"]
+        assert (cursor is None) == (indice == 3)
+
+    assert ids[0] == popular["id"]
+    assert set(ids) == {popular["id"], *(carro["id"] for carro in outros)}
+    assert len(ids) == len(set(ids))
+    assert client.get(
+        "/api/v1/carros", params={"ordem": "em_alta", "cursor": "a"}
+    ).status_code == 400
