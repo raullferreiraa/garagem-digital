@@ -39,11 +39,39 @@ def _codificar_cursor(carro: Carro) -> str:
     return base64.urlsafe_b64encode(conteudo).decode("ascii").rstrip("=")
 
 
+def _codificar_cursor_em_alta(carro: Carro, pontuacao: int) -> str:
+    conteudo = json.dumps(
+        {
+            "criado_em": carro.criado_em.isoformat(),
+            "id": str(carro.id),
+            "pontuacao": pontuacao,
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(conteudo).decode("ascii").rstrip("=")
+
+
 def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
         return datetime.fromisoformat(dados["criado_em"]), UUID(dados["id"])
+    except (KeyError, TypeError, ValueError, binascii.Error) as error:
+        raise CursorInvalido("Cursor de paginacao invalido.") from error
+
+
+def _decodificar_cursor_em_alta(cursor: str) -> tuple[int, datetime, UUID]:
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        pontuacao = dados["pontuacao"]
+        if type(pontuacao) is not int or pontuacao < 0:
+            raise ValueError("Pontuacao invalida.")
+        return (
+            pontuacao,
+            datetime.fromisoformat(dados["criado_em"]),
+            UUID(dados["id"]),
+        )
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorInvalido("Cursor de paginacao invalido.") from error
 
@@ -151,6 +179,24 @@ def listar_feed(
 
     if ordem == "em_alta":
         pontuacao = total_curtidas + total_comentarios
+        if cursor:
+            if busca:
+                raise CursorInvalido("Cursor de paginacao invalido.")
+            pontuacao_cursor, criado_em, carro_id = _decodificar_cursor_em_alta(cursor)
+            consulta = consulta.where(
+                or_(
+                    pontuacao < pontuacao_cursor,
+                    and_(
+                        pontuacao == pontuacao_cursor,
+                        Carro.criado_em < criado_em,
+                    ),
+                    and_(
+                        pontuacao == pontuacao_cursor,
+                        Carro.criado_em == criado_em,
+                        Carro.id < carro_id,
+                    ),
+                )
+            )
         consulta = consulta.order_by(
             *([relevancia_modelo] if relevancia_modelo is not None else []),
             pontuacao.desc(),
@@ -173,7 +219,7 @@ def listar_feed(
             )
 
     linhas = list(db.execute(consulta.limit(limite + 1)))
-    tem_proxima = ordem == "recentes" and len(linhas) > limite
+    tem_proxima = len(linhas) > limite and (ordem == "recentes" or not busca)
     linhas = linhas[:limite]
     carros = [linha[0] for linha in linhas]
     itens = [
@@ -189,7 +235,16 @@ def listar_feed(
     return PaginaCarros(
         itens=itens,
         proximo_cursor=(
-            _codificar_cursor(carros[-1]) if tem_proxima and carros else None
+            (
+                _codificar_cursor_em_alta(
+                    carros[-1],
+                    int(linhas[-1][1] or 0) + int(linhas[-1][2] or 0),
+                )
+                if ordem == "em_alta"
+                else _codificar_cursor(carros[-1])
+            )
+            if tem_proxima and carros
+            else None
         ),
     )
 

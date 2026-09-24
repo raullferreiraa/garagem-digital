@@ -78,9 +78,10 @@ final class _ExploreScreenState extends State<ExploreScreen> {
             embedded: true,
             emptyMessage: 'Os primeiros projetos aparecerão aqui.',
             loader: () => widget.carsRepository.feed(order: _discoverOrder),
-            pageLoader: _discoverOrder == CarFeedOrder.recent
-                ? (cursor) => widget.carsRepository.feedPage(cursor: cursor)
-                : null,
+            pageLoader: (cursor) => widget.carsRepository.feedPage(
+              order: _discoverOrder,
+              cursor: cursor,
+            ),
             onCarTap: widget.onCarTap,
             onSearch: widget.onSearch,
           ),
