@@ -52,6 +52,48 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  testWidgets('caixa de entrada atualiza ao voltar para a aba de conversas',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    var fetches = 0;
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      fetches++;
+      handler.resolve(Response(
+        requestOptions: options,
+        data: fetches == 1 ? [_conversation()] : <Object?>[],
+      ));
+    }));
+    Widget app(bool active) => MaterialApp(
+          theme: AppTheme.dark,
+          home: ConversationsScreen(
+            active: active,
+            repository: MessagesRepository(api),
+            currentUserId: 'me',
+            refreshRevision: 0,
+            onUnreadChanged: () {},
+            onProfileTap: (_) {},
+            onDiscover: () {},
+            teamChat: null,
+            onTeamChatTap: () {},
+            onTeamChatChanged: () {},
+          ),
+        );
+    await tester.pumpWidget(app(false));
+    await tester.pumpAndSettle();
+    expect(find.text('Bia Garage'), findsOneWidget);
+    expect(fetches, 1);
+
+    await tester.pumpWidget(app(true));
+    await tester.pumpAndSettle();
+    expect(fetches, 2);
+    expect(find.text('Bia Garage'), findsNothing);
+    expect(find.text('Sua caixa de entrada está livre.'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets('chat aberto oculta histórico após bloqueio e recupera acesso',
       (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);

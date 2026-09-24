@@ -61,7 +61,10 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
   @override
   void didUpdateWidget(covariant ConversationsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.refreshRevision != oldWidget.refreshRevision) _reload();
+    if (widget.refreshRevision != oldWidget.refreshRevision ||
+        widget.active && !oldWidget.active) {
+      _reload();
+    }
     if (widget.active != oldWidget.active) _configureRefreshTimer();
   }
 
