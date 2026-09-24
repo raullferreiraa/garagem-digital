@@ -43,7 +43,8 @@ def test_chat_exige_membro_e_ordena_mensagens(client: TestClient) -> None:
 
     client.get(f"{base}/chat", headers=auth(membro), params={"cursor": pagina["proximo_cursor"]})
     assert client.get("/api/v1/equipes/meu-chat/resumo", headers=auth(membro)).json()["total_nao_lidas"] == 1
-    assert client.get(f"{base}/chat", headers=auth(membro), params={"cursor": "invalido"}).status_code == 422
+    for cursor in ("invalido", "a"):
+        assert client.get(f"{base}/chat", headers=auth(membro), params={"cursor": cursor}).status_code == 422
     assert client.get("/api/v1/equipes/meu-chat/resumo", headers=auth(membro)).json()["total_nao_lidas"] == 1
 
     client.get(f"{base}/chat", headers=auth(membro))

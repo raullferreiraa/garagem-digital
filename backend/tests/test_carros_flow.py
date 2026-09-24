@@ -230,8 +230,9 @@ def test_feed_paginado_e_garagens_publica_e_privada(client: TestClient) -> None:
     assert len(publica.json()) == 3
     assert len(privada.json()) == 3
 
-    cursor_invalido = client.get("/api/v1/carros?cursor=invalido")
-    assert cursor_invalido.status_code == 400
+    for cursor in ("invalido", "a"):
+        cursor_invalido = client.get("/api/v1/carros", params={"cursor": cursor})
+        assert cursor_invalido.status_code == 400
 
 
 def test_foto_principal_exige_dono_e_remove_metadados(
