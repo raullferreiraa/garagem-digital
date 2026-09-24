@@ -52,6 +52,79 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  testWidgets('busca local filtra pessoas e equipe sem perder a lista',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    final joao = _conversation();
+    joao['id'] = 'joao-conversation';
+    joao['outro_usuario'] = {
+      'id': 'joao',
+      'nome': 'João Silva',
+      'username': 'joao.silva',
+      'avatar_url': null,
+    };
+    final bia = _conversation();
+    bia['outro_usuario'] = {
+      'id': 'bia',
+      'nome': 'Bia Garage',
+      'username': 'bia.garage',
+      'avatar_url': null,
+    };
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [joao, bia]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: ConversationsScreen(
+        active: false,
+        repository: MessagesRepository(api),
+        currentUserId: 'me',
+        refreshRevision: 0,
+        onUnreadChanged: () {},
+        onProfileTap: (_) {},
+        onDiscover: () {},
+        teamChat: const TeamChatSummary(
+          teamId: 'team',
+          teamName: 'Clássicos do Sul',
+          unreadCount: 0,
+        ),
+        onTeamChatTap: () {},
+        onTeamChatChanged: () {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('João Silva'), findsOneWidget);
+    expect(find.text('Bia Garage'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'joao');
+    await tester.pumpAndSettle();
+    expect(find.text('João Silva'), findsOneWidget);
+    expect(find.text('Bia Garage'), findsNothing);
+    expect(find.text('Clássicos do Sul'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), '@bia.garage');
+    await tester.pumpAndSettle();
+    expect(find.text('João Silva'), findsNothing);
+    expect(find.text('Bia Garage'), findsOneWidget);
+
+    await tester.enterText(find.byType(TextField), 'classicos');
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos do Sul'), findsOneWidget);
+    expect(find.text('Bia Garage'), findsNothing);
+
+    await tester.enterText(find.byType(TextField), 'sem resultado');
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhuma conversa encontrada.'), findsOneWidget);
+    await tester.tap(find.byTooltip('Limpar busca'));
+    await tester.pumpAndSettle();
+    expect(find.text('João Silva'), findsOneWidget);
+    expect(find.text('Bia Garage'), findsOneWidget);
+    expect(find.text('Clássicos do Sul'), findsOneWidget);
+  });
+
   testWidgets('caixa de entrada atualiza ao voltar para a aba de conversas',
       (tester) async {
     final api = ApiClient(
