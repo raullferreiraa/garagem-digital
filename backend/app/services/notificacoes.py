@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, select, update
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models.notificacao import Notificacao
+from app.services.bloqueios import existe_bloqueio, ids_com_bloqueio
 
 
 def criar_notificacao(
@@ -20,6 +21,8 @@ def criar_notificacao(
     comentario_id: UUID | None = None,
 ) -> Notificacao | None:
     if ator_id == destinatario_id:
+        return None
+    if ator_id is not None and existe_bloqueio(db, destinatario_id, ator_id):
         return None
     notificacao = Notificacao(
         destinatario_id=destinatario_id,
@@ -44,7 +47,13 @@ def listar_notificacoes(
     return list(
         db.scalars(
             select(Notificacao)
-            .where(Notificacao.destinatario_id == destinatario_id)
+            .where(
+                Notificacao.destinatario_id == destinatario_id,
+                or_(
+                    Notificacao.ator_id.is_(None),
+                    Notificacao.ator_id.not_in(ids_com_bloqueio(db, destinatario_id)),
+                ),
+            )
             .order_by(Notificacao.criada_em.desc(), Notificacao.id.desc())
             .limit(limite)
         ).unique()
@@ -57,6 +66,10 @@ def total_nao_lidas(db: Session, destinatario_id: UUID) -> int:
             select(func.count()).select_from(Notificacao).where(
                 Notificacao.destinatario_id == destinatario_id,
                 Notificacao.lida_em.is_(None),
+                or_(
+                    Notificacao.ator_id.is_(None),
+                    Notificacao.ator_id.not_in(ids_com_bloqueio(db, destinatario_id)),
+                ),
             )
         )
         or 0

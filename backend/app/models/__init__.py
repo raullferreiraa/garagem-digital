@@ -1,4 +1,5 @@
 from app.models.carro import Carro
+from app.models.bloqueio_usuario import BloqueioUsuario
 from app.models.comentario_evolucao import ComentarioEvolucao
 from app.models.conversa import ConversaDireta, MensagemDireta
 from app.models.denuncia_usuario import DenunciaUsuario
@@ -23,6 +24,7 @@ from app.models.usuario import Usuario
 
 __all__ = [
     "Carro",
+    "BloqueioUsuario",
     "ComentarioEvolucao",
     "ConversaDireta",
     "DenunciaUsuario",

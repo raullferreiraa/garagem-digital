@@ -11,6 +11,7 @@ from app.core.config import settings
 from app.main import create_app
 from app.models import (  # noqa: F401
     Carro,
+    BloqueioUsuario,
     ComentarioEvolucao,
     ConversaDireta,
     DenunciaUsuario,

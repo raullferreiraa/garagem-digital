@@ -13,7 +13,7 @@ from fastapi import (
 )
 from sqlalchemy.orm import Session
 
-from app.api.dependencies.auth import UsuarioAtual
+from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
 from app.core.config import settings
 from app.core.database import get_db
 from app.schemas.carro import (
@@ -57,6 +57,7 @@ def cadastrar_carro(
 @router.get("", response_model=PaginaCarros)
 def feed_carros(
     db: DbSession,
+    usuario: UsuarioOpcional,
     limite: Annotated[int, Query(ge=1, le=50)] = 20,
     cursor: str | None = None,
     busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
@@ -69,6 +70,7 @@ def feed_carros(
             cursor=cursor,
             busca=busca,
             ordem=ordem,
+            usuario_id=usuario.id if usuario is not None else None,
         )
     except CursorInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error

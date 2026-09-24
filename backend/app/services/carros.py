@@ -12,6 +12,7 @@ from app.models.curtida_evolucao import CurtidaEvolucao
 from app.models.evolucao_projeto import EvolucaoProjeto
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroCriacao, CarroPublico, PaginaCarros
+from app.services.bloqueios import ids_com_bloqueio
 
 
 class CursorInvalido(ValueError):
@@ -87,6 +88,7 @@ def listar_feed(
     cursor: str | None,
     busca: str | None = None,
     ordem: str = "recentes",
+    usuario_id: UUID | None = None,
 ) -> PaginaCarros:
     total_curtidas = (
         select(func.count(CurtidaEvolucao.usuario_id))
@@ -113,6 +115,10 @@ def listar_feed(
         total_curtidas.label("total_curtidas"),
         total_comentarios.label("total_comentarios"),
     )
+    if usuario_id is not None:
+        consulta = consulta.where(
+            Carro.proprietario_id.not_in(ids_com_bloqueio(db, usuario_id))
+        )
 
     relevancia_modelo = None
     if busca:

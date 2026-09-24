@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -11,7 +12,7 @@ from fastapi import (
     UploadFile,
     status,
 )
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -19,7 +20,10 @@ from app.api.dependencies.auth import UsuarioAtual, UsuarioOpcional
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.carro import Carro
+from app.models.bloqueio_usuario import BloqueioUsuario
+from app.models.conversa import ConversaDireta
 from app.models.denuncia_usuario import DenunciaUsuario
+from app.models.notificacao import Notificacao
 from app.models.seguidor import Seguidor
 from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico
@@ -31,6 +35,7 @@ from app.schemas.usuario import (
     UsuarioResumo,
 )
 from app.services.carros import listar_carros_do_usuario
+from app.services.bloqueios import existe_bloqueio, ids_com_bloqueio
 from app.services.media import (
     ArquivoMuitoGrande,
     ImagemInvalida,
@@ -117,6 +122,7 @@ def buscar_usuarios(
         .where(
             Usuario.ativo.is_(True),
             Usuario.id != usuario.id,
+            Usuario.id.not_in(ids_com_bloqueio(db, usuario.id)),
             or_(
                 Usuario.username.ilike(padrao),
                 Usuario.nome.ilike(padrao),
@@ -142,6 +148,15 @@ def obter_perfil(
     db: DbSession,
 ) -> PerfilSocial:
     usuario = _buscar_usuario_ativo(db, usuario_id)
+    bloqueado_por_mim = (
+        usuario_atual is not None
+        and db.get(BloqueioUsuario, (usuario_atual.id, usuario_id)) is not None
+    )
+    if (
+        usuario_atual is not None
+        and db.get(BloqueioUsuario, (usuario_id, usuario_atual.id)) is not None
+    ):
+        raise HTTPException(status_code=404, detail="Perfil não encontrado.")
     total_projetos = db.scalar(
         select(func.count()).select_from(Carro).where(
             Carro.proprietario_id == usuario_id
@@ -176,6 +191,7 @@ def obter_perfil(
         total_seguidores=total_seguidores or 0,
         total_seguindo=total_seguindo or 0,
         seguido_por_mim=seguido_por_mim,
+        bloqueado_por_mim=bloqueado_por_mim,
     )
 
 
@@ -191,6 +207,8 @@ def seguir_usuario(
             detail="Voce nao pode seguir a si mesmo.",
         )
     seguido = _buscar_usuario_ativo(db, usuario_id)
+    if existe_bloqueio(db, usuario_atual.id, usuario_id):
+        raise HTTPException(status_code=403, detail="Não é possível seguir este perfil.")
 
     if db.get(Seguidor, (usuario_atual.id, usuario_id)) is None:
         db.add(Seguidor(seguidor_id=usuario_atual.id, seguido_id=usuario_id))
@@ -213,6 +231,81 @@ def deixar_de_seguir_usuario(
 ) -> Response:
     _buscar_usuario_ativo(db, usuario_id)
     vinculo = db.get(Seguidor, (usuario_atual.id, usuario_id))
+    if vinculo is not None:
+        db.delete(vinculo)
+        db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get("/me/bloqueios", response_model=list[UsuarioResumo])
+def listar_meus_bloqueios(usuario_atual: UsuarioAtual, db: DbSession) -> list[UsuarioResumo]:
+    usuarios = db.scalars(
+        select(Usuario)
+        .join(BloqueioUsuario, BloqueioUsuario.bloqueado_id == Usuario.id)
+        .where(BloqueioUsuario.bloqueador_id == usuario_atual.id)
+        .order_by(BloqueioUsuario.criado_em.desc())
+    ).all()
+    return [UsuarioResumo.model_validate(item) for item in usuarios]
+
+
+@router.put("/{usuario_id}/bloqueio", status_code=status.HTTP_204_NO_CONTENT)
+def bloquear_usuario(
+    usuario_id: UUID,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    if usuario_id == usuario_atual.id:
+        raise HTTPException(status_code=400, detail="Você não pode bloquear seu próprio perfil.")
+    _buscar_usuario_ativo(db, usuario_id)
+    if db.get(BloqueioUsuario, (usuario_atual.id, usuario_id)) is None:
+        db.add(BloqueioUsuario(bloqueador_id=usuario_atual.id, bloqueado_id=usuario_id))
+    for par in ((usuario_atual.id, usuario_id), (usuario_id, usuario_atual.id)):
+        vinculo = db.get(Seguidor, par)
+        if vinculo is not None:
+            db.delete(vinculo)
+    agora = datetime.now(timezone.utc)
+    db.execute(
+        update(ConversaDireta)
+        .where(
+            or_(
+                (ConversaDireta.usuario_a_id == usuario_atual.id)
+                & (ConversaDireta.usuario_b_id == usuario_id),
+                (ConversaDireta.usuario_a_id == usuario_id)
+                & (ConversaDireta.usuario_b_id == usuario_atual.id),
+            )
+        )
+        .values(usuario_a_leu_em=agora, usuario_b_leu_em=agora)
+    )
+    db.execute(
+        update(Notificacao)
+        .where(
+            or_(
+                (Notificacao.destinatario_id == usuario_atual.id)
+                & (Notificacao.ator_id == usuario_id),
+                (Notificacao.destinatario_id == usuario_id)
+                & (Notificacao.ator_id == usuario_atual.id),
+            ),
+            Notificacao.lida_em.is_(None),
+        )
+        .values(lida_em=agora)
+    )
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # Uma requisição simultânea pode ter criado o mesmo bloqueio.
+        if db.get(BloqueioUsuario, (usuario_atual.id, usuario_id)) is None:
+            raise
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{usuario_id}/bloqueio", status_code=status.HTTP_204_NO_CONTENT)
+def desbloquear_usuario(
+    usuario_id: UUID,
+    usuario_atual: UsuarioAtual,
+    db: DbSession,
+) -> Response:
+    vinculo = db.get(BloqueioUsuario, (usuario_atual.id, usuario_id))
     if vinculo is not None:
         db.delete(vinculo)
         db.commit()
@@ -266,14 +359,22 @@ def denunciar_usuario(
 def listar_seguidores(
     usuario_id: UUID,
     db: DbSession,
+    usuario_atual: UsuarioOpcional,
 ) -> list[UsuarioResumo]:
     _buscar_usuario_ativo(db, usuario_id)
+    if usuario_atual is not None and existe_bloqueio(db, usuario_atual.id, usuario_id):
+        return []
     usuarios = db.scalars(
         select(Usuario)
         .join(Seguidor, Seguidor.seguidor_id == Usuario.id)
         .where(
             Seguidor.seguido_id == usuario_id,
             Usuario.ativo.is_(True),
+            *(
+                [Usuario.id.not_in(ids_com_bloqueio(db, usuario_atual.id))]
+                if usuario_atual is not None
+                else []
+            ),
         )
         .order_by(Seguidor.criado_em.desc())
     ).all()
@@ -284,14 +385,22 @@ def listar_seguidores(
 def listar_seguidos(
     usuario_id: UUID,
     db: DbSession,
+    usuario_atual: UsuarioOpcional,
 ) -> list[UsuarioResumo]:
     _buscar_usuario_ativo(db, usuario_id)
+    if usuario_atual is not None and existe_bloqueio(db, usuario_atual.id, usuario_id):
+        return []
     usuarios = db.scalars(
         select(Usuario)
         .join(Seguidor, Seguidor.seguido_id == Usuario.id)
         .where(
             Seguidor.seguidor_id == usuario_id,
             Usuario.ativo.is_(True),
+            *(
+                [Usuario.id.not_in(ids_com_bloqueio(db, usuario_atual.id))]
+                if usuario_atual is not None
+                else []
+            ),
         )
         .order_by(Seguidor.criado_em.desc())
     ).all()
@@ -299,7 +408,11 @@ def listar_seguidos(
 
 
 @router.get("/{usuario_id}/carros", response_model=list[CarroPublico])
-def obter_garagem_publica(usuario_id: UUID, db: DbSession) -> list[CarroPublico]:
+def obter_garagem_publica(
+    usuario_id: UUID, db: DbSession, usuario_atual: UsuarioOpcional
+) -> list[CarroPublico]:
+    if usuario_atual is not None and existe_bloqueio(db, usuario_atual.id, usuario_id):
+        return []
     usuario_existe = db.scalar(
         select(Usuario.id).where(Usuario.id == usuario_id, Usuario.ativo.is_(True))
     )

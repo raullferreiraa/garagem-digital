@@ -12,6 +12,7 @@ from app.models.seguidor import Seguidor
 from app.schemas.carro import CarroPublico
 from app.schemas.evolucao import EvolucaoResposta
 from app.schemas.feed import ItemFeedSeguindo
+from app.services.bloqueios import ids_com_bloqueio
 
 
 router = APIRouter()
@@ -25,7 +26,8 @@ def feed_seguindo(
     limite: Annotated[int, Query(ge=1, le=50)] = 20,
 ) -> list[ItemFeedSeguindo]:
     seguidos = select(Seguidor.seguido_id).where(
-        Seguidor.seguidor_id == usuario.id
+        Seguidor.seguidor_id == usuario.id,
+        Seguidor.seguido_id.not_in(ids_com_bloqueio(db, usuario.id)),
     )
     evolucoes = list(
         db.scalars(

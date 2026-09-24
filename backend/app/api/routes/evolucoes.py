@@ -35,11 +35,20 @@ from app.services.media import (
     salvar_foto_evolucao,
 )
 from app.services.notificacoes import criar_notificacao
+from app.services.bloqueios import existe_bloqueio, ids_com_bloqueio
 
 
 router = APIRouter()
 DbSession = Annotated[Session, Depends(get_db)]
 MAX_FOTOS_POR_EVOLUCAO = 8
+
+
+def _permitir_interacao(db: Session, usuario_id: UUID, outro_id: UUID) -> None:
+    if existe_bloqueio(db, usuario_id, outro_id):
+        raise HTTPException(
+            status_code=403,
+            detail="Não é possível interagir com este perfil.",
+        )
 
 
 def _obter_comentario(
@@ -83,7 +92,10 @@ def _listar_comentarios_resposta(
     comentarios = list(
         db.scalars(
             select(ComentarioEvolucao)
-            .where(ComentarioEvolucao.evolucao_id == evolucao_id)
+            .where(
+                ComentarioEvolucao.evolucao_id == evolucao_id,
+                ComentarioEvolucao.autor_id.not_in(ids_com_bloqueio(db, usuario_id)),
+            )
             .order_by(
                 ComentarioEvolucao.criado_em,
                 ComentarioEvolucao.id,
@@ -314,8 +326,10 @@ def obter_interacoes(
     usuario: UsuarioAtual,
     db: DbSession,
 ) -> InteracoesEvolucaoResposta:
-    if obter_evolucao(db, evolucao_id, carro_id) is None:
+    evolucao = obter_evolucao(db, evolucao_id, carro_id)
+    if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    _permitir_interacao(db, usuario.id, evolucao.autor_id)
 
     total_curtidas = db.scalar(
         select(func.count()).select_from(CurtidaEvolucao).where(
@@ -350,6 +364,7 @@ def curtir_evolucao(
     evolucao = obter_evolucao(db, evolucao_id, carro_id)
     if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    _permitir_interacao(db, usuario.id, evolucao.autor_id)
 
     chave = (evolucao_id, usuario.id)
     if db.get(CurtidaEvolucao, chave) is None:
@@ -405,6 +420,7 @@ def comentar_evolucao(
     evolucao = obter_evolucao(db, evolucao_id, carro_id)
     if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    _permitir_interacao(db, usuario.id, evolucao.autor_id)
 
     comentario = ComentarioEvolucao(
         evolucao_id=evolucao_id,
@@ -444,10 +460,12 @@ def responder_comentario(
     evolucao = obter_evolucao(db, evolucao_id, carro_id)
     if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    _permitir_interacao(db, usuario.id, evolucao.autor_id)
 
     comentario_pai = _obter_comentario(db, evolucao_id, comentario_id)
     if comentario_pai is None:
         raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+    _permitir_interacao(db, usuario.id, comentario_pai.autor_id)
     if comentario_pai.comentario_pai_id is not None:
         raise HTTPException(
             status_code=422,
@@ -494,9 +512,11 @@ def curtir_comentario(
     evolucao = obter_evolucao(db, evolucao_id, carro_id)
     if evolucao is None:
         raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    _permitir_interacao(db, usuario.id, evolucao.autor_id)
     comentario = _obter_comentario(db, evolucao_id, comentario_id)
     if comentario is None:
         raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+    _permitir_interacao(db, usuario.id, comentario.autor_id)
 
     chave = (comentario_id, usuario.id)
     if db.get(CurtidaComentarioEvolucao, chave) is None:

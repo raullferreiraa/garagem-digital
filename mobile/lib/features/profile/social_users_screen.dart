@@ -29,7 +29,9 @@ final class _SocialUsersScreenState extends State<SocialUsersScreen> {
 
   Future<void> _reload() async {
     final next = widget.loader();
-    setState(() => _users = next);
+    setState(() {
+      _users = next;
+    });
     await next;
   }
 

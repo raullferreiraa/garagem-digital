@@ -59,6 +59,17 @@ final class UsersRepository {
     await _api.dio.delete<void>('/usuarios/$userId/seguir');
   }
 
+  Future<List<SocialUser>> blockedUsers() =>
+      _connections('/usuarios/me/bloqueios');
+
+  Future<void> block(String userId) async {
+    await _api.dio.put<void>('/usuarios/$userId/bloqueio');
+  }
+
+  Future<void> unblock(String userId) async {
+    await _api.dio.delete<void>('/usuarios/$userId/bloqueio');
+  }
+
   Future<void> report(
     String userId, {
     required String reason,

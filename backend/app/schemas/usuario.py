@@ -33,6 +33,7 @@ class PerfilSocial(PerfilPublico):
     total_seguidores: int
     total_seguindo: int
     seguido_por_mim: bool
+    bloqueado_por_mim: bool = False
 
 
 class PerfilPrivado(PerfilPublico):

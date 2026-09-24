@@ -45,6 +45,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   bool _changingFollow = false;
   bool _openingConversation = false;
   bool _reporting = false;
+  bool _changingBlock = false;
 
   @override
   void initState() {
@@ -59,10 +60,12 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Future<void> _reload() async {
-    final next = _load();
-    setState(() => _data = next);
-    final loaded = await next;
-    if (mounted) setState(() => _visibleData = loaded);
+    final loaded = await _load();
+    if (!mounted) return;
+    setState(() {
+      _data = Future.value(loaded);
+      _visibleData = loaded;
+    });
   }
 
   PublicProfile _withFollowState(
@@ -82,12 +85,33 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       followerCount: profile.followerCount + difference,
       followingCount: profile.followingCount,
       followedByMe: followed,
+      blockedByMe: profile.blockedByMe,
       avatarUrl: profile.avatarUrl,
       bio: profile.bio,
       city: profile.city,
       state: profile.state,
     );
   }
+
+  PublicProfile _withBlockState(
+    PublicProfile profile, {
+    required bool blocked,
+  }) =>
+      PublicProfile(
+        id: profile.id,
+        name: profile.name,
+        username: profile.username,
+        projectCount: profile.projectCount,
+        followerCount:
+            profile.followerCount - (blocked && profile.followedByMe ? 1 : 0),
+        followingCount: profile.followingCount,
+        followedByMe: blocked ? false : profile.followedByMe,
+        blockedByMe: blocked,
+        avatarUrl: profile.avatarUrl,
+        bio: profile.bio,
+        city: profile.city,
+        state: profile.state,
+      );
 
   Future<void> _toggleFollow(_ProfileData data) async {
     final previous = data;
@@ -300,6 +324,84 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     }
   }
 
+  Future<void> _toggleBlock(PublicProfile profile) async {
+    if (_changingBlock) return;
+    final shouldBlock = !profile.blockedByMe;
+    if (shouldBlock) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Bloquear perfil?'),
+          content: const Text(
+            'Vocês deixarão de se seguir, trocar mensagens diretas e interagir '
+            'em publicações. É possível desfazer isso depois.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Bloquear'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    setState(() => _changingBlock = true);
+    try {
+      PublicProfile? confirmed;
+      try {
+        if (shouldBlock) {
+          await widget.usersRepository.block(profile.id);
+        } else {
+          await widget.usersRepository.unblock(profile.id);
+        }
+      } catch (error) {
+        // A resposta pode falhar depois de o servidor concluir a alteração.
+        // Reconciliamos o estado antes de afirmar que a ação não funcionou.
+        try {
+          confirmed = await widget.usersRepository.profile(profile.id);
+        } catch (_) {
+          rethrow;
+        }
+        if (confirmed.blockedByMe != shouldBlock) rethrow;
+      }
+      if (!mounted) return;
+      final current = _visibleData ?? await _data;
+      if (!mounted) return;
+      setState(() => _visibleData = (
+            profile: confirmed ??
+                _withBlockState(current.profile, blocked: shouldBlock),
+            cars: shouldBlock ? <Car>[] : current.cars,
+          ));
+      try {
+        widget.onConversationChanged();
+      } catch (_) {
+        // Atualizar outras abas não altera o resultado do bloqueio.
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content:
+            Text(shouldBlock ? 'Perfil bloqueado.' : 'Perfil desbloqueado.'),
+      ));
+      try {
+        await _reload();
+      } catch (_) {
+        // A sincronização pode ser repetida no pull-to-refresh.
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingBlock = false);
+    }
+  }
+
   Future<void> _openConnections(
     PublicProfile profile, {
     required bool following,
@@ -352,15 +454,33 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
               if (data != null && data.profile.id != widget.currentUserId)
                 PopupMenuButton<String>(
                   tooltip: 'Mais opções',
-                  enabled: !_reporting,
-                  onSelected: (_) => _reportProfile(data.profile),
-                  itemBuilder: (_) => const [
-                    PopupMenuItem(
+                  enabled: !_reporting && !_changingBlock,
+                  onSelected: (action) {
+                    if (action == 'report') {
+                      _reportProfile(data.profile);
+                    } else {
+                      _toggleBlock(data.profile);
+                    }
+                  },
+                  itemBuilder: (_) => [
+                    const PopupMenuItem(
                       value: 'report',
                       child: ListTile(
                         contentPadding: EdgeInsets.zero,
                         leading: Icon(Icons.flag_outlined),
                         title: Text('Denunciar perfil'),
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'block',
+                      child: ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: Icon(data.profile.blockedByMe
+                            ? Icons.person_add_alt_1_outlined
+                            : Icons.block_outlined),
+                        title: Text(data.profile.blockedByMe
+                            ? 'Desbloquear perfil'
+                            : 'Bloquear perfil'),
                       ),
                     ),
                   ],
@@ -481,7 +601,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 ),
               ]),
             ),
-            if (!isMe) ...[
+            if (!isMe && !profile.blockedByMe) ...[
               const SizedBox(height: 18),
               Row(children: [
                 Expanded(
@@ -520,84 +640,92 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
             ],
           ],
         )),
-        const SizedBox(height: 28),
-        GdSectionTitle(
-          title: 'Projetos',
-          eyebrow: 'A GARAGEM',
-          trailing: Text(
-            '${data.cars.length}',
-            style: theme.textTheme.labelLarge?.copyWith(color: colors.primary),
+        if (profile.blockedByMe) ...[
+          const SizedBox(height: 20),
+          const Text(
+              'Você bloqueou este perfil. Abra o menu para desbloquear.'),
+        ],
+        if (!profile.blockedByMe) const SizedBox(height: 28),
+        if (!profile.blockedByMe) ...[
+          GdSectionTitle(
+            title: 'Projetos',
+            eyebrow: 'A GARAGEM',
+            trailing: Text(
+              '${data.cars.length}',
+              style:
+                  theme.textTheme.labelLarge?.copyWith(color: colors.primary),
+            ),
           ),
-        ),
-        const SizedBox(height: 14),
-        if (data.cars.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              color: colors.surfaceContainer,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: colors.outlineVariant),
-            ),
-            child: Column(children: [
-              Icon(Icons.garage_outlined, size: 44, color: colors.primary),
-              const SizedBox(height: 10),
-              const Text('Esta garagem ainda não tem projetos.',
-                  textAlign: TextAlign.center),
-            ]),
-          )
-        else
-          for (final car in data.cars)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: GdReveal(
-                  child: Card(
-                margin: EdgeInsets.zero,
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => _openCar(car),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: 16 / 9,
-                        child: GdImage(
-                            url: car.photoUrl, semanticLabel: car.model),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(children: [
-                          Expanded(
-                              child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (car.projectStatus != null) ...[
-                                Text(
-                                  car.projectStatus!.toUpperCase(),
-                                  style: theme.textTheme.labelSmall?.copyWith(
-                                    color: colors.primary,
-                                    letterSpacing: 1.5,
+          const SizedBox(height: 14),
+          if (data.cars.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: colors.surfaceContainer,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: colors.outlineVariant),
+              ),
+              child: Column(children: [
+                Icon(Icons.garage_outlined, size: 44, color: colors.primary),
+                const SizedBox(height: 10),
+                const Text('Esta garagem ainda não tem projetos.',
+                    textAlign: TextAlign.center),
+              ]),
+            )
+          else
+            for (final car in data.cars)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: GdReveal(
+                    child: Card(
+                  margin: EdgeInsets.zero,
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    onTap: () => _openCar(car),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        AspectRatio(
+                          aspectRatio: 16 / 9,
+                          child: GdImage(
+                              url: car.photoUrl, semanticLabel: car.model),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(children: [
+                            Expanded(
+                                child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (car.projectStatus != null) ...[
+                                  Text(
+                                    car.projectStatus!.toUpperCase(),
+                                    style: theme.textTheme.labelSmall?.copyWith(
+                                      color: colors.primary,
+                                      letterSpacing: 1.5,
+                                    ),
                                   ),
+                                  const SizedBox(height: 5),
+                                ],
+                                Text(
+                                  [car.model, car.year]
+                                      .whereType<Object>()
+                                      .join(' '),
+                                  style: theme.textTheme.titleLarge,
                                 ),
-                                const SizedBox(height: 5),
                               ],
-                              Text(
-                                [car.model, car.year]
-                                    .whereType<Object>()
-                                    .join(' '),
-                                style: theme.textTheme.titleLarge,
-                              ),
-                            ],
-                          )),
-                          const SizedBox(width: 12),
-                          Icon(Icons.north_east_rounded,
-                              color: colors.primary, size: 22),
-                        ]),
-                      ),
-                    ],
+                            )),
+                            const SizedBox(width: 12),
+                            Icon(Icons.north_east_rounded,
+                                color: colors.primary, size: 22),
+                          ]),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              )),
-            ),
+                )),
+              ),
+        ],
       ],
     );
   }
