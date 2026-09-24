@@ -38,6 +38,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
   bool _loadingOlder = false;
   bool _sending = false;
   bool _refreshing = false;
+  bool _hasNewMessages = false;
   int _request = 0;
   Timer? _refreshTimer;
   bool _wasBackgrounded = false;
@@ -46,6 +47,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scroll.addListener(_clearNewMessagesAtEnd);
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -87,6 +89,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
         _nextCursor = page.nextCursor;
         _error = null;
         _unavailable = false;
+        _hasNewMessages = false;
       });
       await _markRead();
       _scrollToEnd();
@@ -114,6 +117,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
           _messages = page.items;
           _nextCursor = page.nextCursor;
           _unavailable = false;
+          _hasNewMessages = false;
         });
         await _markRead();
         _scrollToEnd();
@@ -128,12 +132,16 @@ final class _ConversationScreenState extends State<ConversationScreen>
       setState(() {
         _messages = [...current, ...additions]
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _hasNewMessages = !nearEnd;
       });
       await _markRead();
       if (nearEnd) _scrollToEnd();
     } catch (error) {
       if (mounted && !_unavailable && _isUnavailable(error)) {
-        setState(() => _unavailable = true);
+        setState(() {
+          _unavailable = true;
+          _hasNewMessages = false;
+        });
         widget.onChanged();
       }
       // Falhas de rede continuam silenciosas; a próxima atualização tenta novamente.
@@ -230,6 +238,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
   }
 
   void _scrollToEnd() {
+    if (_hasNewMessages) setState(() => _hasNewMessages = false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
       _scroll.animateTo(
@@ -240,6 +249,14 @@ final class _ConversationScreenState extends State<ConversationScreen>
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  void _clearNewMessagesAtEnd() {
+    if (_hasNewMessages &&
+        _scroll.hasClients &&
+        _scroll.position.maxScrollExtent - _scroll.offset < 120) {
+      setState(() => _hasNewMessages = false);
+    }
   }
 
   @override
@@ -278,7 +295,21 @@ final class _ConversationScreenState extends State<ConversationScreen>
         ),
       ),
       body: Column(children: [
-        Expanded(child: _body()),
+        Expanded(
+          child: Stack(children: [
+            Positioned.fill(child: _body()),
+            if (_hasNewMessages && !_unavailable)
+              Positioned(
+                bottom: 12,
+                right: 16,
+                child: FilledButton.tonalIcon(
+                  onPressed: _scrollToEnd,
+                  icon: const Icon(Icons.arrow_downward_rounded),
+                  label: const Text('Novas mensagens'),
+                ),
+              ),
+          ]),
+        ),
         _composerBar(),
       ]),
     );

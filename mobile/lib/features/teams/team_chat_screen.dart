@@ -32,6 +32,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
   bool _loadingOlder = false;
   bool _sending = false;
   bool _refreshing = false;
+  bool _hasNewMessages = false;
   int _request = 0;
   Timer? _refreshTimer;
   bool _wasBackgrounded = false;
@@ -40,6 +41,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scroll.addListener(_clearNewMessagesAtEnd);
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -80,6 +82,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
         _messages = page.items;
         _nextCursor = page.nextCursor;
         _error = null;
+        _hasNewMessages = false;
       });
       _scrollToEnd();
     } catch (error) {
@@ -106,6 +109,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
       setState(() {
         _messages = [..._messages!, ...additions]
           ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        _hasNewMessages = !nearEnd;
       });
       if (nearEnd) _scrollToEnd();
     } catch (_) {
@@ -174,6 +178,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
   }
 
   void _scrollToEnd() {
+    if (_hasNewMessages) setState(() => _hasNewMessages = false);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted || !_scroll.hasClients) return;
       _scroll.animateTo(
@@ -184,6 +189,14 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
         curve: Curves.easeOutCubic,
       );
     });
+  }
+
+  void _clearNewMessagesAtEnd() {
+    if (_hasNewMessages &&
+        _scroll.hasClients &&
+        _scroll.position.maxScrollExtent - _scroll.offset < 120) {
+      setState(() => _hasNewMessages = false);
+    }
   }
 
   @override
@@ -221,7 +234,24 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
             ],
           ),
         ),
-        body: Column(children: [Expanded(child: _body()), _composerBar()]),
+        body: Column(children: [
+          Expanded(
+            child: Stack(children: [
+              Positioned.fill(child: _body()),
+              if (_hasNewMessages)
+                Positioned(
+                  bottom: 12,
+                  right: 16,
+                  child: FilledButton.tonalIcon(
+                    onPressed: _scrollToEnd,
+                    icon: const Icon(Icons.arrow_downward_rounded),
+                    label: const Text('Novas mensagens'),
+                  ),
+                ),
+            ]),
+          ),
+          _composerBar(),
+        ]),
       );
 
   Widget _body() {

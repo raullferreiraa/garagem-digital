@@ -52,6 +52,87 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  for (final teamChat in [false, true]) {
+    testWidgets(
+        'chat ${teamChat ? "da equipe" : "direto"} avisa sobre novas mensagens fora da tela',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1',
+        tokenStorage: _EmptyTokenStorage(),
+      );
+      var fetches = 0;
+      Map<String, Object?> message(int index) => teamChat
+          ? {
+              'id': 'message-$index',
+              'conteudo': 'Mensagem $index',
+              'criada_em':
+                  '2026-09-22T18:${index.toString().padLeft(2, '0')}:00Z',
+              'autor': {
+                'id': 'other',
+                'nome': 'Bia Garage',
+                'username': 'bia.garage',
+                'avatar_url': null,
+              },
+            }
+          : {
+              ..._message('message-$index', 'Mensagem $index'),
+              'criada_em':
+                  '2026-09-22T18:${index.toString().padLeft(2, '0')}:00Z',
+            };
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method != 'GET') {
+          handler.resolve(Response(requestOptions: options, data: null));
+          return;
+        }
+        fetches++;
+        handler.resolve(Response(requestOptions: options, data: {
+          'itens': [
+            for (var index = 0; index < (fetches == 1 ? 20 : 21); index++)
+              message(index),
+          ],
+          'proximo_cursor': null,
+        }));
+      }));
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: teamChat
+            ? TeamChatScreen(
+                team: const Team(
+                  id: 'team',
+                  name: 'Equipe',
+                  slug: 'equipe',
+                  visibility: 'publica',
+                  memberCount: 2,
+                ),
+                repository: TeamsRepository(api),
+                currentUserId: 'me',
+              )
+            : ConversationScreen(
+                conversation: DirectConversation.fromJson(_conversation()),
+                repository: MessagesRepository(api),
+                currentUserId: 'me',
+                onProfileTap: (_) {},
+                onChanged: () {},
+              ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Novas mensagens'), findsNothing);
+      await tester.drag(find.byType(ListView), const Offset(0, 500));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(fetches, 2);
+      expect(find.text('Novas mensagens'), findsOneWidget);
+      await tester.tap(find.text('Novas mensagens'));
+      await tester.pumpAndSettle();
+      expect(find.text('Novas mensagens'), findsNothing);
+      expect(find.text('Mensagem 20'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
   testWidgets('busca local filtra pessoas e equipe sem perder a lista',
       (tester) async {
     final api = ApiClient(
