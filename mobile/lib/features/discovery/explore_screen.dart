@@ -17,6 +17,7 @@ final class ExploreScreen extends StatefulWidget {
     required this.onEvolutionTap,
     required this.onProfileTap,
     required this.onSearch,
+    this.onCreateProject,
     required this.refreshRevision,
     super.key,
   });
@@ -27,6 +28,7 @@ final class ExploreScreen extends StatefulWidget {
   final Future<void> Function(Evolution) onEvolutionTap;
   final Future<void> Function(String) onProfileTap;
   final VoidCallback onSearch;
+  final VoidCallback? onCreateProject;
   final int refreshRevision;
 
   @override
@@ -76,7 +78,10 @@ final class _ExploreScreenState extends State<ExploreScreen> {
             title: 'Explorar',
             mode: CarListMode.explore,
             embedded: true,
-            emptyMessage: 'Os primeiros projetos aparecerão aqui.',
+            emptyMessage:
+                'Ainda não há projetos para descobrir. Que tal publicar o primeiro?',
+            primaryActionLabel: 'Adicionar projeto',
+            onPrimaryAction: widget.onCreateProject,
             loader: () => widget.carsRepository.feed(order: _discoverOrder),
             pageLoader: (cursor) => widget.carsRepository.feedPage(
               order: _discoverOrder,

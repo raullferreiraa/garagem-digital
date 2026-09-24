@@ -30,6 +30,37 @@ Map<String, Object?> _car(String id, String model) => {
     };
 
 void main() {
+  testWidgets('Explorar vazio oferece criação do primeiro projeto',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: {
+        'itens': <Object?>[],
+        'proximo_cursor': null,
+      }));
+    }));
+    var createRequested = false;
+    await tester.pumpWidget(MaterialApp(
+      home: ExploreScreen(
+        carsRepository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        onCarTap: (_) async {},
+        onEvolutionTap: (_) async {},
+        onProfileTap: (_) async {},
+        onSearch: () {},
+        onCreateProject: () => createRequested = true,
+        refreshRevision: 0,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Ainda não há projetos'), findsOneWidget);
+    await tester.tap(find.text('Adicionar projeto'));
+    expect(createRequested, isTrue);
+  });
+
   testWidgets('Em alta carrega a próxima página mantendo a ordenação',
       (tester) async {
     final api = ApiClient(
