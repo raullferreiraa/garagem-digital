@@ -163,6 +163,23 @@ void main() {
     expect(team.location, 'Vila Velha - ES');
     expect(team.myRole, 'dono');
     expect(team.members.single.username, 'raul');
+
+    final blockedDetail = TeamDetail.fromJson({
+      ...json,
+      'meu_papel': null,
+      'bloqueio_dono': true,
+    });
+    expect(blockedDetail.ownerBlocked, isTrue);
+    final blockedRequest = TeamRequest.fromJson({
+      'id': 'pedido',
+      'usuario': {
+        'id': 'pessoa',
+        'nome': 'Pessoa',
+        'username': 'pessoa',
+      },
+      'bloqueio_para_aprovacao': true,
+    });
+    expect(blockedRequest.blockedForApproval, isTrue);
   });
 
   test('converte e serializa uma evolução do diário', () {

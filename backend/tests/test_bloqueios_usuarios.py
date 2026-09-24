@@ -113,3 +113,68 @@ def test_bloqueio_some_da_busca_feed_e_impede_interacoes(client: TestClient) -> 
     assert client.put(
         f"/api/v1/usuarios/{visitante_id}/bloqueio", headers=cabecalho(visitante)
     ).status_code == 400
+
+
+def test_bloqueio_impede_convites_e_pedidos_de_equipe(client: TestClient) -> None:
+    dono = cadastrar(client, "donoequipe.block")
+    pessoa = cadastrar(client, "pessoaequipe.block")
+    dono_id, pessoa_id = id_usuario(dono), id_usuario(pessoa)
+    equipe = client.post(
+        "/api/v1/equipes",
+        headers=cabecalho(dono),
+        json={"nome": "Equipe da Pista"},
+    ).json()
+    base = f"/api/v1/equipes/{equipe['id']}"
+    bloqueio = f"/api/v1/usuarios/{pessoa_id}/bloqueio"
+
+    assert client.put(bloqueio, headers=cabecalho(dono)).status_code == 204
+    assert client.get(base, headers=cabecalho(pessoa)).json()["bloqueio_dono"] is True
+    assert client.post(
+        f"{base}/convites",
+        headers=cabecalho(dono),
+        json={"usuario_id": pessoa_id},
+    ).status_code == 403
+    assert client.post(f"{base}/solicitacoes", headers=cabecalho(pessoa)).status_code == 403
+
+    assert client.delete(bloqueio, headers=cabecalho(dono)).status_code == 204
+    assert client.get(base, headers=cabecalho(pessoa)).json()["bloqueio_dono"] is False
+    assert client.post(
+        f"{base}/convites",
+        headers=cabecalho(dono),
+        json={"usuario_id": pessoa_id},
+    ).status_code == 204
+    assert client.put(
+        f"/api/v1/usuarios/{dono_id}/bloqueio", headers=cabecalho(pessoa)
+    ).status_code == 204
+    assert client.patch(
+        f"{base}/meu-convite",
+        headers=cabecalho(pessoa),
+        json={"decisao": "aceitar"},
+    ).status_code == 403
+    assert client.patch(
+        f"{base}/meu-convite",
+        headers=cabecalho(pessoa),
+        json={"decisao": "recusar"},
+    ).status_code == 204
+
+    assert client.delete(
+        f"/api/v1/usuarios/{dono_id}/bloqueio", headers=cabecalho(pessoa)
+    ).status_code == 204
+    assert client.post(f"{base}/solicitacoes", headers=cabecalho(pessoa)).status_code == 204
+    pedido_id = client.get(base, headers=cabecalho(dono)).json()[
+        "solicitacoes_pendentes"
+    ][0]["id"]
+    assert client.put(bloqueio, headers=cabecalho(dono)).status_code == 204
+    assert client.get(base, headers=cabecalho(dono)).json()[
+        "solicitacoes_pendentes"
+    ][0]["bloqueio_para_aprovacao"] is True
+    assert client.patch(
+        f"{base}/solicitacoes/{pedido_id}",
+        headers=cabecalho(dono),
+        json={"decisao": "aprovar"},
+    ).status_code == 403
+    assert client.patch(
+        f"{base}/solicitacoes/{pedido_id}",
+        headers=cabecalho(dono),
+        json={"decisao": "recusar"},
+    ).status_code == 204

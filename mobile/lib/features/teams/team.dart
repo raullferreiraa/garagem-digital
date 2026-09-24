@@ -87,6 +87,7 @@ final class TeamRequest {
     required this.id,
     required this.name,
     required this.username,
+    this.blockedForApproval = false,
     this.avatarUrl,
   });
 
@@ -96,6 +97,7 @@ final class TeamRequest {
       id: json['id']! as String,
       name: user['nome']! as String,
       username: user['username']! as String,
+      blockedForApproval: json['bloqueio_para_aprovacao'] as bool? ?? false,
       avatarUrl: AppConfig.resolveApiUrl(user['avatar_url'] as String?),
     );
   }
@@ -103,6 +105,7 @@ final class TeamRequest {
   final String id;
   final String name;
   final String username;
+  final bool blockedForApproval;
   final String? avatarUrl;
 }
 
@@ -117,6 +120,7 @@ final class TeamDetail extends Team {
     required this.members,
     required this.cars,
     required this.pendingRequests,
+    this.ownerBlocked = false,
     this.currentTeamId,
     this.currentTeamName,
     super.description,
@@ -138,6 +142,7 @@ final class TeamDetail extends Team {
       visibility: summary.visibility,
       memberCount: summary.memberCount,
       ownerId: json['dono_id']! as String,
+      ownerBlocked: json['bloqueio_dono'] as bool? ?? false,
       currentTeamId: json['minha_equipe_id'] as String?,
       currentTeamName: json['minha_equipe_nome'] as String?,
       description: summary.description,
@@ -164,6 +169,7 @@ final class TeamDetail extends Team {
   }
 
   final String ownerId;
+  final bool ownerBlocked;
   final String? currentTeamId, currentTeamName;
   bool get belongsToAnotherTeam => currentTeamId != null && currentTeamId != id;
   final List<TeamMember> members;

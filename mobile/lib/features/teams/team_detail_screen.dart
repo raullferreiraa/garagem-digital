@@ -356,6 +356,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       visibility: team.visibility,
       memberCount: team.memberCount > 0 ? team.memberCount - 1 : 0,
       ownerId: team.ownerId,
+      ownerBlocked: team.ownerBlocked,
       members: team.members
           .where((item) => item.userId != member.userId)
           .toList(growable: false),
@@ -810,6 +811,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             ),
           ),
           const SizedBox(height: 10),
+          if (team.ownerBlocked) ...[
+            const Text(
+              'Não é possível aceitar enquanto houver bloqueio com o dono da equipe.',
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -823,8 +830,9 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
-                  onPressed:
-                      _acting ? null : () => _respondInvite(team, accept: true),
+                  onPressed: _acting || team.ownerBlocked
+                      ? null
+                      : () => _respondInvite(team, accept: true),
                   child: const Text('Aceitar convite'),
                 ),
               ),
@@ -834,7 +842,8 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         if (!team.belongsToAnotherTeam &&
             team.myRole == null &&
             team.myRequest != 'pendente' &&
-            team.myInvite != 'pendente')
+            team.myInvite != 'pendente' &&
+            !team.ownerBlocked)
           FilledButton.icon(
             onPressed: _acting
                 ? null
@@ -844,6 +853,17 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                     ),
             icon: const Icon(Icons.person_add_alt_1),
             label: const Text('Pedir para entrar'),
+          ),
+        if (!team.belongsToAnotherTeam &&
+            team.ownerBlocked &&
+            team.myRole == null &&
+            team.myRequest != 'pendente' &&
+            team.myInvite != 'pendente')
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Text(
+              'Não é possível pedir entrada enquanto houver bloqueio com o dono da equipe.',
+            ),
           ),
         if (!team.belongsToAnotherTeam &&
             team.myRole == null &&
@@ -1277,6 +1297,12 @@ final class _RequestCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
+          if (request.blockedForApproval) ...[
+            const Text(
+              'A aprovação ficará disponível quando não houver bloqueio entre os perfis.',
+            ),
+            const SizedBox(height: 10),
+          ],
           Row(
             children: [
               Expanded(
@@ -1288,7 +1314,8 @@ final class _RequestCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: FilledButton(
-                  onPressed: acting ? null : onApprove,
+                  onPressed:
+                      acting || request.blockedForApproval ? null : onApprove,
                   child: const Text('Aprovar'),
                 ),
               ),
