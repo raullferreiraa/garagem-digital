@@ -52,6 +52,65 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  testWidgets('chat aberto oculta histórico após bloqueio e recupera acesso',
+      (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    var blocked = false;
+    var fetches = 0;
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      if (options.method == 'GET') {
+        fetches++;
+        if (blocked) {
+          handler.reject(DioException(
+            requestOptions: options,
+            response: Response(requestOptions: options, statusCode: 404),
+            type: DioExceptionType.badResponse,
+          ));
+          return;
+        }
+        handler.resolve(Response(requestOptions: options, data: {
+          'itens': [_message('first', 'Mensagem privada')],
+          'proximo_cursor': null,
+        }));
+        return;
+      }
+      handler.resolve(Response(requestOptions: options, data: null));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: ConversationScreen(
+        conversation: DirectConversation.fromJson(_conversation()),
+        repository: MessagesRepository(api),
+        currentUserId: 'me',
+        onProfileTap: (_) {},
+        onChanged: () {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Mensagem privada'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+
+    blocked = true;
+    await tester.pump(const Duration(seconds: 8));
+    await tester.pumpAndSettle();
+    expect(fetches, 2);
+    expect(find.text('Mensagem privada'), findsNothing);
+    expect(find.byType(TextField), findsNothing);
+    expect(find.text('Esta conversa não está disponível no momento.'),
+        findsOneWidget);
+
+    blocked = false;
+    await tester.tap(find.text('Tentar novamente'));
+    await tester.pumpAndSettle();
+    expect(find.text('Mensagem privada'), findsOneWidget);
+    expect(find.byType(TextField), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   testWidgets(
       'lista preserva conversas e mostra recuperação quando atualização falha',
       (tester) async {

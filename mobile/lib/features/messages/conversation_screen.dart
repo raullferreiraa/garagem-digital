@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -32,6 +33,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   List<DirectMessage>? _messages;
   String? _nextCursor;
   Object? _error;
+  bool _unavailable = false;
   bool _loadingOlder = false;
   bool _sending = false;
   bool _refreshing = false;
@@ -65,12 +67,16 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         _messages = page.items;
         _nextCursor = page.nextCursor;
         _error = null;
+        _unavailable = false;
       });
       await _markRead();
       _scrollToEnd();
     } catch (error) {
       if (!mounted || request != _request) return;
-      setState(() => _error = error);
+      setState(() {
+        _unavailable = _isUnavailable(error);
+        _error = _unavailable ? null : error;
+      });
     }
   }
 
@@ -84,6 +90,16 @@ final class _ConversationScreenState extends State<ConversationScreen> {
     try {
       final page = await widget.repository.messages(widget.conversation.id);
       if (!mounted) return;
+      if (_unavailable) {
+        setState(() {
+          _messages = page.items;
+          _nextCursor = page.nextCursor;
+          _unavailable = false;
+        });
+        await _markRead();
+        _scrollToEnd();
+        return;
+      }
       final current = _messages!;
       final known = current.map((item) => item.id).toSet();
       final additions = page.items.where((item) => known.add(item.id)).toList();
@@ -96,8 +112,12 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       });
       await _markRead();
       if (nearEnd) _scrollToEnd();
-    } catch (_) {
-      // A atualização silenciosa tenta novamente no próximo ciclo.
+    } catch (error) {
+      if (mounted && !_unavailable && _isUnavailable(error)) {
+        setState(() => _unavailable = true);
+        widget.onChanged();
+      }
+      // Falhas de rede continuam silenciosas; a próxima atualização tenta novamente.
     } finally {
       _refreshing = false;
     }
@@ -143,6 +163,10 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       });
     } catch (error) {
       if (mounted) {
+        if (_isUnavailable(error)) {
+          setState(() => _unavailable = true);
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
@@ -154,7 +178,8 @@ final class _ConversationScreenState extends State<ConversationScreen> {
 
   Future<void> _send() async {
     final content = _composer.text.trim();
-    if (content.isEmpty || _sending || _messages == null) return;
+    if (content.isEmpty || _sending || _messages == null || _unavailable)
+      return;
     setState(() => _sending = true);
     try {
       final message = await widget.repository.send(
@@ -171,6 +196,11 @@ final class _ConversationScreenState extends State<ConversationScreen> {
       _scrollToEnd();
     } catch (error) {
       if (mounted) {
+        if (_isUnavailable(error)) {
+          setState(() => _unavailable = true);
+          widget.onChanged();
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
         );
@@ -236,6 +266,30 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Widget _body() {
+    if (_unavailable) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.lock_outline_rounded, size: 36),
+              const SizedBox(height: 12),
+              const Text(
+                'Esta conversa não está disponível no momento.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              TextButton.icon(
+                onPressed: _messages == null ? _loadInitial : _refreshLatest,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Tentar novamente'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     if (_messages == null && _error == null)
       return const GdSkeleton(compact: true);
     if (_messages == null) {
@@ -368,6 +422,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   }
 
   Widget _composerBar() {
+    if (_unavailable) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -428,4 +483,7 @@ final class _ConversationScreenState extends State<ConversationScreen> {
         first.month == second.month &&
         first.day == second.day;
   }
+
+  bool _isUnavailable(Object error) =>
+      error is DioException && error.response?.statusCode == 404;
 }
