@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -37,6 +38,7 @@ final class TeamDetailScreen extends StatefulWidget {
     this.onMembershipChanged,
     this.unreadChatCount = 0,
     this.onTeamChatChanged,
+    this.refreshRevision = 0,
     super.key,
   });
 
@@ -53,6 +55,7 @@ final class TeamDetailScreen extends StatefulWidget {
   final VoidCallback? onMembershipChanged;
   final int unreadChatCount;
   final VoidCallback? onTeamChatChanged;
+  final int refreshRevision;
 
   @override
   State<TeamDetailScreen> createState() => _TeamDetailScreenState();
@@ -62,6 +65,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
   late Future<TeamDetail> _team;
   TeamDetail? _currentTeam;
   bool _acting = false;
+  int _reloadRequest = 0;
 
   @override
   void initState() {
@@ -69,9 +73,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     _team = widget.repository.detail(widget.teamId);
   }
 
+  @override
+  void didUpdateWidget(covariant TeamDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.teamId != oldWidget.teamId) {
+      _reloadRequest++;
+      _currentTeam = null;
+      _team = widget.repository.detail(widget.teamId);
+    } else if (widget.refreshRevision != oldWidget.refreshRevision) {
+      unawaited(_refreshSilently());
+    }
+  }
+
+  Future<void> _refreshSilently() async {
+    try {
+      await _reload();
+    } catch (_) {
+      // Mantém o detalhe anterior; o usuário ainda pode atualizar manualmente.
+    }
+  }
+
   Future<void> _reload() async {
+    final request = ++_reloadRequest;
     final updated = await widget.repository.detail(widget.teamId);
-    if (!mounted) return;
+    if (!mounted || request != _reloadRequest) return;
     setState(() => _currentTeam = updated);
   }
 
@@ -80,6 +105,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     try {
       await action();
     } catch (error) {
+      await _refreshSilently();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(apiErrorMessage(error))),
@@ -306,6 +332,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
     try {
       await widget.repository.decideInvite(team.id, accept: accept);
     } catch (error) {
+      await _refreshSilently();
       if (!mounted) return;
       setState(() => _acting = false);
       ScaffoldMessenger.of(context).showSnackBar(
