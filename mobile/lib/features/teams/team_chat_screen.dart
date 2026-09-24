@@ -22,7 +22,8 @@ final class TeamChatScreen extends StatefulWidget {
   State<TeamChatScreen> createState() => _TeamChatScreenState();
 }
 
-final class _TeamChatScreenState extends State<TeamChatScreen> {
+final class _TeamChatScreenState extends State<TeamChatScreen>
+    with WidgetsBindingObserver {
   final _composer = TextEditingController();
   final _scroll = ScrollController();
   List<TeamChatMessage>? _messages;
@@ -33,10 +34,12 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
   bool _refreshing = false;
   int _request = 0;
   Timer? _refreshTimer;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -46,10 +49,26 @@ final class _TeamChatScreenState extends State<TeamChatScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _composer.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      if (_messages == null) {
+        unawaited(_loadInitial());
+      } else {
+        unawaited(_refreshLatest());
+      }
+    }
   }
 
   Future<void> _loadInitial() async {

@@ -27,7 +27,8 @@ final class ConversationScreen extends StatefulWidget {
   State<ConversationScreen> createState() => _ConversationScreenState();
 }
 
-final class _ConversationScreenState extends State<ConversationScreen> {
+final class _ConversationScreenState extends State<ConversationScreen>
+    with WidgetsBindingObserver {
   final _composer = TextEditingController();
   final _scroll = ScrollController();
   List<DirectMessage>? _messages;
@@ -39,10 +40,12 @@ final class _ConversationScreenState extends State<ConversationScreen> {
   bool _refreshing = false;
   int _request = 0;
   Timer? _refreshTimer;
+  bool _wasBackgrounded = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -52,10 +55,26 @@ final class _ConversationScreenState extends State<ConversationScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _composer.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden) {
+      _wasBackgrounded = true;
+    } else if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      if (_messages == null) {
+        unawaited(_loadInitial());
+      } else {
+        unawaited(_refreshLatest());
+      }
+    }
   }
 
   Future<void> _loadInitial() async {

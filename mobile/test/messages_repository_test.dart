@@ -308,9 +308,11 @@ void main() {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(fetches, 3);
       await tester.pump(const Duration(seconds: 8));
       await tester.pumpAndSettle();
-      expect(fetches, 3);
+      expect(fetches, 4);
       await tester.pumpWidget(const SizedBox.shrink());
       expect(tester.takeException(), isNull);
     });
