@@ -14,6 +14,7 @@ final class PublicProfile {
     this.bio,
     this.city,
     this.state,
+    this.team,
   });
 
   factory PublicProfile.fromJson(Map<String, Object?> json) {
@@ -25,6 +26,9 @@ final class PublicProfile {
       bio: json['bio'] as String?,
       city: json['cidade'] as String?,
       state: json['estado'] as String?,
+      team: json['equipe_atual'] == null
+          ? null
+          : ProfileTeam.fromJson(json['equipe_atual']! as Map<String, Object?>),
       projectCount: json['total_projetos']! as int,
       followerCount: json['total_seguidores']! as int,
       followingCount: json['total_seguindo']! as int,
@@ -40,11 +44,26 @@ final class PublicProfile {
   final String? bio;
   final String? city;
   final String? state;
+  final ProfileTeam? team;
   final int projectCount;
   final int followerCount;
   final int followingCount;
   final bool followedByMe;
   final bool blockedByMe;
+}
+
+final class ProfileTeam {
+  const ProfileTeam({required this.id, required this.name, this.avatarUrl});
+
+  factory ProfileTeam.fromJson(Map<String, Object?> json) => ProfileTeam(
+        id: json['id']! as String,
+        name: json['nome']! as String,
+        avatarUrl: AppConfig.resolveApiUrl(json['avatar_url'] as String?),
+      );
+
+  final String id;
+  final String name;
+  final String? avatarUrl;
 }
 
 final class SocialUser {

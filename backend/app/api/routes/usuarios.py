@@ -22,6 +22,7 @@ from app.core.database import get_db
 from app.models.carro import Carro
 from app.models.bloqueio_usuario import BloqueioUsuario
 from app.models.conversa import ConversaDireta
+from app.models.equipe import Equipe, MembroEquipe
 from app.models.denuncia_usuario import DenunciaUsuario
 from app.models.notificacao import Notificacao
 from app.models.seguidor import Seguidor
@@ -32,6 +33,7 @@ from app.schemas.usuario import (
     DenunciaUsuarioCriacao,
     PerfilPrivado,
     PerfilSocial,
+    EquipeDoPerfil,
     UsuarioResumo,
 )
 from app.services.carros import listar_carros_do_usuario
@@ -177,6 +179,27 @@ def obter_perfil(
         and usuario_atual.id != usuario_id
         and db.get(Seguidor, (usuario_atual.id, usuario_id)) is not None
     )
+    equipe = db.scalar(
+        select(Equipe)
+        .join(MembroEquipe, MembroEquipe.equipe_id == Equipe.id)
+        .where(MembroEquipe.usuario_id == usuario_id)
+    )
+    pode_ver_equipe = (
+        equipe is not None
+        and not bloqueado_por_mim
+        and (
+            equipe.visibilidade == "publica"
+            or (
+                usuario_atual is not None
+                and db.scalar(
+                    select(MembroEquipe.usuario_id).where(
+                        MembroEquipe.equipe_id == equipe.id,
+                        MembroEquipe.usuario_id == usuario_atual.id,
+                    )
+                ) is not None
+            )
+        )
+    )
 
     return PerfilSocial(
         id=usuario.id,
@@ -192,6 +215,9 @@ def obter_perfil(
         total_seguindo=total_seguindo or 0,
         seguido_por_mim=seguido_por_mim,
         bloqueado_por_mim=bloqueado_por_mim,
+        equipe_atual=EquipeDoPerfil(
+            id=equipe.id, nome=equipe.nome, avatar_url=equipe.avatar_url
+        ) if pode_ver_equipe and equipe is not None else None,
     )
 
 

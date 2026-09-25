@@ -68,9 +68,10 @@ def participantes_da_edicao(
     tipo: Literal["pessoas", "equipes"] = "pessoas",
     offset: int = Query(0, ge=0),
     limite: int = Query(30, ge=1, le=50),
+    busca: str | None = Query(None, max_length=100),
 ) -> ParticipantesEdicaoResposta:
     try:
-        return service.participantes_edicao(db, evento_id, edicao_id, usuario.id, tipo, offset, limite)
+        return service.participantes_edicao(db, evento_id, edicao_id, usuario.id, tipo, offset, limite, busca)
     except service.EventoNaoEncontrado as error:
         raise _erro(error) from error
 

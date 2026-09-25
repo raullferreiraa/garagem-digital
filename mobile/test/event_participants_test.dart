@@ -26,10 +26,11 @@ void main() {
     api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
       expect(options.path, '/eventos/encontro/edicoes/edicao/participantes');
       final teams = options.queryParameters['tipo'] == 'equipes';
+      final noResults = options.queryParameters['busca'] == 'nada';
       handler.resolve(Response(requestOptions: options, data: {
-        'total_pessoas': 1,
-        'total_equipes': 1,
-        'pessoas': teams
+        'total_pessoas': noResults ? 0 : 1,
+        'total_equipes': noResults ? 0 : 1,
+        'pessoas': teams || noResults
             ? []
             : [
                 {
@@ -47,7 +48,7 @@ void main() {
                   },
                 },
               ],
-        'equipes': teams
+        'equipes': teams && !noResults
             ? [
                 {'id': 'equipe', 'nome': 'Antigos ES', 'avatar_url': null},
               ]
@@ -81,6 +82,10 @@ void main() {
     expect(find.text('Antigos ES'), findsOneWidget);
     await tester.tap(find.text('Antigos ES'));
     expect(openedTeam, 'equipe');
+    await tester.enterText(find.byType(TextField), 'nada');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhum resultado para “nada”.'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

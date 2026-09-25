@@ -64,6 +64,9 @@ def test_edicao_lista_confirmados_carros_e_equipes(client: TestClient) -> None:
     assert teams_page["pessoas"] == []
     assert teams_page["equipes"][0]["id"] == team["id"]
     assert client.get(url, headers=_headers(visitor), params={"offset": 1}).json()["pessoas"] == []
+    assert client.get(url, headers=_headers(visitor), params={"busca": "@lista.visitor"}).json()["total_pessoas"] == 1
+    assert client.get(url, headers=_headers(visitor), params={"busca": "inexistente"}).json()["total_pessoas"] == 0
+    assert client.get(url, headers=_headers(visitor), params={"tipo": "equipes", "busca": "Antigos"}).json()["total_equipes"] == 1
 
     assert client.put(
         f"/api/v1/usuarios/{visitor['usuario']['id']}/bloqueio",

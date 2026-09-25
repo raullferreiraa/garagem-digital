@@ -249,6 +249,7 @@ final class _HomeShellState extends State<HomeShell>
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: _refreshUnreadMessages,
         ),
       ),
@@ -501,6 +502,7 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
         messagesRepository: widget.messagesRepository,
+        teamsRepository: widget.teamsRepository,
         onConversationChanged: _refreshUnreadMessages,
       ),
     ];

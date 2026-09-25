@@ -28,12 +28,19 @@ class PerfilPublico(UsuarioResumo):
     criado_em: datetime
 
 
+class EquipeDoPerfil(BaseModel):
+    id: UUID
+    nome: str
+    avatar_url: str | None
+
+
 class PerfilSocial(PerfilPublico):
     total_projetos: int
     total_seguidores: int
     total_seguindo: int
     seguido_por_mim: bool
     bloqueado_por_mim: bool = False
+    equipe_atual: EquipeDoPerfil | None = None
 
 
 class PerfilPrivado(PerfilPublico):

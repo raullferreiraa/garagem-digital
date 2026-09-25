@@ -20,6 +20,8 @@ import 'package:garagem_mobile/features/profile/security_screen.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -28,6 +30,7 @@ final class ProfileScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.usersRepository,
     required this.messagesRepository,
+    required this.teamsRepository,
     required this.onConversationChanged,
     super.key,
   });
@@ -37,6 +40,7 @@ final class ProfileScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final UsersRepository usersRepository;
   final MessagesRepository messagesRepository;
+  final TeamsRepository teamsRepository;
   final VoidCallback onConversationChanged;
 
   @override
@@ -104,6 +108,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: widget.onConversationChanged,
         ),
       ),
@@ -156,6 +161,22 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (mounted) await _reload();
+  }
+
+  Future<void> _openTeam(ProfileTeam team) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: team.id,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: widget.onConversationChanged,
+      ),
+    ));
+    if (mounted) await _loadSocialProfile();
   }
 
   Future<void> _createCar() async {
@@ -259,6 +280,23 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   onFollowing: () => _openConnections(following: true),
                   onEdit: _editProfile,
                 )),
+                if (_socialProfile?.team case final team?) ...[
+                  const SizedBox(height: 24),
+                  const GdSectionTitle(
+                      title: 'Minha equipe', eyebrow: 'NA MESMA PISTA'),
+                  const SizedBox(height: 12),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: GdAvatar(
+                          name: team.name, url: team.avatarUrl, size: 48),
+                      title: Text(team.name),
+                      subtitle: const Text('Ver equipe'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openTeam(team),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 28),
                 GdSectionTitle(
                   title: 'Minha coleção',

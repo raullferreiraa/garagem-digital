@@ -12,6 +12,8 @@ import 'package:garagem_mobile/features/profile/public_profile.dart';
 import 'package:garagem_mobile/features/profile/social_users_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
 import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 typedef _ProfileData = ({PublicProfile profile, List<Car> cars});
 
@@ -23,6 +25,7 @@ final class PublicProfileScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.messagesRepository,
+    required this.teamsRepository,
     required this.onConversationChanged,
     super.key,
   });
@@ -33,6 +36,7 @@ final class PublicProfileScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final MessagesRepository messagesRepository;
+  final TeamsRepository teamsRepository;
   final VoidCallback onConversationChanged;
 
   @override
@@ -90,6 +94,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       bio: profile.bio,
       city: profile.city,
       state: profile.state,
+      team: profile.team,
     );
   }
 
@@ -111,6 +116,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
         bio: profile.bio,
         city: profile.city,
         state: profile.state,
+        team: blocked ? null : profile.team,
       );
 
   Future<void> _toggleFollow(_ProfileData data) async {
@@ -178,6 +184,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: widget.onConversationChanged,
         ),
       ),
@@ -436,6 +443,22 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (mounted) await _reload();
   }
 
+  Future<void> _openTeam(ProfileTeam team) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: team.id,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.currentUserId,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: widget.onConversationChanged,
+      ),
+    ));
+    if (mounted) await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<_ProfileData>(
@@ -647,6 +670,25 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
         ],
         if (!profile.blockedByMe) const SizedBox(height: 28),
         if (!profile.blockedByMe) ...[
+          if (profile.team != null) ...[
+            const GdSectionTitle(title: 'Equipe', eyebrow: 'NA MESMA PISTA'),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: GdAvatar(
+                  name: profile.team!.name,
+                  url: profile.team!.avatarUrl,
+                  size: 48,
+                ),
+                title: Text(profile.team!.name),
+                subtitle: const Text('Ver equipe'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _openTeam(profile.team!),
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
           GdSectionTitle(
             title: 'Projetos',
             eyebrow: 'A GARAGEM',

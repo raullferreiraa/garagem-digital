@@ -689,6 +689,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.repository,
           onConversationChanged: widget.onConversationChanged,
         ),
       ),

@@ -344,6 +344,7 @@ def detalhar(db: Session, encontro_id: UUID, usuario_id: UUID) -> EncontroRespos
 def participantes_edicao(
     db: Session, encontro_id: UUID, edicao_id: UUID, usuario_id: UUID,
     tipo: str = "pessoas", offset: int = 0, limite: int = 30,
+    busca: str | None = None,
 ) -> ParticipantesEdicaoResposta:
     encontro = db.get(Encontro, encontro_id)
     if encontro is None or not _visivel(db, encontro, usuario_id):
@@ -361,6 +362,12 @@ def participantes_edicao(
             Usuario.id.not_in(ids_com_bloqueio(db, usuario_id)),
         )
     )
+    termo = busca.strip().removeprefix("@") if busca else ""
+    if termo:
+        padrao = f"%{termo}%"
+        pessoas_base = pessoas_base.where(
+            or_(Usuario.nome.ilike(padrao), Usuario.username.ilike(padrao))
+        )
     equipe_usuario, _ = _equipe_e_papel(db, usuario_id)
     equipes_base = (
         select(Equipe)
@@ -374,6 +381,8 @@ def participantes_edicao(
             ),
         )
     )
+    if termo:
+        equipes_base = equipes_base.where(Equipe.nome.ilike(padrao))
     total_pessoas = db.scalar(select(func.count()).select_from(pessoas_base.subquery())) or 0
     total_equipes = db.scalar(select(func.count()).select_from(equipes_base.subquery())) or 0
     pessoas = db.execute(

@@ -21,10 +21,15 @@ final class EventsRepository {
   }
 
   Future<EventParticipants> participants(String id, String editionId,
-      {required String type, int offset = 0}) async {
+      {required String type, int offset = 0, String query = ''}) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/eventos/$id/edicoes/$editionId/participantes',
-      queryParameters: {'tipo': type, 'offset': offset, 'limite': 30},
+      queryParameters: {
+        'tipo': type,
+        'offset': offset,
+        'limite': 30,
+        if (query.trim().isNotEmpty) 'busca': query.trim(),
+      },
     );
     return EventParticipants.fromJson(response.data!);
   }

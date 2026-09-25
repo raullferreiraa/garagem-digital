@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -28,6 +30,10 @@ final class EventParticipantsScreen extends StatefulWidget {
 }
 
 class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
+  final _searchController = TextEditingController();
+  final _scrollController = ScrollController();
+  Timer? _debounce;
+  String _query = '';
   String _type = 'pessoas';
   final List<EventParticipant> _people = [];
   final List<EventTeamParticipant> _teams = [];
@@ -39,6 +45,14 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
   void initState() {
     super.initState();
     _load(reset: true);
+  }
+
+  @override
+  void dispose() {
+    _debounce?.cancel();
+    _searchController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   Future<void> _load({bool reset = false}) async {
@@ -59,6 +73,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
         widget.edition.id,
         type: type,
         offset: type == 'pessoas' ? _people.length : _teams.length,
+        query: _query,
       );
       if (!mounted || revision != _revision) return;
       setState(() {
@@ -76,8 +91,27 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
 
   void _select(String type) {
     if (_type == type) return;
+    _debounce?.cancel();
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
     setState(() => _type = type);
     _load(reset: true);
+  }
+
+  void _queryChanged(String value) {
+    _debounce?.cancel();
+    ++_revision;
+    if (_scrollController.hasClients) _scrollController.jumpTo(0);
+    setState(() {
+      _query = value.trim();
+      _people.clear();
+      _teams.clear();
+      _totalPeople = 0;
+      _totalTeams = 0;
+      _error = null;
+      _loading = true;
+    });
+    _debounce =
+        Timer(const Duration(milliseconds: 300), () => _load(reset: true));
   }
 
   @override
@@ -92,6 +126,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
       body: RefreshIndicator(
         onRefresh: () => _load(reset: true),
         child: ListView.builder(
+          controller: _scrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
           itemCount: count + 2,
@@ -108,6 +143,28 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                           color:
                               Theme.of(context).colorScheme.onSurfaceVariant)),
                   const SizedBox(height: 20),
+                  TextField(
+                    controller: _searchController,
+                    onChanged: _queryChanged,
+                    textInputAction: TextInputAction.search,
+                    maxLength: 100,
+                    decoration: InputDecoration(
+                      hintText: 'Buscar pessoas ou equipes',
+                      counterText: '',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _query.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Limpar busca',
+                              onPressed: () {
+                                _searchController.clear();
+                                _queryChanged('');
+                              },
+                              icon: const Icon(Icons.close),
+                            ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                   Row(children: [
                     Expanded(child: _tab('pessoas', 'Pessoas', _totalPeople)),
                     const SizedBox(width: 8),
@@ -135,9 +192,11 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                 return Padding(
                   padding: const EdgeInsets.symmetric(vertical: 36),
                   child: Center(
-                      child: Text(_type == 'pessoas'
-                          ? 'Ninguém confirmou presença nesta edição ainda.'
-                          : 'Nenhuma equipe confirmou participação nesta edição ainda.')),
+                      child: Text(_query.isNotEmpty
+                          ? 'Nenhum resultado para “$_query”.'
+                          : _type == 'pessoas'
+                              ? 'Ninguém confirmou presença nesta edição ainda.'
+                              : 'Nenhuma equipe confirmou participação nesta edição ainda.')),
                 );
               }
               if (count < total) {
