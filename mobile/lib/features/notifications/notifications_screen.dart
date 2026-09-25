@@ -167,6 +167,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       'convite_equipe' => Icons.mail_outline_rounded,
       'convite_equipe_aceito' => Icons.group_add_outlined,
       'convite_equipe_recusado' => Icons.person_remove_outlined,
+      'nova_edicao_encontro' => Icons.event_available_outlined,
+      'edicao_encontro_alterada' => Icons.edit_calendar_outlined,
+      'edicao_encontro_cancelada' => Icons.event_busy_outlined,
       _ => Icons.notifications_outlined,
     };
   }
@@ -333,41 +336,61 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Stack(
-                                              clipBehavior: Clip.none,
-                                              children: [
-                                                GdAvatar(
-                                                    url: item.actorAvatarUrl,
-                                                    name: item.actorUsername ??
-                                                        'GD',
-                                                    size: 44),
-                                                Positioned(
-                                                  right: -3,
-                                                  bottom: -3,
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(4),
-                                                    decoration: BoxDecoration(
-                                                      color: !isNewThisVisit
-                                                          ? colors
-                                                              .surfaceContainerHighest
-                                                          : colors.primary,
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                          color: colors.surface,
-                                                          width: 2),
-                                                    ),
-                                                    child: Icon(
-                                                        _icon(item.type),
-                                                        size: 12,
+                                            if (item.eventId != null)
+                                              Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: BoxDecoration(
+                                                  color: colors.primary
+                                                      .withValues(alpha: 0.14),
+                                                  borderRadius:
+                                                      BorderRadius.circular(14),
+                                                ),
+                                                child: Icon(
+                                                  _icon(item.type),
+                                                  color: colors.primary,
+                                                ),
+                                              )
+                                            else
+                                              Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  GdAvatar(
+                                                      url: item.actorAvatarUrl,
+                                                      name:
+                                                          item.actorUsername ??
+                                                              'GD',
+                                                      size: 44),
+                                                  Positioned(
+                                                    right: -3,
+                                                    bottom: -3,
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              4),
+                                                      decoration: BoxDecoration(
                                                         color: !isNewThisVisit
                                                             ? colors
-                                                                .onSurfaceVariant
-                                                            : colors.onPrimary),
+                                                                .surfaceContainerHighest
+                                                            : colors.primary,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                            color:
+                                                                colors.surface,
+                                                            width: 2),
+                                                      ),
+                                                      child: Icon(
+                                                          _icon(item.type),
+                                                          size: 12,
+                                                          color: !isNewThisVisit
+                                                              ? colors
+                                                                  .onSurfaceVariant
+                                                              : colors
+                                                                  .onPrimary),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
+                                                ],
+                                              ),
                                             const SizedBox(width: 13),
                                             Expanded(
                                               child: Column(

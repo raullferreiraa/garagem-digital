@@ -15,6 +15,7 @@ from app.models.evento import (
 )
 from app.models.usuario import Usuario
 from app.schemas.evento import EdicaoCriacao, EdicaoResposta, EncontroCriacao, EncontroResposta, EncontroAtualizacao
+from app.services.notificacoes import criar_notificacao
 
 
 class EventoNaoEncontrado(ValueError):
@@ -61,6 +62,46 @@ def _proxima_edicao(db: Session, encontro_id: UUID) -> Evento | None:
         .order_by(Evento.inicio, Evento.id)
         .limit(1)
     )
+
+
+def _avisar_edicao(
+    db: Session,
+    encontro: Encontro,
+    edicao: Evento,
+    ator_id: UUID,
+    tipo: str,
+    mensagem: str,
+) -> None:
+    destinatarios = set(db.scalars(
+        select(SeguidorEncontro.usuario_id).where(
+            SeguidorEncontro.encontro_id == encontro.id
+        )
+    ))
+    if tipo != "nova_edicao_encontro":
+        destinatarios.update(db.scalars(
+            select(PresencaEvento.usuario_id).where(
+                PresencaEvento.evento_id == edicao.id,
+                PresencaEvento.status == "confirmada",
+            )
+        ))
+        destinatarios.update(db.scalars(
+            select(MembroEquipe.usuario_id)
+            .join(ParticipacaoEquipeEvento, MembroEquipe.equipe_id == ParticipacaoEquipeEvento.equipe_id)
+            .where(
+                ParticipacaoEquipeEvento.evento_id == edicao.id,
+                ParticipacaoEquipeEvento.status == "confirmada",
+            )
+        ))
+    for destinatario_id in destinatarios:
+        if _visivel(db, encontro, destinatario_id):
+            criar_notificacao(
+                db,
+                destinatario_id=destinatario_id,
+                ator_id=ator_id,
+                tipo=tipo,
+                mensagem=mensagem,
+                encontro_id=encontro.id,
+            )
 
 
 def _resposta(db: Session, encontro: Encontro, edicao: Evento | None, usuario_id: UUID) -> EncontroResposta:
@@ -144,7 +185,12 @@ def criar(db: Session, usuario: Usuario, dados: EncontroCriacao) -> EncontroResp
 
 def criar_edicao(db: Session, encontro_id: UUID, usuario_id: UUID, dados: EdicaoCriacao) -> EncontroResposta:
     encontro = gerenciavel(db, encontro_id, usuario_id, bloquear=True)
-    _nova_edicao(db, encontro, usuario_id, dados)
+    edicao = _nova_edicao(db, encontro, usuario_id, dados)
+    _avisar_edicao(
+        db, encontro, edicao, usuario_id,
+        "nova_edicao_encontro",
+        f"Nova edição de {encontro.nome} foi marcada. Confira a data e o local.",
+    )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
@@ -190,11 +236,31 @@ def atualizar_edicao(
         raise AcaoEventoNaoPermitida("Uma edição cancelada não pode ser alterada.")
     if _em_utc(edicao.inicio) < datetime.now(timezone.utc):
         raise AcaoEventoNaoPermitida("Uma edição já realizada não pode ser alterada.")
+    antes = (
+        _em_utc(edicao.inicio),
+        _em_utc(edicao.termino) if edicao.termino else None,
+        edicao.endereco_publico,
+        edicao.cidade,
+        edicao.estado,
+    )
     edicao.inicio = dados.inicio
     edicao.termino = dados.termino
     edicao.endereco_publico = dados.endereco_publico
     edicao.cidade = encontro.cidade if dados.usar_regiao_comunidade else dados.cidade
     edicao.estado = encontro.estado if dados.usar_regiao_comunidade else dados.estado
+    depois = (
+        _em_utc(edicao.inicio),
+        _em_utc(edicao.termino) if edicao.termino else None,
+        edicao.endereco_publico,
+        edicao.cidade,
+        edicao.estado,
+    )
+    if antes != depois:
+        _avisar_edicao(
+            db, encontro, edicao, usuario_id,
+            "edicao_encontro_alterada",
+            f"A edição de {encontro.nome} mudou. Confira a data e o local.",
+        )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
@@ -212,7 +278,14 @@ def cancelar_edicao(
         raise EventoNaoEncontrado("Edição não encontrada.")
     if _em_utc(edicao.inicio) < datetime.now(timezone.utc):
         raise AcaoEventoNaoPermitida("Uma edição já realizada não pode ser cancelada.")
+    if edicao.status == "cancelada":
+        return detalhar(db, encontro_id, usuario_id)
     edicao.status = "cancelada"
+    _avisar_edicao(
+        db, encontro, edicao, usuario_id,
+        "edicao_encontro_cancelada",
+        f"A edição de {encontro.nome} foi cancelada.",
+    )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 

@@ -12,6 +12,7 @@ final class AppNotification {
     this.carId,
     this.evolutionId,
     this.teamId,
+    this.eventId,
     this.commentId,
     this.readAt,
   });
@@ -28,6 +29,7 @@ final class AppNotification {
       carId: json['carro_id'] as String?,
       evolutionId: json['evolucao_id'] as String?,
       teamId: json['equipe_id'] as String?,
+      eventId: json['encontro_id'] as String?,
       commentId: json['comentario_id'] as String?,
       readAt: json['lida_em'] == null
           ? null
@@ -45,6 +47,7 @@ final class AppNotification {
   final String? carId;
   final String? evolutionId;
   final String? teamId;
+  final String? eventId;
   final String? commentId;
   final DateTime? readAt;
   final DateTime createdAt;
@@ -62,6 +65,7 @@ final class AppNotification {
       carId: carId,
       evolutionId: evolutionId,
       teamId: teamId,
+      eventId: eventId,
       commentId: commentId,
       readAt: readAt ?? this.readAt,
       createdAt: createdAt,

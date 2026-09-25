@@ -290,6 +290,23 @@ final class _HomeShellState extends State<HomeShell>
         return;
       }
 
+      if (notification.eventId != null) {
+        final event =
+            await widget.eventsRepository.detail(notification.eventId!);
+        if (!mounted ||
+            !activityContext.mounted ||
+            ModalRoute.of(activityContext)?.isCurrent != true) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => EventCommunityScreen(
+              event: event,
+              repository: widget.eventsRepository,
+            ),
+          ),
+        );
+        return;
+      }
+
       if (notification.carId != null && notification.evolutionId != null) {
         final evolution = await widget.evolutionsRepository.detail(
           notification.carId!,
@@ -337,6 +354,9 @@ final class _HomeShellState extends State<HomeShell>
     }
     if (notification.teamId != null) {
       return 'Esta equipe não está mais disponível.';
+    }
+    if (notification.eventId != null) {
+      return 'Este encontro não está mais disponível.';
     }
     return 'Este conteúdo não está mais disponível.';
   }
