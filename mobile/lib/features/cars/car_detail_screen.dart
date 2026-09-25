@@ -53,12 +53,48 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   int _carRequest = 0;
   bool _deleting = false;
   bool _updatingPhoto = false;
+  bool? _saved;
+  bool _changingSaved = false;
 
   @override
   void initState() {
     super.initState();
     _evolutions = widget.evolutionsRepository.byCar(_car.id);
     unawaited(_refreshCarSilently());
+    if (!widget.canManage && widget.currentUserId.isNotEmpty) {
+      unawaited(_loadSaved());
+    }
+  }
+
+  Future<void> _loadSaved() async {
+    try {
+      final saved = await widget.repository.isSaved(_car.id);
+      if (mounted) setState(() => _saved = saved);
+    } catch (_) {
+      // O projeto continua acessível mesmo se o estado de salvos falhar.
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    if (_changingSaved || _saved == null) return;
+    final next = !_saved!;
+    setState(() => _changingSaved = true);
+    try {
+      await widget.repository.setSaved(_car.id, saved: next);
+      if (!mounted) return;
+      setState(() => _saved = next);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(next ? 'Projeto salvo.' : 'Projeto removido dos salvos.'),
+      ));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingSaved = false);
+    }
   }
 
   Future<void> _refreshCarSilently() async {
@@ -704,6 +740,14 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       appBar: AppBar(
         title: const Text('Projeto'),
         actions: [
+          if (!widget.canManage && widget.currentUserId.isNotEmpty)
+            IconButton(
+              onPressed: _saved == null || _changingSaved ? null : _toggleSaved,
+              tooltip: _saved == true ? 'Remover dos salvos' : 'Salvar projeto',
+              icon: Icon(_saved == true
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded),
+            ),
           GdShareAction(
             payload: ShareContent.project(_car),
             tooltip: 'Compartilhar projeto',

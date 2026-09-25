@@ -25,7 +25,8 @@ final class CarsRepository {
 
   Future<List<Car>> feed({
     CarFeedOrder order = CarFeedOrder.recent,
-  }) async => (await feedPage(order: order)).items;
+  }) async =>
+      (await feedPage(order: order)).items;
 
   Future<CarPage> feedPage({
     CarFeedOrder order = CarFeedOrder.recent,
@@ -66,6 +67,36 @@ final class CarsRepository {
         .cast<Map<String, Object?>>()
         .map(Car.fromJson)
         .toList(growable: false);
+  }
+
+  Future<CarPage> saved({String? cursor}) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/salvos',
+      queryParameters: {if (cursor != null) 'cursor': cursor},
+    );
+    final items = response.data!['itens']! as List<Object?>;
+    return CarPage(
+      items: items
+          .cast<Map<String, Object?>>()
+          .map(Car.fromJson)
+          .toList(growable: false),
+      nextCursor: response.data!['proximo_cursor'] as String?,
+    );
+  }
+
+  Future<bool> isSaved(String carId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/salvo',
+    );
+    return response.data!['salvo']! as bool;
+  }
+
+  Future<void> setSaved(String carId, {required bool saved}) async {
+    if (saved) {
+      await _api.dio.put<void>('/carros/$carId/salvo');
+    } else {
+      await _api.dio.delete<void>('/carros/$carId/salvo');
+    }
   }
 
   Future<Car> detail(String carId) async {

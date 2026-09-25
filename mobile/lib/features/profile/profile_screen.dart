@@ -10,6 +10,7 @@ import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
 import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garagem_mobile/features/cars/saved_projects_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
@@ -233,6 +234,17 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _openSavedProjects() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => SavedProjectsScreen(
+        repository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        onProfileTap: _openPublicProfile,
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.session.user!;
@@ -240,6 +252,11 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Perfil'),
         actions: [
+          IconButton(
+            onPressed: _openSavedProjects,
+            tooltip: 'Projetos salvos',
+            icon: const Icon(Icons.bookmark_border_rounded),
+          ),
           GdShareAction(
             payload: ShareContent.profileValues(
               name: user.name,
