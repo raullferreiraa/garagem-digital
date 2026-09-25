@@ -73,6 +73,8 @@ void main() {
     expect(find.text('Garagem Capixaba'), findsNothing);
     await tester.tap(find.byTooltip('Limpar busca'));
     await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Próximos'));
     await tester.pumpAndSettle();
     expect(find.text('Clássicos da Praia'), findsOneWidget);
@@ -102,6 +104,133 @@ void main() {
     expect(find.text('Clássicos da Praia'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('confirmados reúne presença pessoal e participação da equipe',
+      (tester) async {
+    final personal = community(scheduled: true)
+      ..['id'] = 'pessoal'
+      ..['nome'] = 'Encontro Pessoal'
+      ..['minha_presenca'] = 'confirmada';
+    final team = community(scheduled: true)
+      ..['id'] = 'equipe'
+      ..['nome'] = 'Encontro da Equipe'
+      ..['minha_equipe_participacao'] = 'confirmada';
+    final other = community(scheduled: true)
+      ..['id'] = 'outro'
+      ..['nome'] = 'Outro Encontro';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(
+          Response(requestOptions: options, data: [personal, team, other]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Confirmados'), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.text('Encontro Pessoal'), findsOneWidget);
+    expect(find.text('Presença confirmada'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Encontro da Equipe'), findsOneWidget);
+    expect(find.text('Equipe confirmada'), findsOneWidget);
+    expect(find.text('Outro Encontro'), findsNothing);
+  });
+
+  testWidgets('filtro confirmado vazio explica como participar',
+      (tester) async {
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [community()]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhuma participação confirmada.'), findsOneWidget);
+    expect(find.text('Ver todos os encontros'), findsOneWidget);
+  });
+
+  testWidgets('limpar filtro preserva a busca digitada', (tester) async {
+    final event = community(scheduled: true)..['minha_presenca'] = 'confirmada';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [event]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Praia');
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    await tester.tap(find.byTooltip('Limpar filtro'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Praia');
+    expect(find.text('Exibindo: Confirmados'), findsNothing);
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+  });
+
+  testWidgets('seletor de filtros cabe em tela estreita com texto ampliado',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [community()]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!),
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Próximos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Próximos'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Praia');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Limpar busca'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

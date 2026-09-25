@@ -28,6 +28,21 @@ class EventsScreen extends StatefulWidget {
 }
 
 class _EventsScreenState extends State<EventsScreen> {
+  static const _filterOptions = [
+    ('Todos', Icons.apps_rounded, 'Todas as comunidades'),
+    ('Próximos', Icons.event_outlined, 'Com próxima edição marcada'),
+    (
+      'Confirmados',
+      Icons.how_to_reg_outlined,
+      'Você ou sua equipe vai participar'
+    ),
+    (
+      'Seguindo',
+      Icons.favorite_border_rounded,
+      'Comunidades que você acompanha'
+    ),
+    ('Organizo', Icons.shield_outlined, 'Encontros que você gerencia'),
+  ];
   List<GarageEvent>? _events;
   Object? _error;
   bool _loading = false;
@@ -65,6 +80,43 @@ class _EventsScreenState extends State<EventsScreen> {
       _search = '';
       _filter = 'Todos';
     });
+  }
+
+  Future<void> _chooseFilter() async {
+    FocusScope.of(context).unfocus();
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * .72),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            children: [
+              Text('Mostrar encontros',
+                  style: Theme.of(sheetContext).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              for (final (label, icon, description) in _filterOptions)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: Icon(icon),
+                  title: Text(label),
+                  subtitle: Text(description),
+                  trailing: _filter == label
+                      ? Icon(Icons.check_circle,
+                          color: Theme.of(sheetContext).colorScheme.primary)
+                      : null,
+                  selected: _filter == label,
+                  onTap: () => Navigator.of(sheetContext).pop(label),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted && selected != null) setState(() => _filter = selected);
   }
 
   @override
@@ -134,6 +186,10 @@ class _EventsScreenState extends State<EventsScreen> {
       final matchesFilter = _filter == 'Todos' ||
           (_filter == 'Seguindo' && event.following) ||
           (_filter == 'Organizo' && event.canManage) ||
+          (_filter == 'Confirmados' &&
+              event.startsAt != null &&
+              (event.myPresence == 'confirmada' ||
+                  event.myTeamParticipation == 'confirmada')) ||
           (_filter == 'Próximos' &&
               event.startsAt != null &&
               !event.startsAt!.isBefore(now));
@@ -179,31 +235,48 @@ class _EventsScreenState extends State<EventsScreen> {
                           onSubmitted: (_) => FocusScope.of(context).unfocus(),
                           onChanged: (value) => setState(() => _search = value),
                           decoration: InputDecoration(
-                              suffixIcon: _search.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      tooltip: 'Limpar busca',
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _search = '');
-                                      }),
+                              suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_search.isNotEmpty)
+                                      IconButton(
+                                          tooltip: 'Limpar busca',
+                                          icon: const Icon(Icons.close),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() => _search = '');
+                                          }),
+                                    IconButton(
+                                      tooltip: 'Filtrar encontros',
+                                      onPressed: _chooseFilter,
+                                      color: _filter == 'Todos'
+                                          ? null
+                                          : colors.primary,
+                                      icon: Icon(_filter == 'Todos'
+                                          ? Icons.tune_rounded
+                                          : Icons.filter_alt_rounded),
+                                    ),
+                                  ]),
                               prefixIcon: const Icon(Icons.search),
                               hintText: 'Buscar encontro ou cidade')),
-                      const SizedBox(height: 14),
-                      Wrap(spacing: 8, runSpacing: 8, children: [
-                        for (final filter in [
-                          'Todos',
-                          'Próximos',
-                          'Seguindo',
-                          'Organizo'
-                        ])
-                          ChoiceChip(
-                              label: Text(filter),
-                              selected: _filter == filter,
-                              onSelected: (_) =>
-                                  setState(() => _filter = filter)),
-                      ]),
+                      if (_filter != 'Todos') ...[
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Icon(Icons.filter_alt_rounded,
+                              size: 17, color: colors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                              child: Text('Exibindo: $_filter',
+                                  style: TextStyle(
+                                      color: colors.onSurfaceVariant))),
+                          IconButton(
+                              tooltip: 'Limpar filtro',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () =>
+                                  setState(() => _filter = 'Todos'),
+                              icon: const Icon(Icons.close_rounded, size: 18)),
+                        ]),
+                      ],
                       if (_loading && _events != null) ...[
                         const SizedBox(height: 12),
                         const LinearProgressIndicator()
@@ -240,9 +313,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                         ? 'Você ainda não organiza um encontro.'
                                         : _filter == 'Próximos'
                                             ? 'Nenhuma edição com data marcada.'
-                                            : _filter == 'Seguindo'
-                                                ? 'Sua próxima conexão começa aqui.'
-                                                : 'Encontre pessoas que compartilham sua paixão.',
+                                            : _filter == 'Confirmados'
+                                                ? 'Nenhuma participação confirmada.'
+                                                : _filter == 'Seguindo'
+                                                    ? 'Sua próxima conexão começa aqui.'
+                                                    : 'Encontre pessoas que compartilham sua paixão.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
@@ -251,7 +326,9 @@ class _EventsScreenState extends State<EventsScreen> {
                                     ? 'Tente outro nome ou cidade, ou limpe os filtros.'
                                     : _filter == 'Seguindo'
                                         ? 'Siga um encontro para acompanhar sua comunidade.'
-                                        : 'Explore outra busca ou crie o seu encontro.',
+                                        : _filter == 'Confirmados'
+                                            ? 'Confirme sua presença ou a participação da equipe em uma próxima edição.'
+                                            : 'Explore outra busca ou crie o seu encontro.',
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 18),
                             if (_search.isNotEmpty || _filter != 'Todos')
@@ -314,6 +391,14 @@ class _CommunityCard extends StatelessWidget {
                                   '${event.editions.length} edições'),
                               if (event.following)
                                 const _Metric(Icons.check, 'Seguindo'),
+                              if (event.startsAt != null &&
+                                  event.myPresence == 'confirmada')
+                                const _Metric(Icons.how_to_reg_outlined,
+                                    'Presença confirmada'),
+                              if (event.startsAt != null &&
+                                  event.myTeamParticipation == 'confirmada')
+                                const _Metric(
+                                    Icons.groups_outlined, 'Equipe confirmada'),
                             ]),
                             const SizedBox(height: 16),
                             const Divider(height: 1),

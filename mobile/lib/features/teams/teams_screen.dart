@@ -76,6 +76,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
         _teams = updated;
         _loadError = null;
         _loading = false;
+        if ((_view == _TeamView.pending &&
+                !updated.any((team) => team.myRequest == 'pendente')) ||
+            (_view == _TeamView.invites &&
+                !updated.any((team) => team.myInvite == 'pendente'))) {
+          _view = _TeamView.all;
+        }
         if (!updated.any((team) => team.myRole != null)) {
           _exploringDirectory = false;
         }
