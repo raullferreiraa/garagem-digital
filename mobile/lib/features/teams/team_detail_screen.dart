@@ -799,42 +799,38 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
         GdReveal(child: _TeamHero(team: team)),
         const SizedBox(height: 16),
         if (team.myRole != null) ...[
-          FilledButton.icon(
-            onPressed: _acting ? null : () => _openTeamChat(team),
-            icon: Badge.count(
-              count: widget.unreadChatCount,
-              isLabelVisible: widget.unreadChatCount > 0,
-              child: const Icon(Icons.forum_outlined),
-            ),
-            label: Text(widget.unreadChatCount > 0
-                ? 'Conversa da equipe · ${widget.unreadChatCount} não lidas'
-                : 'Conversa da equipe'),
-          ),
-          const SizedBox(height: 16),
-        ],
-        if (team.myRole != null && widget.onTeamEventsTap != null) ...[
-          Material(
-            color: colors.surfaceContainer,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: widget.onTeamEventsTap,
-              child: Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  children: [
-                    Icon(Icons.flag_outlined, color: colors.primary),
-                    const SizedBox(width: 14),
-                    const Expanded(child: Text('Encontros da equipe')),
-                    Icon(Icons.arrow_forward_rounded,
-                        size: 20, color: colors.onSurfaceVariant),
-                  ],
+          SizedBox(
+            height:
+                90 + (MediaQuery.textScalerOf(context).scale(20) - 20) * 1.2,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  flex: 3,
+                  child: _TeamQuickAction(
+                    icon: Icons.forum_outlined,
+                    label: 'Conversa',
+                    semanticsLabel: 'Conversa da equipe',
+                    unreadCount: widget.unreadChatCount,
+                    primary: true,
+                    onTap: _acting ? null : () => _openTeamChat(team),
+                  ),
                 ),
-              ),
+                if (widget.onTeamEventsTap != null) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    flex: 2,
+                    child: _TeamQuickAction(
+                      icon: Icons.flag_outlined,
+                      label: 'Encontros',
+                      semanticsLabel: 'Encontros da equipe',
+                      onTap: widget.onTeamEventsTap,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 8),
         ],
         if (team.belongsToAnotherTeam)
           Card(
@@ -976,57 +972,44 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           title: 'Garagem da equipe',
           trailing: '${team.cars.length}',
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Cada integrante decide qual máquina representa seu projeto aqui.',
-          style: TextStyle(color: colors.onSurfaceVariant),
-        ),
-        if (team.myRole != null)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _acting ? null : () => _chooseCar(team),
-              icon: const Icon(Icons.swap_horiz_rounded),
-              label: Text(
-                team.cars.any((car) => car.ownerId == widget.currentUserId)
-                    ? 'Trocar carro'
-                    : 'Escolher carro',
-              ),
-            ),
+        if (team.cars.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            'Os projetos que representam os integrantes.',
+            style: TextStyle(color: colors.onSurfaceVariant),
           ),
+        ],
         const SizedBox(height: 14),
         if (team.cars.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(28),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: colors.outlineVariant),
-              gradient: LinearGradient(
-                colors: [
-                  colors.surfaceContainerHigh,
-                  colors.surfaceContainer,
-                ],
+          _TeamLinkCard(
+            icon: Icons.directions_car_outlined,
+            title: team.myRole != null ? 'Escolher carro' : 'Garagem vazia',
+            subtitle: team.myRole != null
+                ? 'Mostre o projeto que representa você na equipe.'
+                : 'Os carros escolhidos pelos integrantes aparecerão aqui.',
+            onTap:
+                team.myRole == null || _acting ? null : () => _chooseCar(team),
+          )
+        else ...[
+          if (team.myRole != null) ...[
+            Align(
+              alignment: Alignment.centerLeft,
+              child: OutlinedButton.icon(
+                onPressed: _acting ? null : () => _chooseCar(team),
+                icon: const Icon(Icons.swap_horiz_rounded),
+                label: Text(
+                  team.cars.any((car) => car.ownerId == widget.currentUserId)
+                      ? 'Trocar carro'
+                      : 'Escolher carro',
+                ),
+                style: OutlinedButton.styleFrom(
+                    visualDensity: VisualDensity.compact),
               ),
             ),
-            child: const Column(
-              children: [
-                Icon(Icons.sports_motorsports_outlined, size: 46),
-                SizedBox(height: 12),
-                Text(
-                  'A garagem ainda está vazia',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 6),
-                Text(
-                  'Os carros escolhidos pelos integrantes aparecerão juntos aqui.',
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          )
-        else
+            const SizedBox(height: 12),
+          ],
           SizedBox(
-            height: 270 + (MediaQuery.textScalerOf(context).scale(36) - 36),
+            height: 116 + (MediaQuery.textScalerOf(context).scale(36) - 36),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: team.cars.length,
@@ -1040,21 +1023,13 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               },
             ),
           ),
+        ],
         const SizedBox(height: 28),
         _SectionHeader(
           eyebrow: 'PESSOAS',
           title: 'Integrantes',
           trailing: '${team.memberCount}',
         ),
-        if (team.myRole == 'dono' || team.myRole == 'administrador')
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: _acting ? null : () => _inviteMember(team),
-              icon: const Icon(Icons.person_add_alt_1_rounded),
-              label: const Text('Convidar'),
-            ),
-          ),
         const SizedBox(height: 12),
         AnimatedSize(
           duration: MediaQuery.disableAnimationsOf(context)
@@ -1062,14 +1037,25 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               : const Duration(milliseconds: 240),
           curve: Curves.easeOutCubic,
           alignment: Alignment.topCenter,
-          child: Container(
-            decoration: BoxDecoration(
-              color: colors.surfaceContainer,
-              borderRadius: BorderRadius.circular(22),
-            ),
+          child: Material(
+            color: colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(22),
             clipBehavior: Clip.antiAlias,
             child: Column(
               children: [
+                if (team.myRole == 'dono' ||
+                    team.myRole == 'administrador') ...[
+                  ListTile(
+                    leading: Icon(Icons.person_add_alt_1_rounded,
+                        color: colors.primary),
+                    title: Text('Convidar integrante',
+                        style: TextStyle(color: colors.primary)),
+                    trailing: const Icon(Icons.arrow_forward_rounded),
+                    onTap: _acting ? null : () => _inviteMember(team),
+                  ),
+                  if (team.members.isNotEmpty)
+                    Divider(height: 1, color: colors.outlineVariant),
+                ],
                 for (var index = 0; index < team.members.length; index++) ...[
                   _MemberTile(
                     key: ValueKey(team.members[index].userId),
@@ -1097,6 +1083,155 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           ),
         ],
       ],
+    );
+  }
+}
+
+final class _TeamQuickAction extends StatelessWidget {
+  const _TeamQuickAction({
+    required this.icon,
+    required this.label,
+    required this.semanticsLabel,
+    required this.onTap,
+    this.unreadCount = 0,
+    this.primary = false,
+  });
+
+  final IconData icon;
+  final String label;
+  final String semanticsLabel;
+  final VoidCallback? onTap;
+  final int unreadCount;
+  final bool primary;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final foreground = primary ? colors.onPrimary : colors.onSurface;
+    return Semantics(
+      button: true,
+      enabled: onTap != null,
+      label: unreadCount > 0
+          ? '$semanticsLabel, $unreadCount mensagens não lidas'
+          : semanticsLabel,
+      child: ExcludeSemantics(
+        child: Material(
+          color: primary ? colors.primary : colors.surfaceContainer,
+          elevation: primary ? 1 : 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+            side: BorderSide(
+              color: primary ? colors.primary : colors.outline,
+            ),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              child: Row(
+                children: [
+                  Badge.count(
+                    count: unreadCount,
+                    isLabelVisible: unreadCount > 0,
+                    backgroundColor:
+                        primary ? colors.onPrimary : colors.primary,
+                    textColor: primary ? colors.primary : colors.onPrimary,
+                    child: Icon(icon, color: foreground, size: 23),
+                  ),
+                  const SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: foreground,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+final class _TeamLinkCard extends StatelessWidget {
+  const _TeamLinkCard({
+    required this.icon,
+    required this.title,
+    required this.onTap,
+    this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String? subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    final radius = BorderRadius.circular(20);
+    return Material(
+      color: colors.surfaceContainer,
+      shape: RoundedRectangleBorder(
+        borderRadius: radius,
+        side: BorderSide(
+          color: colors.outlineVariant.withValues(alpha: 0.55),
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: colors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: colors.primary),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                )),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 3),
+                      Text(subtitle!,
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  )),
+                    ],
+                  ],
+                ),
+              ),
+              if (onTap != null) ...[
+                const SizedBox(width: 8),
+                Icon(Icons.arrow_forward_rounded,
+                    size: 20, color: colors.onSurfaceVariant),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1407,37 +1542,59 @@ final class _MemberTile extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            GdAvatar(name: member.name, url: member.avatarUrl, size: 44),
+            GdAvatar(name: member.name, url: member.avatarUrl, size: 40),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(member.name,
-                    style: Theme.of(context).textTheme.titleSmall),
-                const SizedBox(height: 3),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        member.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: member.role == 'membro'
+                            ? colors.surfaceContainerHigh
+                            : colors.primary.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        member.role == 'administrador'
+                            ? 'Admin'
+                            : _roleName(member.role),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: member.role == 'membro'
+                                  ? colors.onSurfaceVariant
+                                  : colors.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
                 Text(
                   '@${member.username}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium
                       ?.copyWith(color: colors.onSurfaceVariant),
-                ),
-                const SizedBox(height: 6),
-                _StatusPill(
-                  icon: member.role == 'dono'
-                      ? Icons.star_outline
-                      : member.role == 'administrador'
-                          ? Icons.shield_outlined
-                          : member.role == 'moderador'
-                              ? Icons.gavel_outlined
-                              : Icons.person_outline,
-                  label: _roleName(member.role),
-                  highlighted: member.role != 'membro',
                 ),
               ],
             )),
@@ -1466,33 +1623,36 @@ final class _TeamCarCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final screenWidth = MediaQuery.sizeOf(context).width;
     return SizedBox(
-      width: 250,
+      width: screenWidth >= 348 ? 300 : screenWidth - 48,
       child: Card(
         margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: Row(
             children: [
               SizedBox(
-                height: 150,
+                width: 104,
+                height: double.infinity,
                 child: GdImage(url: car.photoUrl, semanticLabel: car.model),
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.all(14),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Row(children: [
                         Expanded(
                             child: Text(
                           [car.model, car.year].whereType<Object>().join(' '),
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleLarge,
+                          style: theme.textTheme.titleMedium,
                         )),
                         const SizedBox(width: 8),
                         Icon(Icons.north_east_rounded,
