@@ -62,6 +62,7 @@ final class _HomeShellState extends State<HomeShell>
   int _index = 0;
   int _feedRevision = 0;
   int _eventsRevision = 0;
+  int _teamEventsFilterRequest = 0;
   int _teamsRevision = 0;
   int _messagesRevision = 0;
   int _profileRevision = 0;
@@ -410,6 +411,14 @@ final class _HomeShellState extends State<HomeShell>
     ));
   }
 
+  void _openTeamEvents() {
+    setState(() {
+      _index = 1;
+      _eventsRevision++;
+      _teamEventsFilterRequest++;
+    });
+  }
+
   Future<void> _openSearch({
     SearchCategory initialCategory = SearchCategory.projects,
   }) async {
@@ -465,6 +474,7 @@ final class _HomeShellState extends State<HomeShell>
       ),
       EventsScreen(
         refreshRevision: _eventsRevision,
+        teamFilterRequest: _teamEventsFilterRequest,
         repository: widget.eventsRepository,
         teamsRepository: widget.teamsRepository,
         onPersonTap: _openPublicProfile,
@@ -472,6 +482,7 @@ final class _HomeShellState extends State<HomeShell>
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
+        onTeamEventsTap: _openTeamEvents,
         onSearch: () => _openSearch(initialCategory: SearchCategory.teams),
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,

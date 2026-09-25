@@ -18,12 +18,14 @@ class EventsScreen extends StatefulWidget {
       {required this.repository,
       required this.teamsRepository,
       required this.refreshRevision,
+      this.teamFilterRequest = 0,
       this.onPersonTap,
       this.onTeamTap,
       super.key});
   final EventsRepository repository;
   final TeamsRepository teamsRepository;
   final int refreshRevision;
+  final int teamFilterRequest;
   final Future<void> Function(String id)? onPersonTap, onTeamTap;
   @override
   State<EventsScreen> createState() => _EventsScreenState();
@@ -37,6 +39,11 @@ class _EventsScreenState extends State<EventsScreen> {
       'Confirmados',
       Icons.how_to_reg_outlined,
       'Você ou sua equipe vai participar'
+    ),
+    (
+      'Minha equipe',
+      Icons.groups_outlined,
+      'Comunidades da equipe ou com participação confirmada'
     ),
     (
       'Seguindo',
@@ -130,6 +137,9 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   void didUpdateWidget(covariant EventsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.teamFilterRequest != widget.teamFilterRequest) {
+      _filter = 'Minha equipe';
+    }
     if (oldWidget.refreshRevision != widget.refreshRevision) _reload();
   }
 
@@ -191,6 +201,11 @@ class _EventsScreenState extends State<EventsScreen> {
           (_filter == 'Confirmados' &&
               event.startsAt != null &&
               (event.myPresence == 'confirmada' ||
+                  event.myTeamParticipation == 'confirmada')) ||
+          (_filter == 'Minha equipe' &&
+              event.myTeamId != null &&
+              ((event.organizerType == 'equipe' &&
+                      event.organizerId == event.myTeamId) ||
                   event.myTeamParticipation == 'confirmada')) ||
           (_filter == 'Próximos' &&
               event.startsAt != null &&
@@ -315,11 +330,13 @@ class _EventsScreenState extends State<EventsScreen> {
                                         ? 'Você ainda não organiza um encontro.'
                                         : _filter == 'Próximos'
                                             ? 'Nenhuma edição com data marcada.'
-                                            : _filter == 'Confirmados'
-                                                ? 'Nenhuma participação confirmada.'
-                                                : _filter == 'Seguindo'
-                                                    ? 'Sua próxima conexão começa aqui.'
-                                                    : 'Encontre pessoas que compartilham sua paixão.',
+                                            : _filter == 'Minha equipe'
+                                                ? 'Nenhum encontro da sua equipe ainda.'
+                                                : _filter == 'Confirmados'
+                                                    ? 'Nenhuma participação confirmada.'
+                                                    : _filter == 'Seguindo'
+                                                        ? 'Sua próxima conexão começa aqui.'
+                                                        : 'Encontre pessoas que compartilham sua paixão.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
@@ -328,9 +345,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                     ? 'Tente outro nome ou cidade, ou limpe os filtros.'
                                     : _filter == 'Seguindo'
                                         ? 'Siga um encontro para acompanhar sua comunidade.'
-                                        : _filter == 'Confirmados'
-                                            ? 'Confirme sua presença ou a participação da equipe em uma próxima edição.'
-                                            : 'Explore outra busca ou crie o seu encontro.',
+                                        : _filter == 'Minha equipe'
+                                            ? 'Comunidades organizadas pela equipe ou com participação confirmada aparecerão aqui.'
+                                            : _filter == 'Confirmados'
+                                                ? 'Confirme sua presença ou a participação da equipe em uma próxima edição.'
+                                                : 'Explore outra busca ou crie o seu encontro.',
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 18),
                             if (_search.isNotEmpty || _filter != 'Todos')

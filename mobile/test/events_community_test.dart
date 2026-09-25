@@ -199,6 +199,49 @@ void main() {
     expect(find.text('Clássicos da Praia'), findsOneWidget);
   });
 
+  testWidgets('atalho da equipe reúne comunidade privada e participação',
+      (tester) async {
+    final privateTeam = community()
+      ..['id'] = 'privado'
+      ..['nome'] = 'Comunidade da Equipe'
+      ..['visibilidade'] = 'somente_equipe'
+      ..['organizador_tipo'] = 'equipe'
+      ..['organizador_id'] = 'equipe-id'
+      ..['minha_equipe_id'] = 'equipe-id';
+    final attending = community(scheduled: true)
+      ..['id'] = 'participando'
+      ..['nome'] = 'Encontro Participando'
+      ..['minha_equipe_id'] = 'equipe-id'
+      ..['minha_equipe_participacao'] = 'confirmada';
+    final other = community()
+      ..['id'] = 'outro'
+      ..['nome'] = 'Outro Encontro'
+      ..['minha_equipe_id'] = 'equipe-id';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+          requestOptions: options, data: [privateTeam, attending, other]));
+    }));
+    Widget screen(int request) => MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: request,
+            teamFilterRequest: request));
+    await tester.pumpWidget(screen(0));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(screen(1));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Minha equipe'), findsOneWidget);
+    expect(find.text('Encontro Participando'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Comunidade da Equipe'), findsOneWidget);
+    expect(find.text('Outro Encontro'), findsNothing);
+  });
+
   testWidgets('seletor de filtros cabe em tela estreita com texto ampliado',
       (tester) async {
     tester.view.physicalSize = const Size(320, 700);

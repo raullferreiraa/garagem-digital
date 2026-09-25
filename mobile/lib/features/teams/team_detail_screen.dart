@@ -35,6 +35,7 @@ final class TeamDetailScreen extends StatefulWidget {
     required this.onConversationChanged,
     this.isMyTeamHome = false,
     this.onExploreTeams,
+    this.onTeamEventsTap,
     this.onMembershipChanged,
     this.unreadChatCount = 0,
     this.onTeamChatChanged,
@@ -52,6 +53,7 @@ final class TeamDetailScreen extends StatefulWidget {
   final VoidCallback onConversationChanged;
   final bool isMyTeamHome;
   final VoidCallback? onExploreTeams;
+  final VoidCallback? onTeamEventsTap;
   final VoidCallback? onMembershipChanged;
   final int unreadChatCount;
   final VoidCallback? onTeamChatChanged;
@@ -810,6 +812,30 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           ),
           const SizedBox(height: 16),
         ],
+        if (team.myRole != null && widget.onTeamEventsTap != null) ...[
+          Material(
+            color: colors.surfaceContainer,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: widget.onTeamEventsTap,
+              child: Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  children: [
+                    Icon(Icons.flag_outlined, color: colors.primary),
+                    const SizedBox(width: 14),
+                    const Expanded(child: Text('Encontros da equipe')),
+                    Icon(Icons.arrow_forward_rounded,
+                        size: 20, color: colors.onSurfaceVariant),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+        ],
         if (team.belongsToAnotherTeam)
           Card(
             child: Padding(
@@ -914,32 +940,6 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               ],
             ),
           ),
-        if (team.myRole != null)
-          FilledButton.tonalIcon(
-            onPressed: _acting ? null : () => _chooseCar(team),
-            icon: const Icon(Icons.swap_horiz),
-            label: Text(
-              team.cars.any((car) => car.ownerId == widget.currentUserId)
-                  ? 'Trocar meu carro na equipe'
-                  : 'Escolher meu carro para a equipe',
-            ),
-          ),
-        if (team.myRole == 'dono' || team.myRole == 'administrador') ...[
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed: _acting ? null : () => _inviteMember(team),
-            icon: const Icon(Icons.person_add_alt_1_rounded),
-            label: const Text('Convidar integrante'),
-          ),
-        ],
-        if (team.myRole != null && team.myRole != 'dono') ...[
-          const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: _acting ? null : () => _leaveTeam(team),
-            icon: const Icon(Icons.logout_rounded),
-            label: const Text('Sair da equipe'),
-          ),
-        ],
         if (team.pendingRequests.isNotEmpty) ...[
           const SizedBox(height: 24),
           _SectionHeader(
@@ -981,6 +981,19 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           'Cada integrante decide qual máquina representa seu projeto aqui.',
           style: TextStyle(color: colors.onSurfaceVariant),
         ),
+        if (team.myRole != null)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _acting ? null : () => _chooseCar(team),
+              icon: const Icon(Icons.swap_horiz_rounded),
+              label: Text(
+                team.cars.any((car) => car.ownerId == widget.currentUserId)
+                    ? 'Trocar carro'
+                    : 'Escolher carro',
+              ),
+            ),
+          ),
         const SizedBox(height: 14),
         if (team.cars.isEmpty)
           Container(
@@ -1033,6 +1046,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           title: 'Integrantes',
           trailing: '${team.memberCount}',
         ),
+        if (team.myRole == 'dono' || team.myRole == 'administrador')
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: _acting ? null : () => _inviteMember(team),
+              icon: const Icon(Icons.person_add_alt_1_rounded),
+              label: const Text('Convidar'),
+            ),
+          ),
         const SizedBox(height: 12),
         AnimatedSize(
           duration: MediaQuery.disableAnimationsOf(context)
@@ -1064,6 +1086,16 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             ),
           ),
         ),
+        if (team.myRole != null && team.myRole != 'dono') ...[
+          const SizedBox(height: 18),
+          Center(
+            child: TextButton.icon(
+              onPressed: _acting ? null : () => _leaveTeam(team),
+              icon: const Icon(Icons.logout_rounded),
+              label: const Text('Sair da equipe'),
+            ),
+          ),
+        ],
       ],
     );
   }
