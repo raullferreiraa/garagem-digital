@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/events/event.dart';
@@ -165,19 +166,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
                           hintText: 'Ex.: estacionamento, praça ou autódromo')),
                   const SizedBox(height: 12),
                 ],
-                Row(children: [
-                  Expanded(
-                      child: TextFormField(
-                          controller: _city,
-                          decoration:
-                              const InputDecoration(labelText: 'Cidade'))),
-                  const SizedBox(width: 12),
-                  Expanded(
-                      child: TextFormField(
-                          controller: _state,
-                          decoration:
-                              const InputDecoration(labelText: 'Estado'))),
-                ]),
+                BrazilCityField(
+                  cityController: _city,
+                  stateController: _state,
+                  label: 'Região da comunidade',
+                ),
                 if (widget.team != null && widget.event == null) ...[
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(

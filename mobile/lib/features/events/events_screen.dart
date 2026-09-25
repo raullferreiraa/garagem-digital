@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/event_form_screen.dart';
@@ -1000,19 +1001,12 @@ class _EditionFormState extends State<_EditionForm> {
                   : (value) => setState(() => _useCommunityRegion = value)),
           if (!_useCommunityRegion) ...[
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: _city,
-                      decoration:
-                          const InputDecoration(labelText: 'Cidade *'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: TextField(
-                      controller: _state,
-                      decoration:
-                          const InputDecoration(labelText: 'Estado *'))),
-            ]),
+            BrazilCityField(
+              cityController: _city,
+              stateController: _state,
+              label: 'Cidade e estado desta edição *',
+              enabled: !_saving,
+            ),
           ],
           const SizedBox(height: 24),
           FilledButton(
