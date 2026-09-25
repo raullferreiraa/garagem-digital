@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/events/event.dart';
+import 'package:garagem_mobile/features/events/event_participants.dart';
 
 final class EventsRepository {
   EventsRepository(this._api);
@@ -17,6 +18,20 @@ final class EventsRepository {
   Future<GarageEvent> detail(String id) async {
     final response = await _api.dio.get<Map<String, Object?>>('/eventos/$id');
     return GarageEvent.fromJson(response.data!);
+  }
+
+  Future<EventParticipants> participants(String id, String editionId,
+      {required String type, int offset = 0, String query = ''}) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/eventos/$id/edicoes/$editionId/participantes',
+      queryParameters: {
+        'tipo': type,
+        'offset': offset,
+        'limite': 30,
+        if (query.trim().isNotEmpty) 'busca': query.trim(),
+      },
+    );
+    return EventParticipants.fromJson(response.data!);
   }
 
   Future<GarageEvent> update(String id, EventInput input) async {

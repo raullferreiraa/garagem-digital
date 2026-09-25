@@ -7,6 +7,7 @@ import 'package:garagem_mobile/core/theme/app_theme.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/events/events_screen.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 class _Tokens implements TokenStorage {
@@ -45,6 +46,43 @@ Map<String, Object?> community({bool scheduled = false}) => {
     };
 
 void main() {
+  testWidgets('busca cidade da edição e filtra comunidades com próxima data',
+      (tester) async {
+    final scheduled = community(scheduled: true)
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final unscheduled = community()
+      ..['id'] = 'sem-data'
+      ..['nome'] = 'Garagem Capixaba';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(
+          Response(requestOptions: options, data: [unscheduled, scheduled]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    expect(find.text('Curitiba · PR'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Curitiba');
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(find.text('Garagem Capixaba'), findsNothing);
+    await tester.tap(find.byTooltip('Limpar busca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Próximos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(find.text('Garagem Capixaba'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('busca vazia oferece limpar filtros e recupera encontros',
       (tester) async {
     final api =
@@ -67,6 +105,176 @@ void main() {
     expect(find.text('Clássicos da Praia'), findsOneWidget);
     expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
         isEmpty);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('confirmados reúne presença pessoal e participação da equipe',
+      (tester) async {
+    final personal = community(scheduled: true)
+      ..['id'] = 'pessoal'
+      ..['nome'] = 'Encontro Pessoal'
+      ..['minha_presenca'] = 'confirmada';
+    final team = community(scheduled: true)
+      ..['id'] = 'equipe'
+      ..['nome'] = 'Encontro da Equipe'
+      ..['minha_equipe_participacao'] = 'confirmada';
+    final other = community(scheduled: true)
+      ..['id'] = 'outro'
+      ..['nome'] = 'Outro Encontro';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(
+          Response(requestOptions: options, data: [personal, team, other]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Confirmados'), findsOneWidget);
+    expect(find.byType(ChoiceChip), findsNothing);
+    expect(find.text('Encontro Pessoal'), findsOneWidget);
+    expect(find.text('Presença confirmada'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Encontro da Equipe'), findsOneWidget);
+    expect(find.text('Equipe confirmada'), findsOneWidget);
+    expect(find.text('Outro Encontro'), findsNothing);
+  });
+
+  testWidgets('filtro confirmado vazio explica como participar',
+      (tester) async {
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [community()]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhuma participação confirmada.'), findsOneWidget);
+    expect(find.text('Ver todos os encontros'), findsOneWidget);
+  });
+
+  testWidgets('limpar filtro preserva a busca digitada', (tester) async {
+    final event = community(scheduled: true)..['minha_presenca'] = 'confirmada';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [event]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Praia');
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Confirmados'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    await tester.tap(find.byTooltip('Limpar filtro'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+        'Praia');
+    expect(find.text('Exibindo: Confirmados'), findsNothing);
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+  });
+
+  testWidgets('atalho da equipe reúne comunidade privada e participação',
+      (tester) async {
+    final privateTeam = community()
+      ..['id'] = 'privado'
+      ..['nome'] = 'Comunidade da Equipe'
+      ..['visibilidade'] = 'somente_equipe'
+      ..['organizador_tipo'] = 'equipe'
+      ..['organizador_id'] = 'equipe-id'
+      ..['minha_equipe_id'] = 'equipe-id';
+    final attending = community(scheduled: true)
+      ..['id'] = 'participando'
+      ..['nome'] = 'Encontro Participando'
+      ..['minha_equipe_id'] = 'equipe-id'
+      ..['minha_equipe_participacao'] = 'confirmada';
+    final other = community()
+      ..['id'] = 'outro'
+      ..['nome'] = 'Outro Encontro'
+      ..['minha_equipe_id'] = 'equipe-id';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+          requestOptions: options, data: [privateTeam, attending, other]));
+    }));
+    Widget screen(int request) => MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: request,
+            teamFilterRequest: request));
+    await tester.pumpWidget(screen(0));
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(screen(1));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Minha equipe'), findsOneWidget);
+    expect(find.text('Encontro Participando'), findsOneWidget);
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, -600));
+    await tester.pumpAndSettle();
+    expect(find.text('Comunidade da Equipe'), findsOneWidget);
+    expect(find.text('Outro Encontro'), findsNothing);
+  });
+
+  testWidgets('seletor de filtros cabe em tela estreita com texto ampliado',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [community()]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.6)),
+            child: child!),
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Filtrar encontros'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Próximos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Exibindo: Próximos'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Praia');
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Limpar busca'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -101,7 +309,10 @@ void main() {
         ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
     RequestOptions? sent;
     api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'PUT') sent = options;
+      if (options.method == 'PUT') {
+        sent = options;
+        data['minha_equipe_participacao'] = 'confirmada';
+      }
       handler.resolve(Response(requestOptions: options, data: data));
     }));
     await tester.pumpWidget(MaterialApp(
@@ -130,6 +341,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(sent!.data, {'status': 'confirmada', 'confirmar_integrantes': true});
     expect(sent!.queryParameters, {'edicao_id': 'edicao'});
+    expect(
+        find.widgetWithText(OutlinedButton, 'Levar Clássicos'), findsNothing);
+    expect(find.text('Equipe confirmada · Gerenciar'), findsOneWidget);
   });
 
   testWidgets('exclusão da comunidade pode ser cancelada sem enviar requisição',
@@ -156,6 +370,77 @@ void main() {
     await tester.tap(find.text('Voltar'));
     await tester.pumpAndSettle();
     expect(deletes, 0);
+  });
+
+  for (final organizerIsTeam in [false, true]) {
+    testWidgets(
+        'organização ${organizerIsTeam ? 'equipe' : 'pessoa'} abre o destino certo',
+        (tester) async {
+      final data = community()
+        ..['organizador_tipo'] = organizerIsTeam ? 'equipe' : 'usuario'
+        ..['organizador_nome'] = organizerIsTeam ? 'Equipe da Praia' : 'Raul'
+        ..['organizador_id'] = organizerIsTeam ? 'equipe-id' : 'pessoa-id';
+      final api = ApiClient(
+          baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        handler.resolve(Response(requestOptions: options, data: data));
+      }));
+      String? openedPerson, openedTeam;
+      await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: EventCommunityScreen(
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api),
+            onPersonTap: (id) async {
+              openedPerson = id;
+            },
+            onTeamTap: (id) async {
+              openedTeam = id;
+            },
+          )));
+      await tester.pumpAndSettle();
+      final name = organizerIsTeam ? 'Equipe da Praia' : 'Raul';
+      await tester.ensureVisible(find.text(name));
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+      expect(openedPerson, organizerIsTeam ? null : 'pessoa-id');
+      expect(openedTeam, organizerIsTeam ? 'equipe-id' : null);
+    });
+  }
+
+  testWidgets('compartilhamento aparece apenas na comunidade pública',
+      (tester) async {
+    final data = community();
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: data));
+    }));
+    Widget screen() => MaterialApp(
+        theme: AppTheme.dark,
+        home: EventCommunityScreen(
+            key: ValueKey(data['visibilidade']),
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api)));
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Compartilhar encontro'), findsOneWidget);
+    data['visibilidade'] = 'somente_equipe';
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Compartilhar encontro'), findsNothing);
+  });
+
+  test('convite compartilhado usa a localização da edição', () {
+    final data = community(scheduled: true)
+      ..['inicio'] = DateTime(2026, 10, 2, 19, 5).toUtc().toIso8601String()
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final shared = ShareContent.event(GarageEvent.fromJson(data));
+    expect(shared.title, 'Clássicos da Praia');
+    expect(shared.text, contains('02/10/2026 às 19:05'));
+    expect(shared.text, contains('Curitiba · PR'));
   });
 
   test('comunidade sem data não cria uma edição implicitamente', () {

@@ -39,6 +39,14 @@ from app.services.media import (
     remover_midias_do_carro,
     salvar_foto_principal,
 )
+from app.services.projetos_salvos import (
+    CursorSalvosInvalido,
+    carro_acessivel,
+    esta_salvo,
+    listar_salvos,
+    remover,
+    salvar,
+)
 
 
 router = APIRouter()
@@ -82,6 +90,44 @@ def meus_carros(usuario: UsuarioAtual, db: DbSession) -> list[CarroPrivado]:
         CarroPrivado.model_validate(carro)
         for carro in listar_carros_do_usuario(db, usuario.id)
     ]
+
+
+@router.get("/salvos", response_model=PaginaCarros)
+def projetos_salvos(
+    usuario: UsuarioAtual,
+    db: DbSession,
+    limite: Annotated[int, Query(ge=1, le=50)] = 20,
+    cursor: str | None = None,
+) -> PaginaCarros:
+    try:
+        return listar_salvos(db, usuario.id, limite=limite, cursor=cursor)
+    except CursorSalvosInvalido as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get("/{carro_id}/salvo", response_model=dict[str, bool])
+def status_projeto_salvo(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> dict[str, bool]:
+    if carro_acessivel(db, carro_id, usuario.id) is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    return {"salvo": esta_salvo(db, usuario.id, carro_id)}
+
+
+@router.put("/{carro_id}/salvo", status_code=status.HTTP_204_NO_CONTENT)
+def salvar_projeto(carro_id: UUID, usuario: UsuarioAtual, db: DbSession) -> Response:
+    if carro_acessivel(db, carro_id, usuario.id) is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    salvar(db, usuario.id, carro_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{carro_id}/salvo", status_code=status.HTTP_204_NO_CONTENT)
+def remover_projeto_salvo(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> Response:
+    remover(db, usuario.id, carro_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/{carro_id}", response_model=CarroPublico)

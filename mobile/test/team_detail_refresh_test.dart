@@ -52,6 +52,147 @@ Map<String, Object?> _teamDetail({required bool blocked}) => {
     };
 
 void main() {
+  testWidgets('minha equipe oferece atalho para seus encontros',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+        requestOptions: options,
+        data: _teamDetail(blocked: false),
+      ));
+    }));
+    var opened = false;
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(1.6)),
+        child: child!,
+      ),
+      home: TeamDetailScreen(
+        teamId: 'equipe',
+        repository: TeamsRepository(api),
+        carsRepository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        currentUserId: 'dono',
+        usersRepository: UsersRepository(api),
+        messagesRepository: MessagesRepository(api),
+        onConversationChanged: () {},
+        isMyTeamHome: true,
+        onTeamEventsTap: () => opened = true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Encontros'), 300);
+    await tester.ensureVisible(find.text('Encontros'));
+    await tester.pumpAndSettle();
+    final chatButton = find
+        .ancestor(
+          of: find.text('Conversa'),
+          matching: find.byType(Material),
+        )
+        .first;
+    final eventsButton = find
+        .ancestor(
+          of: find.text('Encontros'),
+          matching: find.byType(Material),
+        )
+        .first;
+    expect(tester.getSize(chatButton).height, inInclusiveRange(90, 115));
+    expect(tester.getSize(chatButton).width,
+        greaterThan(tester.getSize(eventsButton).width));
+    await tester.tap(find.text('Encontros'));
+    expect(opened, isTrue);
+    await tester.scrollUntilVisible(find.text('Escolher carro'), 300);
+    expect(find.text('Escolher carro'), findsOneWidget);
+    expect(find.text('Escolher meu carro para a equipe'), findsNothing);
+    await tester.scrollUntilVisible(find.text('Convidar integrante'), 300);
+    expect(find.text('Convidar integrante'), findsOneWidget);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('garagem e integrantes permanecem compactos em tela estreita',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 700);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final detail = _teamDetail(blocked: false)
+      ..['carros'] = [
+        {
+          'id': 'carro',
+          'modelo': 'OMEGA',
+          'ano': 1996,
+          'proprietario': {
+            'id': 'dono',
+            'nome': 'Raul',
+            'username': 'raul',
+          },
+        },
+      ]
+      ..['membros'] = [
+        {
+          'papel': 'dono',
+          'usuario': {
+            'id': 'dono',
+            'nome': 'Raul',
+            'username': 'raul',
+          },
+        },
+      ];
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: detail));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context)
+            .copyWith(textScaler: const TextScaler.linear(1.6)),
+        child: child!,
+      ),
+      home: TeamDetailScreen(
+        teamId: 'equipe',
+        repository: TeamsRepository(api),
+        carsRepository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        currentUserId: 'dono',
+        usersRepository: UsersRepository(api),
+        messagesRepository: MessagesRepository(api),
+        onConversationChanged: () {},
+        isMyTeamHome: true,
+        onTeamEventsTap: () {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('OMEGA 1996'), 300);
+    final carCard = find.ancestor(
+      of: find.text('OMEGA 1996'),
+      matching: find.byType(Card),
+    );
+    expect(tester.getSize(carCard.first).height, lessThan(150));
+    await tester.scrollUntilVisible(
+      find.text('Raul'),
+      300,
+      scrollable: find.byType(Scrollable).first,
+    );
+    final nameY = tester.getTopLeft(find.text('Raul')).dy;
+    final roleY = tester.getTopLeft(find.text('Dono').last).dy;
+    expect((nameY - roleY).abs(), lessThan(20));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('pedido é atualizado após falha de aprovação por bloqueio',
       (tester) async {
     final api = ApiClient(

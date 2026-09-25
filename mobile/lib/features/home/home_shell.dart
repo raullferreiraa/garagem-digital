@@ -62,6 +62,7 @@ final class _HomeShellState extends State<HomeShell>
   int _index = 0;
   int _feedRevision = 0;
   int _eventsRevision = 0;
+  int _teamEventsFilterRequest = 0;
   int _teamsRevision = 0;
   int _messagesRevision = 0;
   int _profileRevision = 0;
@@ -249,6 +250,7 @@ final class _HomeShellState extends State<HomeShell>
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: _refreshUnreadMessages,
         ),
       ),
@@ -284,6 +286,25 @@ final class _HomeShellState extends State<HomeShell>
               usersRepository: widget.usersRepository,
               messagesRepository: widget.messagesRepository,
               onConversationChanged: _refreshUnreadMessages,
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (notification.eventId != null) {
+        final event =
+            await widget.eventsRepository.detail(notification.eventId!);
+        if (!mounted ||
+            !activityContext.mounted ||
+            ModalRoute.of(activityContext)?.isCurrent != true) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => EventCommunityScreen(
+              event: event,
+              repository: widget.eventsRepository,
+              onPersonTap: _openPublicProfile,
+              onTeamTap: _openTeamById,
             ),
           ),
         );
@@ -338,6 +359,9 @@ final class _HomeShellState extends State<HomeShell>
     if (notification.teamId != null) {
       return 'Esta equipe não está mais disponível.';
     }
+    if (notification.eventId != null) {
+      return 'Este encontro não está mais disponível.';
+    }
     return 'Este conteúdo não está mais disponível.';
   }
 
@@ -370,6 +394,29 @@ final class _HomeShellState extends State<HomeShell>
         ),
       ),
     );
+  }
+
+  Future<void> _openTeamById(String teamId) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: teamId,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
+      ),
+    ));
+  }
+
+  void _openTeamEvents() {
+    setState(() {
+      _index = 1;
+      _eventsRevision++;
+      _teamEventsFilterRequest++;
+    });
   }
 
   Future<void> _openSearch({
@@ -427,11 +474,15 @@ final class _HomeShellState extends State<HomeShell>
       ),
       EventsScreen(
         refreshRevision: _eventsRevision,
+        teamFilterRequest: _teamEventsFilterRequest,
         repository: widget.eventsRepository,
         teamsRepository: widget.teamsRepository,
+        onPersonTap: _openPublicProfile,
+        onTeamTap: _openTeamById,
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
+        onTeamEventsTap: _openTeamEvents,
         onSearch: () => _openSearch(initialCategory: SearchCategory.teams),
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,
@@ -462,6 +513,7 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
         messagesRepository: widget.messagesRepository,
+        teamsRepository: widget.teamsRepository,
         onConversationChanged: _refreshUnreadMessages,
       ),
     ];

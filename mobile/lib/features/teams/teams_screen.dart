@@ -25,6 +25,7 @@ final class TeamsScreen extends StatefulWidget {
     required this.onTeamChatChanged,
     required this.refreshRevision,
     required this.onSearch,
+    this.onTeamEventsTap,
     super.key,
   });
 
@@ -39,6 +40,7 @@ final class TeamsScreen extends StatefulWidget {
   final VoidCallback onTeamChatChanged;
   final int refreshRevision;
   final VoidCallback onSearch;
+  final VoidCallback? onTeamEventsTap;
 
   @override
   State<TeamsScreen> createState() => _TeamsScreenState();
@@ -76,6 +78,12 @@ class _TeamsScreenState extends State<TeamsScreen> {
         _teams = updated;
         _loadError = null;
         _loading = false;
+        if ((_view == _TeamView.pending &&
+                !updated.any((team) => team.myRequest == 'pendente')) ||
+            (_view == _TeamView.invites &&
+                !updated.any((team) => team.myInvite == 'pendente'))) {
+          _view = _TeamView.all;
+        }
         if (!updated.any((team) => team.myRole != null)) {
           _exploringDirectory = false;
         }
@@ -147,6 +155,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
         isMyTeamHome: true,
         refreshRevision: widget.refreshRevision,
         onExploreTeams: () => setState(() => _exploringDirectory = true),
+        onTeamEventsTap: widget.onTeamEventsTap,
         unreadChatCount: widget.unreadTeamMessages,
         onTeamChatChanged: widget.onTeamChatChanged,
         onMembershipChanged: () {

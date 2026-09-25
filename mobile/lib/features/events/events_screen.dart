@@ -2,10 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
+import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/event_form_screen.dart';
+import 'package:garagem_mobile/features/events/event_participants_screen.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
@@ -14,15 +18,40 @@ class EventsScreen extends StatefulWidget {
       {required this.repository,
       required this.teamsRepository,
       required this.refreshRevision,
+      this.teamFilterRequest = 0,
+      this.onPersonTap,
+      this.onTeamTap,
       super.key});
   final EventsRepository repository;
   final TeamsRepository teamsRepository;
   final int refreshRevision;
+  final int teamFilterRequest;
+  final Future<void> Function(String id)? onPersonTap, onTeamTap;
   @override
   State<EventsScreen> createState() => _EventsScreenState();
 }
 
 class _EventsScreenState extends State<EventsScreen> {
+  static const _filterOptions = [
+    ('Todos', Icons.apps_rounded, 'Todas as comunidades'),
+    ('Próximos', Icons.event_outlined, 'Com próxima edição marcada'),
+    (
+      'Confirmados',
+      Icons.how_to_reg_outlined,
+      'Você ou sua equipe vai participar'
+    ),
+    (
+      'Minha equipe',
+      Icons.groups_outlined,
+      'Comunidades da equipe ou com participação confirmada'
+    ),
+    (
+      'Seguindo',
+      Icons.favorite_border_rounded,
+      'Comunidades que você acompanha'
+    ),
+    ('Organizo', Icons.shield_outlined, 'Encontros que você gerencia'),
+  ];
   List<GarageEvent>? _events;
   Object? _error;
   bool _loading = false;
@@ -30,6 +59,23 @@ class _EventsScreenState extends State<EventsScreen> {
   String _filter = 'Todos';
   String _search = '';
   final _searchController = TextEditingController();
+
+  bool _matchesSearch(GarageEvent event) {
+    final query = _search.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    final searchable = [
+      event.name,
+      event.city,
+      event.state,
+      event.editionCity,
+      event.editionState,
+      for (final edition in event.editions) ...[
+        edition.city,
+        edition.state,
+      ],
+    ].whereType<String>().join(' ').toLowerCase();
+    return searchable.contains(query);
+  }
 
   @override
   void dispose() {
@@ -45,6 +91,43 @@ class _EventsScreenState extends State<EventsScreen> {
     });
   }
 
+  Future<void> _chooseFilter() async {
+    FocusScope.of(context).unfocus();
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(sheetContext).height * .72),
+          child: ListView(
+            shrinkWrap: true,
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            children: [
+              Text('Mostrar encontros',
+                  style: Theme.of(sheetContext).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              for (final (label, icon, description) in _filterOptions)
+                ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                  leading: Icon(icon),
+                  title: Text(label),
+                  subtitle: Text(description),
+                  trailing: _filter == label
+                      ? Icon(Icons.check_circle,
+                          color: Theme.of(sheetContext).colorScheme.primary)
+                      : null,
+                  selected: _filter == label,
+                  onTap: () => Navigator.of(sheetContext).pop(label),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (mounted && selected != null) setState(() => _filter = selected);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -54,6 +137,9 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   void didUpdateWidget(covariant EventsScreen oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.teamFilterRequest != widget.teamFilterRequest) {
+      _filter = 'Minha equipe';
+    }
     if (oldWidget.refreshRevision != widget.refreshRevision) _reload();
   }
 
@@ -96,23 +182,43 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Future<void> _open(GarageEvent event) async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
-        builder: (_) =>
-            EventCommunityScreen(event: event, repository: widget.repository)));
+        builder: (_) => EventCommunityScreen(
+            event: event,
+            repository: widget.repository,
+            onPersonTap: widget.onPersonTap,
+            onTeamTap: widget.onTeamTap)));
     if (mounted) await _reload();
   }
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final now = DateTime.now();
     final events = (_events ?? []).where((event) {
       final matchesFilter = _filter == 'Todos' ||
           (_filter == 'Seguindo' && event.following) ||
-          (_filter == 'Organizo' && event.canManage);
-      return matchesFilter &&
-          '${event.name} ${event.city ?? ''} ${event.state ?? ''}'
-              .toLowerCase()
-              .contains(_search.toLowerCase().trim());
-    }).toList();
+          (_filter == 'Organizo' && event.canManage) ||
+          (_filter == 'Confirmados' &&
+              event.startsAt != null &&
+              (event.myPresence == 'confirmada' ||
+                  event.myTeamParticipation == 'confirmada')) ||
+          (_filter == 'Minha equipe' &&
+              event.myTeamId != null &&
+              ((event.organizerType == 'equipe' &&
+                      event.organizerId == event.myTeamId) ||
+                  event.myTeamParticipation == 'confirmada')) ||
+          (_filter == 'Próximos' &&
+              event.startsAt != null &&
+              !event.startsAt!.isBefore(now));
+      return matchesFilter && _matchesSearch(event);
+    }).toList()
+      ..sort((a, b) {
+        final first = a.startsAt;
+        final second = b.startsAt;
+        if (first == null) return second == null ? 0 : 1;
+        if (second == null) return -1;
+        return first.compareTo(second);
+      });
     return Scaffold(
       appBar: AppBar(title: const Text('Encontros'), actions: [
         IconButton(
@@ -146,26 +252,48 @@ class _EventsScreenState extends State<EventsScreen> {
                           onSubmitted: (_) => FocusScope.of(context).unfocus(),
                           onChanged: (value) => setState(() => _search = value),
                           decoration: InputDecoration(
-                              suffixIcon: _search.isEmpty
-                                  ? null
-                                  : IconButton(
-                                      tooltip: 'Limpar busca',
-                                      icon: const Icon(Icons.close),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        setState(() => _search = '');
-                                      }),
+                              suffixIcon: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_search.isNotEmpty)
+                                      IconButton(
+                                          tooltip: 'Limpar busca',
+                                          icon: const Icon(Icons.close),
+                                          onPressed: () {
+                                            _searchController.clear();
+                                            setState(() => _search = '');
+                                          }),
+                                    IconButton(
+                                      tooltip: 'Filtrar encontros',
+                                      onPressed: _chooseFilter,
+                                      color: _filter == 'Todos'
+                                          ? null
+                                          : colors.primary,
+                                      icon: Icon(_filter == 'Todos'
+                                          ? Icons.tune_rounded
+                                          : Icons.filter_alt_rounded),
+                                    ),
+                                  ]),
                               prefixIcon: const Icon(Icons.search),
                               hintText: 'Buscar encontro ou cidade')),
-                      const SizedBox(height: 14),
-                      Wrap(spacing: 8, runSpacing: 8, children: [
-                        for (final filter in ['Todos', 'Seguindo', 'Organizo'])
-                          ChoiceChip(
-                              label: Text(filter),
-                              selected: _filter == filter,
-                              onSelected: (_) =>
-                                  setState(() => _filter = filter)),
-                      ]),
+                      if (_filter != 'Todos') ...[
+                        const SizedBox(height: 10),
+                        Row(children: [
+                          Icon(Icons.filter_alt_rounded,
+                              size: 17, color: colors.primary),
+                          const SizedBox(width: 6),
+                          Expanded(
+                              child: Text('Exibindo: $_filter',
+                                  style: TextStyle(
+                                      color: colors.onSurfaceVariant))),
+                          IconButton(
+                              tooltip: 'Limpar filtro',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: () =>
+                                  setState(() => _filter = 'Todos'),
+                              icon: const Icon(Icons.close_rounded, size: 18)),
+                        ]),
+                      ],
                       if (_loading && _events != null) ...[
                         const SizedBox(height: 12),
                         const LinearProgressIndicator()
@@ -200,9 +328,15 @@ class _EventsScreenState extends State<EventsScreen> {
                                     ? 'Nenhum encontro encontrado.'
                                     : _filter == 'Organizo'
                                         ? 'Você ainda não organiza um encontro.'
-                                        : _filter == 'Seguindo'
-                                            ? 'Sua próxima conexão começa aqui.'
-                                            : 'Encontre pessoas que compartilham sua paixão.',
+                                        : _filter == 'Próximos'
+                                            ? 'Nenhuma edição com data marcada.'
+                                            : _filter == 'Minha equipe'
+                                                ? 'Nenhum encontro da sua equipe ainda.'
+                                                : _filter == 'Confirmados'
+                                                    ? 'Nenhuma participação confirmada.'
+                                                    : _filter == 'Seguindo'
+                                                        ? 'Sua próxima conexão começa aqui.'
+                                                        : 'Encontre pessoas que compartilham sua paixão.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
@@ -211,7 +345,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                     ? 'Tente outro nome ou cidade, ou limpe os filtros.'
                                     : _filter == 'Seguindo'
                                         ? 'Siga um encontro para acompanhar sua comunidade.'
-                                        : 'Explore outra busca ou crie o seu encontro.',
+                                        : _filter == 'Minha equipe'
+                                            ? 'Comunidades organizadas pela equipe ou com participação confirmada aparecerão aqui.'
+                                            : _filter == 'Confirmados'
+                                                ? 'Confirme sua presença ou a participação da equipe em uma próxima edição.'
+                                                : 'Explore outra busca ou crie o seu encontro.',
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 18),
                             if (_search.isNotEmpty || _filter != 'Todos')
@@ -274,19 +412,41 @@ class _CommunityCard extends StatelessWidget {
                                   '${event.editions.length} edições'),
                               if (event.following)
                                 const _Metric(Icons.check, 'Seguindo'),
+                              if (event.startsAt != null &&
+                                  event.myPresence == 'confirmada')
+                                const _Metric(Icons.how_to_reg_outlined,
+                                    'Presença confirmada'),
+                              if (event.startsAt != null &&
+                                  event.myTeamParticipation == 'confirmada')
+                                const _Metric(
+                                    Icons.groups_outlined, 'Equipe confirmada'),
                             ]),
                             const SizedBox(height: 16),
                             const Divider(height: 1),
                             const SizedBox(height: 14),
                             Row(children: [
                               Expanded(
-                                  child: Text(
-                                      event.startsAt == null
-                                          ? 'A comunidade continua. Nova data em breve.'
-                                          : 'Próxima edição · ${_date(event.startsAt!)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge)),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                    Text(
+                                        event.startsAt == null
+                                            ? 'A comunidade continua. Nova data em breve.'
+                                            : 'Próxima edição · ${_date(event.startsAt!)}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge),
+                                    if (event.startsAt != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(event.location,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall),
+                                    ],
+                                  ])),
                               const Icon(Icons.north_east),
                             ]),
                           ])),
@@ -361,9 +521,14 @@ class _CommunityCover extends StatelessWidget {
 
 class EventCommunityScreen extends StatefulWidget {
   const EventCommunityScreen(
-      {required this.event, required this.repository, super.key});
+      {required this.event,
+      required this.repository,
+      this.onPersonTap,
+      this.onTeamTap,
+      super.key});
   final GarageEvent event;
   final EventsRepository repository;
+  final Future<void> Function(String id)? onPersonTap, onTeamTap;
   @override
   State<EventCommunityScreen> createState() => _EventCommunityScreenState();
 }
@@ -551,6 +716,50 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
     }
   }
 
+  void _openParticipants(EventEdition edition) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => EventParticipantsScreen(
+              eventId: _event.id,
+              eventName: _event.name,
+              edition: edition,
+              repository: widget.repository,
+              onPersonTap: widget.onPersonTap,
+              onTeamTap: widget.onTeamTap,
+            )));
+  }
+
+  Future<void> _openOrganizer() async {
+    final open = _event.organizerType == 'equipe'
+        ? widget.onTeamTap
+        : widget.onPersonTap;
+    if (open == null) return;
+    await open(_event.organizerId);
+    if (mounted) await _refresh();
+  }
+
+  Future<void> _showTeamActions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.group_add_outlined),
+            title: const Text('Confirmar integrantes da equipe'),
+            onTap: () => Navigator.pop(context, 'members'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.group_remove_outlined),
+            title: const Text('Retirar participação da equipe'),
+            onTap: () => Navigator.pop(context, 'remove'),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'members') _teamParticipation(membersOnly: true);
+    if (action == 'remove') _teamParticipation();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -570,6 +779,10 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
         .firstOrNull;
     return Scaffold(
       appBar: AppBar(title: const Text('Encontro'), actions: [
+        if (_event.visibility == 'publico')
+          GdShareAction(
+              payload: ShareContent.event(_event),
+              tooltip: 'Compartilhar encontro'),
         if (_event.canManage)
           PopupMenuButton<String>(
               enabled: !_working,
@@ -641,7 +854,19 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                             title: Text(_event.organizerName),
                             subtitle: Text(_event.organizerType == 'equipe'
                                 ? 'Equipe organizadora'
-                                : 'Organização')),
+                                : 'Organização'),
+                            trailing: (_event.organizerType == 'equipe'
+                                        ? widget.onTeamTap
+                                        : widget.onPersonTap) ==
+                                    null
+                                ? null
+                                : const Icon(Icons.chevron_right_rounded),
+                            onTap: (_event.organizerType == 'equipe'
+                                        ? widget.onTeamTap
+                                        : widget.onPersonTap) ==
+                                    null
+                                ? null
+                                : _openOrganizer),
                         const SizedBox(height: 24),
                         Card(
                             margin: EdgeInsets.zero,
@@ -651,7 +876,31 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      const _Eyebrow('PRÓXIMA EDIÇÃO'),
+                                      Row(children: [
+                                        const Expanded(
+                                            child: _Eyebrow('PRÓXIMA EDIÇÃO')),
+                                        if (_event.canManage &&
+                                            currentEdition != null)
+                                          PopupMenuButton<String>(
+                                            tooltip: 'Opções da edição',
+                                            enabled: !_working,
+                                            onSelected: (value) {
+                                              if (value == 'edit')
+                                                _schedule(currentEdition);
+                                              if (value == 'cancel')
+                                                _cancelEdition(currentEdition);
+                                            },
+                                            itemBuilder: (_) => const [
+                                              PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Text('Editar edição')),
+                                              PopupMenuItem(
+                                                  value: 'cancel',
+                                                  child:
+                                                      Text('Cancelar edição')),
+                                            ],
+                                          ),
+                                      ]),
                                       const SizedBox(height: 12),
                                       Text(
                                           _event.startsAt == null
@@ -665,18 +914,46 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                           ? 'Siga a comunidade e volte para conferir a próxima data.'
                                           : '${_time(_event.startsAt!)} · ${_event.location}'),
                                       if (_event.startsAt != null) ...[
-                                        const SizedBox(height: 18),
-                                        Wrap(
-                                            spacing: 16,
-                                            runSpacing: 8,
-                                            children: [
-                                              _Metric(Icons.people_outline,
-                                                  '${_event.confirmedCount} ${_event.confirmedCount == 1 ? "confirmado" : "confirmados"}'),
-                                              _Metric(Icons.groups_outlined,
-                                                  '${_event.teamCount} ${_event.teamCount == 1 ? "equipe" : "equipes"}'),
-                                            ]),
-                                        const SizedBox(height: 18),
-                                        FilledButton.icon(
+                                        if (currentEdition != null) ...[
+                                          const SizedBox(height: 16),
+                                          const Divider(),
+                                          ListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: const Icon(
+                                                Icons.people_alt_outlined),
+                                            title: Text(
+                                                '${_event.confirmedCount} ${_event.confirmedCount == 1 ? "pessoa" : "pessoas"} · ${_event.teamCount} ${_event.teamCount == 1 ? "equipe" : "equipes"}'),
+                                            subtitle:
+                                                const Text('Ver participantes'),
+                                            trailing:
+                                                const Icon(Icons.chevron_right),
+                                            onTap: () => _openParticipants(
+                                                currentEdition),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 8),
+                                        if (_event.myPresence == 'confirmada')
+                                          Row(children: [
+                                            const Icon(
+                                                Icons.check_circle_outline),
+                                            const SizedBox(width: 8),
+                                            const Expanded(
+                                                child: Text(
+                                                    'Sua presença está confirmada')),
+                                            TextButton(
+                                              onPressed: _working
+                                                  ? null
+                                                  : () => _change(() => widget
+                                                      .repository
+                                                      .setPresence(_event.id,
+                                                          editionId:
+                                                              _event.editionId!,
+                                                          confirmed: false)),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                          ])
+                                        else
+                                          FilledButton.icon(
                                             onPressed: _working
                                                 ? null
                                                 : () => _change(() => widget
@@ -684,18 +961,15 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                                     .setPresence(_event.id,
                                                         editionId:
                                                             _event.editionId!,
-                                                        confirmed:
-                                                            _event.myPresence !=
-                                                                'confirmada')),
-                                            icon: Icon(_event.myPresence ==
-                                                    'confirmada'
-                                                ? Icons.check_circle
-                                                : Icons.how_to_reg_outlined),
-                                            label: Text(_event.myPresence ==
-                                                    'confirmada'
-                                                ? 'Presença confirmada • Cancelar'
-                                                : 'Confirmar minha presença')),
+                                                        confirmed: true)),
+                                            icon: const Icon(
+                                                Icons.how_to_reg_outlined),
+                                            label: const Text(
+                                                'Confirmar minha presença'),
+                                          ),
                                         if (_event.canRepresentTeam &&
+                                            _event.myTeamParticipation !=
+                                                'confirmada' &&
                                             !(_event.organizerType ==
                                                     'equipe' &&
                                                 _event.organizerId ==
@@ -707,60 +981,22 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                                   : _teamParticipation,
                                               icon: const Icon(
                                                   Icons.groups_outlined),
-                                              label: Text(_event
-                                                          .myTeamParticipation ==
-                                                      'confirmada'
-                                                  ? 'Retirar participação da equipe'
-                                                  : 'Levar ${_event.myTeamName}')),
+                                              label: Text(
+                                                  'Levar ${_event.myTeamName}')),
                                         ],
                                         if (_event.canRepresentTeam &&
                                             _event.myTeamParticipation ==
                                                 'confirmada') ...[
                                           const SizedBox(height: 12),
-                                          TextButton.icon(
+                                          OutlinedButton.icon(
                                               onPressed: _working
                                                   ? null
-                                                  : () => _teamParticipation(
-                                                      membersOnly: true),
+                                                  : _showTeamActions,
                                               icon: const Icon(
-                                                  Icons.group_add_outlined),
+                                                  Icons.groups_outlined),
                                               label: const Text(
-                                                  'Confirmar integrantes da equipe')),
+                                                  'Equipe confirmada · Gerenciar')),
                                         ],
-                                        if (_event.canManage &&
-                                            currentEdition != null) ...[
-                                          const SizedBox(height: 8),
-                                          Row(children: [
-                                            Expanded(
-                                                child: OutlinedButton.icon(
-                                                    onPressed: _working
-                                                        ? null
-                                                        : () => _schedule(
-                                                            currentEdition),
-                                                    icon: const Icon(Icons
-                                                        .edit_calendar_outlined),
-                                                    label: const Text(
-                                                        'Editar edição'))),
-                                            const SizedBox(width: 8),
-                                            IconButton.outlined(
-                                                tooltip: 'Cancelar edição',
-                                                onPressed: _working
-                                                    ? null
-                                                    : () => _cancelEdition(
-                                                        currentEdition),
-                                                icon: const Icon(
-                                                    Icons.event_busy_outlined)),
-                                          ]),
-                                        ],
-                                      ],
-                                      if (_event.canManage) ...[
-                                        const SizedBox(height: 12),
-                                        OutlinedButton.icon(
-                                            onPressed:
-                                                _working ? null : _schedule,
-                                            icon: const Icon(Icons.add),
-                                            label: const Text(
-                                                'Agendar nova edição')),
                                       ],
                                     ]))),
                         if (upcoming.isNotEmpty) ...[
@@ -773,6 +1009,7 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                               subtitle: Text(e.location(
                                   fallbackCity: _event.city,
                                   fallbackState: _event.state)),
+                              onTap: () => _openParticipants(e),
                               trailing: _event.canManage
                                   ? PopupMenuButton<String>(
                                       onSelected: (value) {
@@ -809,7 +1046,9 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                   : Icons.flag_outlined),
                               title: Text(_date(e.startsAt)),
                               subtitle: Text(
-                                  '${e.status == 'cancelada' ? 'Edição cancelada' : e.location(fallbackCity: _event.city, fallbackState: _event.state)} · ${e.confirmedCount} confirmações'))),
+                                  '${e.status == 'cancelada' ? 'Edição cancelada' : e.location(fallbackCity: _event.city, fallbackState: _event.state)} · ${e.confirmedCount} confirmações'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => _openParticipants(e))),
                       ])),
             ],
           )),
@@ -954,19 +1193,12 @@ class _EditionFormState extends State<_EditionForm> {
                   : (value) => setState(() => _useCommunityRegion = value)),
           if (!_useCommunityRegion) ...[
             const SizedBox(height: 12),
-            Row(children: [
-              Expanded(
-                  child: TextField(
-                      controller: _city,
-                      decoration:
-                          const InputDecoration(labelText: 'Cidade *'))),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: TextField(
-                      controller: _state,
-                      decoration:
-                          const InputDecoration(labelText: 'Estado *'))),
-            ]),
+            BrazilCityField(
+              cityController: _city,
+              stateController: _state,
+              label: 'Cidade e estado desta edição *',
+              enabled: !_saving,
+            ),
           ],
           const SizedBox(height: 24),
           FilledButton(

@@ -14,7 +14,14 @@ from app.models.evento import (
     SeguidorEncontro,
 )
 from app.models.usuario import Usuario
-from app.schemas.evento import EdicaoCriacao, EdicaoResposta, EncontroCriacao, EncontroResposta, EncontroAtualizacao
+from app.schemas.evento import (
+    EdicaoCriacao, EdicaoResposta, EncontroCriacao, EncontroResposta,
+    EncontroAtualizacao, EquipeEdicaoResposta, ParticipanteEdicaoResposta,
+    ParticipantesEdicaoResposta, ProjetoConfirmadoResposta,
+)
+from app.schemas.usuario import UsuarioResumo
+from app.services.bloqueios import ids_com_bloqueio
+from app.services.notificacoes import criar_notificacao
 
 
 class EventoNaoEncontrado(ValueError):
@@ -61,6 +68,46 @@ def _proxima_edicao(db: Session, encontro_id: UUID) -> Evento | None:
         .order_by(Evento.inicio, Evento.id)
         .limit(1)
     )
+
+
+def _avisar_edicao(
+    db: Session,
+    encontro: Encontro,
+    edicao: Evento,
+    ator_id: UUID,
+    tipo: str,
+    mensagem: str,
+) -> None:
+    destinatarios = set(db.scalars(
+        select(SeguidorEncontro.usuario_id).where(
+            SeguidorEncontro.encontro_id == encontro.id
+        )
+    ))
+    if tipo != "nova_edicao_encontro":
+        destinatarios.update(db.scalars(
+            select(PresencaEvento.usuario_id).where(
+                PresencaEvento.evento_id == edicao.id,
+                PresencaEvento.status == "confirmada",
+            )
+        ))
+        destinatarios.update(db.scalars(
+            select(MembroEquipe.usuario_id)
+            .join(ParticipacaoEquipeEvento, MembroEquipe.equipe_id == ParticipacaoEquipeEvento.equipe_id)
+            .where(
+                ParticipacaoEquipeEvento.evento_id == edicao.id,
+                ParticipacaoEquipeEvento.status == "confirmada",
+            )
+        ))
+    for destinatario_id in destinatarios:
+        if _visivel(db, encontro, destinatario_id):
+            criar_notificacao(
+                db,
+                destinatario_id=destinatario_id,
+                ator_id=ator_id,
+                tipo=tipo,
+                mensagem=mensagem,
+                encontro_id=encontro.id,
+            )
 
 
 def _resposta(db: Session, encontro: Encontro, edicao: Evento | None, usuario_id: UUID) -> EncontroResposta:
@@ -144,7 +191,12 @@ def criar(db: Session, usuario: Usuario, dados: EncontroCriacao) -> EncontroResp
 
 def criar_edicao(db: Session, encontro_id: UUID, usuario_id: UUID, dados: EdicaoCriacao) -> EncontroResposta:
     encontro = gerenciavel(db, encontro_id, usuario_id, bloquear=True)
-    _nova_edicao(db, encontro, usuario_id, dados)
+    edicao = _nova_edicao(db, encontro, usuario_id, dados)
+    _avisar_edicao(
+        db, encontro, edicao, usuario_id,
+        "nova_edicao_encontro",
+        f"Nova edição de {encontro.nome} foi marcada. Confira a data e o local.",
+    )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
@@ -190,11 +242,31 @@ def atualizar_edicao(
         raise AcaoEventoNaoPermitida("Uma edição cancelada não pode ser alterada.")
     if _em_utc(edicao.inicio) < datetime.now(timezone.utc):
         raise AcaoEventoNaoPermitida("Uma edição já realizada não pode ser alterada.")
+    antes = (
+        _em_utc(edicao.inicio),
+        _em_utc(edicao.termino) if edicao.termino else None,
+        edicao.endereco_publico,
+        edicao.cidade,
+        edicao.estado,
+    )
     edicao.inicio = dados.inicio
     edicao.termino = dados.termino
     edicao.endereco_publico = dados.endereco_publico
     edicao.cidade = encontro.cidade if dados.usar_regiao_comunidade else dados.cidade
     edicao.estado = encontro.estado if dados.usar_regiao_comunidade else dados.estado
+    depois = (
+        _em_utc(edicao.inicio),
+        _em_utc(edicao.termino) if edicao.termino else None,
+        edicao.endereco_publico,
+        edicao.cidade,
+        edicao.estado,
+    )
+    if antes != depois:
+        _avisar_edicao(
+            db, encontro, edicao, usuario_id,
+            "edicao_encontro_alterada",
+            f"A edição de {encontro.nome} mudou. Confira a data e o local.",
+        )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
@@ -212,7 +284,14 @@ def cancelar_edicao(
         raise EventoNaoEncontrado("Edição não encontrada.")
     if _em_utc(edicao.inicio) < datetime.now(timezone.utc):
         raise AcaoEventoNaoPermitida("Uma edição já realizada não pode ser cancelada.")
+    if edicao.status == "cancelada":
+        return detalhar(db, encontro_id, usuario_id)
     edicao.status = "cancelada"
+    _avisar_edicao(
+        db, encontro, edicao, usuario_id,
+        "edicao_encontro_cancelada",
+        f"A edição de {encontro.nome} foi cancelada.",
+    )
     db.commit()
     return detalhar(db, encontro_id, usuario_id)
 
@@ -260,6 +339,85 @@ def detalhar(db: Session, encontro_id: UUID, usuario_id: UUID) -> EncontroRespos
         raise EventoNaoEncontrado("Encontro não encontrado.")
     edicao = _proxima_edicao(db, encontro_id)
     return _resposta(db, encontro, edicao, usuario_id)
+
+
+def participantes_edicao(
+    db: Session, encontro_id: UUID, edicao_id: UUID, usuario_id: UUID,
+    tipo: str = "pessoas", offset: int = 0, limite: int = 30,
+    busca: str | None = None,
+) -> ParticipantesEdicaoResposta:
+    encontro = db.get(Encontro, encontro_id)
+    if encontro is None or not _visivel(db, encontro, usuario_id):
+        raise EventoNaoEncontrado("Encontro não encontrado.")
+    edicao = db.get(Evento, edicao_id)
+    if edicao is None or edicao.encontro_id != encontro_id:
+        raise EventoNaoEncontrado("Edição não encontrada.")
+
+    pessoas_base = (
+        select(Usuario)
+        .join(PresencaEvento, PresencaEvento.usuario_id == Usuario.id)
+        .where(
+            PresencaEvento.evento_id == edicao_id,
+            PresencaEvento.status == "confirmada",
+            Usuario.id.not_in(ids_com_bloqueio(db, usuario_id)),
+        )
+    )
+    termo = busca.strip().removeprefix("@") if busca else ""
+    if termo:
+        padrao = f"%{termo}%"
+        pessoas_base = pessoas_base.where(
+            or_(Usuario.nome.ilike(padrao), Usuario.username.ilike(padrao))
+        )
+    equipe_usuario, _ = _equipe_e_papel(db, usuario_id)
+    equipes_base = (
+        select(Equipe)
+        .join(ParticipacaoEquipeEvento, ParticipacaoEquipeEvento.equipe_id == Equipe.id)
+        .where(
+            ParticipacaoEquipeEvento.evento_id == edicao_id,
+            ParticipacaoEquipeEvento.status == "confirmada",
+            or_(
+                Equipe.visibilidade == "publica",
+                Equipe.id == equipe_usuario.id if equipe_usuario else False,
+            ),
+        )
+    )
+    if termo:
+        equipes_base = equipes_base.where(Equipe.nome.ilike(padrao))
+    total_pessoas = db.scalar(select(func.count()).select_from(pessoas_base.subquery())) or 0
+    total_equipes = db.scalar(select(func.count()).select_from(equipes_base.subquery())) or 0
+    pessoas = db.execute(
+        select(Usuario, Carro)
+        .join(PresencaEvento, PresencaEvento.usuario_id == Usuario.id)
+        .outerjoin(Carro, Carro.id == PresencaEvento.carro_id)
+        .where(Usuario.id.in_(pessoas_base.with_only_columns(Usuario.id)))
+        .order_by(Usuario.nome, Usuario.id)
+        .offset(offset).limit(limite)
+    ).all() if tipo == "pessoas" else []
+    equipes = db.scalars(
+        equipes_base.order_by(Equipe.nome, Equipe.id).offset(offset).limit(limite)
+    ).all() if tipo == "equipes" else []
+    return ParticipantesEdicaoResposta(
+        total_pessoas=total_pessoas,
+        total_equipes=total_equipes,
+        pessoas=[
+            ParticipanteEdicaoResposta(
+                usuario=UsuarioResumo.model_validate(usuario),
+                carro=ProjetoConfirmadoResposta(
+                    id=carro.id,
+                    modelo=carro.modelo,
+                    ano=carro.ano,
+                    foto_principal_url=carro.foto_principal_url,
+                ) if carro else None,
+            )
+            for usuario, carro in pessoas
+        ],
+        equipes=[
+            EquipeEdicaoResposta(
+                id=equipe.id, nome=equipe.nome, avatar_url=equipe.avatar_url
+            )
+            for equipe in equipes
+        ],
+    )
 
 
 def seguir(db: Session, encontro_id: UUID, usuario_id: UUID, ativo: bool) -> EncontroResposta:

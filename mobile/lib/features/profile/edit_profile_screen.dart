@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
@@ -297,32 +298,9 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextFormField(
-                          controller: _cityController,
-                          textCapitalization: TextCapitalization.words,
-                          maxLength: 120,
-                          decoration: const InputDecoration(
-                            labelText: 'Cidade',
-                            prefixIcon: Icon(Icons.location_city_outlined),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _stateController,
-                          textCapitalization: TextCapitalization.characters,
-                          maxLength: 120,
-                          decoration:
-                              const InputDecoration(labelText: 'Estado'),
-                        ),
-                      ),
-                    ],
+                  BrazilCityField(
+                    cityController: _cityController,
+                    stateController: _stateController,
                   ),
                   const SizedBox(height: 24),
                   FilledButton.icon(

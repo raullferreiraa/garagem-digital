@@ -10,6 +10,7 @@ import 'package:garagem_mobile/features/messages/messages_repository.dart';
 import 'package:garagem_mobile/features/profile/blocked_users_screen.dart';
 import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
 import 'package:garagem_mobile/features/profile/users_repository.dart';
+import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 final class _EmptyTokenStorage implements TokenStorage {
   @override
@@ -107,6 +108,7 @@ void main() {
         carsRepository: CarsRepository(api),
         evolutionsRepository: EvolutionsRepository(api),
         messagesRepository: MessagesRepository(api),
+        teamsRepository: TeamsRepository(api),
         onConversationChanged: () {},
       ),
     ));
@@ -190,6 +192,7 @@ void main() {
         carsRepository: CarsRepository(api),
         evolutionsRepository: EvolutionsRepository(api),
         messagesRepository: MessagesRepository(api),
+        teamsRepository: TeamsRepository(api),
         onConversationChanged: () {},
       ),
     ));

@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 import 'package:garagem_mobile/core/theme/app_theme.dart';
 import 'package:garagem_mobile/features/auth/auth_repository.dart';
@@ -133,5 +134,44 @@ void main() {
     expect(opened, ['aviso-1']);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('aviso de encontro usa símbolo da comunidade, não foto do ator',
+      (tester) async {
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _MemoryTokens());
+    final item = <String, Object?>{
+      'id': 'aviso-encontro',
+      'tipo': 'nova_edicao_encontro',
+      'mensagem': 'Nova edição marcada.',
+      'encontro_id': 'encontro-1',
+      'criada_em': DateTime.now().toUtc().toIso8601String(),
+      'ator': <String, Object?>{
+        'id': 'dono',
+        'username': 'dono',
+        'avatar_url': '/foto-do-dono.jpg',
+      },
+    };
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+        requestOptions: options,
+        data: options.path == '/notificacoes/nao-lidas'
+            ? {'total': 0}
+            : options.method == 'PATCH'
+                ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
+                : [item],
+      ));
+    }));
+    await tester.pumpWidget(_app(NotificationsScreen(
+      repository: NotificationsRepository(api),
+      onUnreadChanged: (_) {},
+      onOpen: (_) async {},
+      refreshRevision: 0,
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nova edição marcada.'), findsOneWidget);
+    expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
+    expect(find.byType(GdAvatar), findsNothing);
   });
 }
