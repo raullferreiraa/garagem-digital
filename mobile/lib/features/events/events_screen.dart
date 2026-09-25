@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/event_form_screen.dart';
 import 'package:garagem_mobile/features/events/event_participants_screen.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
@@ -707,6 +709,15 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
             )));
   }
 
+  Future<void> _openOrganizer() async {
+    final open = _event.organizerType == 'equipe'
+        ? widget.onTeamTap
+        : widget.onPersonTap;
+    if (open == null) return;
+    await open(_event.organizerId);
+    if (mounted) await _refresh();
+  }
+
   Future<void> _showTeamActions() async {
     final action = await showModalBottomSheet<String>(
       context: context,
@@ -749,6 +760,10 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
         .firstOrNull;
     return Scaffold(
       appBar: AppBar(title: const Text('Encontro'), actions: [
+        if (_event.visibility == 'publico')
+          GdShareAction(
+              payload: ShareContent.event(_event),
+              tooltip: 'Compartilhar encontro'),
         if (_event.canManage)
           PopupMenuButton<String>(
               enabled: !_working,
@@ -820,7 +835,19 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                             title: Text(_event.organizerName),
                             subtitle: Text(_event.organizerType == 'equipe'
                                 ? 'Equipe organizadora'
-                                : 'Organização')),
+                                : 'Organização'),
+                            trailing: (_event.organizerType == 'equipe'
+                                        ? widget.onTeamTap
+                                        : widget.onPersonTap) ==
+                                    null
+                                ? null
+                                : const Icon(Icons.chevron_right_rounded),
+                            onTap: (_event.organizerType == 'equipe'
+                                        ? widget.onTeamTap
+                                        : widget.onPersonTap) ==
+                                    null
+                                ? null
+                                : _openOrganizer),
                         const SizedBox(height: 24),
                         Card(
                             margin: EdgeInsets.zero,

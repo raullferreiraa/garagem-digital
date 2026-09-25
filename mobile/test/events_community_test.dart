@@ -7,6 +7,7 @@ import 'package:garagem_mobile/core/theme/app_theme.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/events/events_screen.dart';
+import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
 
 class _Tokens implements TokenStorage {
@@ -326,6 +327,77 @@ void main() {
     await tester.tap(find.text('Voltar'));
     await tester.pumpAndSettle();
     expect(deletes, 0);
+  });
+
+  for (final organizerIsTeam in [false, true]) {
+    testWidgets(
+        'organização ${organizerIsTeam ? 'equipe' : 'pessoa'} abre o destino certo',
+        (tester) async {
+      final data = community()
+        ..['organizador_tipo'] = organizerIsTeam ? 'equipe' : 'usuario'
+        ..['organizador_nome'] = organizerIsTeam ? 'Equipe da Praia' : 'Raul'
+        ..['organizador_id'] = organizerIsTeam ? 'equipe-id' : 'pessoa-id';
+      final api = ApiClient(
+          baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        handler.resolve(Response(requestOptions: options, data: data));
+      }));
+      String? openedPerson, openedTeam;
+      await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: EventCommunityScreen(
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api),
+            onPersonTap: (id) async {
+              openedPerson = id;
+            },
+            onTeamTap: (id) async {
+              openedTeam = id;
+            },
+          )));
+      await tester.pumpAndSettle();
+      final name = organizerIsTeam ? 'Equipe da Praia' : 'Raul';
+      await tester.ensureVisible(find.text(name));
+      await tester.tap(find.text(name));
+      await tester.pumpAndSettle();
+      expect(openedPerson, organizerIsTeam ? null : 'pessoa-id');
+      expect(openedTeam, organizerIsTeam ? 'equipe-id' : null);
+    });
+  }
+
+  testWidgets('compartilhamento aparece apenas na comunidade pública',
+      (tester) async {
+    final data = community();
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: data));
+    }));
+    Widget screen() => MaterialApp(
+        theme: AppTheme.dark,
+        home: EventCommunityScreen(
+            key: ValueKey(data['visibilidade']),
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api)));
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Compartilhar encontro'), findsOneWidget);
+    data['visibilidade'] = 'somente_equipe';
+    await tester.pumpWidget(screen());
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Compartilhar encontro'), findsNothing);
+  });
+
+  test('convite compartilhado usa a localização da edição', () {
+    final data = community(scheduled: true)
+      ..['inicio'] = DateTime(2026, 10, 2, 19, 5).toUtc().toIso8601String()
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final shared = ShareContent.event(GarageEvent.fromJson(data));
+    expect(shared.title, 'Clássicos da Praia');
+    expect(shared.text, contains('02/10/2026 às 19:05'));
+    expect(shared.text, contains('Curitiba · PR'));
   });
 
   test('comunidade sem data não cria uma edição implicitamente', () {
