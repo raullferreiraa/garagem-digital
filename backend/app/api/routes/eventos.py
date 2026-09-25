@@ -1,7 +1,7 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
@@ -13,6 +13,7 @@ from app.schemas.evento import (
     EventoResposta,
     ParticipacaoEquipeEntrada,
     PresencaEventoEntrada,
+    ParticipantesEdicaoResposta,
 )
 from app.services import eventos as service
 
@@ -58,6 +59,19 @@ def criar_edicao(
     try:
         return service.criar_edicao(db, evento_id, usuario.id, dados)
     except (service.EventoNaoEncontrado, service.AcaoEventoNaoPermitida) as error:
+        raise _erro(error) from error
+
+
+@router.get("/{evento_id}/edicoes/{edicao_id}/participantes", response_model=ParticipantesEdicaoResposta)
+def participantes_da_edicao(
+    evento_id: UUID, edicao_id: UUID, usuario: UsuarioAtual, db: DbSession,
+    tipo: Literal["pessoas", "equipes"] = "pessoas",
+    offset: int = Query(0, ge=0),
+    limite: int = Query(30, ge=1, le=50),
+) -> ParticipantesEdicaoResposta:
+    try:
+        return service.participantes_edicao(db, evento_id, edicao_id, usuario.id, tipo, offset, limite)
+    except service.EventoNaoEncontrado as error:
         raise _erro(error) from error
 
 

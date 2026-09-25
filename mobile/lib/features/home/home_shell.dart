@@ -301,6 +301,8 @@ final class _HomeShellState extends State<HomeShell>
             builder: (_) => EventCommunityScreen(
               event: event,
               repository: widget.eventsRepository,
+              onPersonTap: _openPublicProfile,
+              onTeamTap: _openTeamById,
             ),
           ),
         );
@@ -392,6 +394,21 @@ final class _HomeShellState extends State<HomeShell>
     );
   }
 
+  Future<void> _openTeamById(String teamId) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: teamId,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
+      ),
+    ));
+  }
+
   Future<void> _openSearch({
     SearchCategory initialCategory = SearchCategory.projects,
   }) async {
@@ -449,6 +466,8 @@ final class _HomeShellState extends State<HomeShell>
         refreshRevision: _eventsRevision,
         repository: widget.eventsRepository,
         teamsRepository: widget.teamsRepository,
+        onPersonTap: _openPublicProfile,
+        onTeamTap: _openTeamById,
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,

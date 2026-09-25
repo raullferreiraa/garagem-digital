@@ -136,7 +136,10 @@ void main() {
         ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
     RequestOptions? sent;
     api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
-      if (options.method == 'PUT') sent = options;
+      if (options.method == 'PUT') {
+        sent = options;
+        data['minha_equipe_participacao'] = 'confirmada';
+      }
       handler.resolve(Response(requestOptions: options, data: data));
     }));
     await tester.pumpWidget(MaterialApp(
@@ -165,6 +168,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(sent!.data, {'status': 'confirmada', 'confirmar_integrantes': true});
     expect(sent!.queryParameters, {'edicao_id': 'edicao'});
+    expect(
+        find.widgetWithText(OutlinedButton, 'Levar Clássicos'), findsNothing);
+    expect(find.text('Equipe confirmada · Gerenciar'), findsOneWidget);
   });
 
   testWidgets('exclusão da comunidade pode ser cancelada sem enviar requisição',

@@ -14,7 +14,13 @@ from app.models.evento import (
     SeguidorEncontro,
 )
 from app.models.usuario import Usuario
-from app.schemas.evento import EdicaoCriacao, EdicaoResposta, EncontroCriacao, EncontroResposta, EncontroAtualizacao
+from app.schemas.evento import (
+    EdicaoCriacao, EdicaoResposta, EncontroCriacao, EncontroResposta,
+    EncontroAtualizacao, EquipeEdicaoResposta, ParticipanteEdicaoResposta,
+    ParticipantesEdicaoResposta, ProjetoConfirmadoResposta,
+)
+from app.schemas.usuario import UsuarioResumo
+from app.services.bloqueios import ids_com_bloqueio
 from app.services.notificacoes import criar_notificacao
 
 
@@ -333,6 +339,76 @@ def detalhar(db: Session, encontro_id: UUID, usuario_id: UUID) -> EncontroRespos
         raise EventoNaoEncontrado("Encontro não encontrado.")
     edicao = _proxima_edicao(db, encontro_id)
     return _resposta(db, encontro, edicao, usuario_id)
+
+
+def participantes_edicao(
+    db: Session, encontro_id: UUID, edicao_id: UUID, usuario_id: UUID,
+    tipo: str = "pessoas", offset: int = 0, limite: int = 30,
+) -> ParticipantesEdicaoResposta:
+    encontro = db.get(Encontro, encontro_id)
+    if encontro is None or not _visivel(db, encontro, usuario_id):
+        raise EventoNaoEncontrado("Encontro não encontrado.")
+    edicao = db.get(Evento, edicao_id)
+    if edicao is None or edicao.encontro_id != encontro_id:
+        raise EventoNaoEncontrado("Edição não encontrada.")
+
+    pessoas_base = (
+        select(Usuario)
+        .join(PresencaEvento, PresencaEvento.usuario_id == Usuario.id)
+        .where(
+            PresencaEvento.evento_id == edicao_id,
+            PresencaEvento.status == "confirmada",
+            Usuario.id.not_in(ids_com_bloqueio(db, usuario_id)),
+        )
+    )
+    equipe_usuario, _ = _equipe_e_papel(db, usuario_id)
+    equipes_base = (
+        select(Equipe)
+        .join(ParticipacaoEquipeEvento, ParticipacaoEquipeEvento.equipe_id == Equipe.id)
+        .where(
+            ParticipacaoEquipeEvento.evento_id == edicao_id,
+            ParticipacaoEquipeEvento.status == "confirmada",
+            or_(
+                Equipe.visibilidade == "publica",
+                Equipe.id == equipe_usuario.id if equipe_usuario else False,
+            ),
+        )
+    )
+    total_pessoas = db.scalar(select(func.count()).select_from(pessoas_base.subquery())) or 0
+    total_equipes = db.scalar(select(func.count()).select_from(equipes_base.subquery())) or 0
+    pessoas = db.execute(
+        select(Usuario, Carro)
+        .join(PresencaEvento, PresencaEvento.usuario_id == Usuario.id)
+        .outerjoin(Carro, Carro.id == PresencaEvento.carro_id)
+        .where(Usuario.id.in_(pessoas_base.with_only_columns(Usuario.id)))
+        .order_by(Usuario.nome, Usuario.id)
+        .offset(offset).limit(limite)
+    ).all() if tipo == "pessoas" else []
+    equipes = db.scalars(
+        equipes_base.order_by(Equipe.nome, Equipe.id).offset(offset).limit(limite)
+    ).all() if tipo == "equipes" else []
+    return ParticipantesEdicaoResposta(
+        total_pessoas=total_pessoas,
+        total_equipes=total_equipes,
+        pessoas=[
+            ParticipanteEdicaoResposta(
+                usuario=UsuarioResumo.model_validate(usuario),
+                carro=ProjetoConfirmadoResposta(
+                    id=carro.id,
+                    modelo=carro.modelo,
+                    ano=carro.ano,
+                    foto_principal_url=carro.foto_principal_url,
+                ) if carro else None,
+            )
+            for usuario, carro in pessoas
+        ],
+        equipes=[
+            EquipeEdicaoResposta(
+                id=equipe.id, nome=equipe.nome, avatar_url=equipe.avatar_url
+            )
+            for equipe in equipes
+        ],
+    )
 
 
 def seguir(db: Session, encontro_id: UUID, usuario_id: UUID, ativo: bool) -> EncontroResposta:

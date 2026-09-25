@@ -6,6 +6,7 @@ import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/event_form_screen.dart';
+import 'package:garagem_mobile/features/events/event_participants_screen.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
 import 'package:garagem_mobile/features/teams/teams_repository.dart';
@@ -15,10 +16,13 @@ class EventsScreen extends StatefulWidget {
       {required this.repository,
       required this.teamsRepository,
       required this.refreshRevision,
+      this.onPersonTap,
+      this.onTeamTap,
       super.key});
   final EventsRepository repository;
   final TeamsRepository teamsRepository;
   final int refreshRevision;
+  final Future<void> Function(String id)? onPersonTap, onTeamTap;
   @override
   State<EventsScreen> createState() => _EventsScreenState();
 }
@@ -114,8 +118,11 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Future<void> _open(GarageEvent event) async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
-        builder: (_) =>
-            EventCommunityScreen(event: event, repository: widget.repository)));
+        builder: (_) => EventCommunityScreen(
+            event: event,
+            repository: widget.repository,
+            onPersonTap: widget.onPersonTap,
+            onTeamTap: widget.onTeamTap)));
     if (mounted) await _reload();
   }
 
@@ -408,9 +415,14 @@ class _CommunityCover extends StatelessWidget {
 
 class EventCommunityScreen extends StatefulWidget {
   const EventCommunityScreen(
-      {required this.event, required this.repository, super.key});
+      {required this.event,
+      required this.repository,
+      this.onPersonTap,
+      this.onTeamTap,
+      super.key});
   final GarageEvent event;
   final EventsRepository repository;
+  final Future<void> Function(String id)? onPersonTap, onTeamTap;
   @override
   State<EventCommunityScreen> createState() => _EventCommunityScreenState();
 }
@@ -598,6 +610,41 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
     }
   }
 
+  void _openParticipants(EventEdition edition) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => EventParticipantsScreen(
+              eventId: _event.id,
+              eventName: _event.name,
+              edition: edition,
+              repository: widget.repository,
+              onPersonTap: widget.onPersonTap,
+              onTeamTap: widget.onTeamTap,
+            )));
+  }
+
+  Future<void> _showTeamActions() async {
+    final action = await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          ListTile(
+            leading: const Icon(Icons.group_add_outlined),
+            title: const Text('Confirmar integrantes da equipe'),
+            onTap: () => Navigator.pop(context, 'members'),
+          ),
+          ListTile(
+            leading: const Icon(Icons.group_remove_outlined),
+            title: const Text('Retirar participação da equipe'),
+            onTap: () => Navigator.pop(context, 'remove'),
+          ),
+        ]),
+      ),
+    );
+    if (!mounted) return;
+    if (action == 'members') _teamParticipation(membersOnly: true);
+    if (action == 'remove') _teamParticipation();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -698,7 +745,31 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
                                     children: [
-                                      const _Eyebrow('PRÓXIMA EDIÇÃO'),
+                                      Row(children: [
+                                        const Expanded(
+                                            child: _Eyebrow('PRÓXIMA EDIÇÃO')),
+                                        if (_event.canManage &&
+                                            currentEdition != null)
+                                          PopupMenuButton<String>(
+                                            tooltip: 'Opções da edição',
+                                            enabled: !_working,
+                                            onSelected: (value) {
+                                              if (value == 'edit')
+                                                _schedule(currentEdition);
+                                              if (value == 'cancel')
+                                                _cancelEdition(currentEdition);
+                                            },
+                                            itemBuilder: (_) => const [
+                                              PopupMenuItem(
+                                                  value: 'edit',
+                                                  child: Text('Editar edição')),
+                                              PopupMenuItem(
+                                                  value: 'cancel',
+                                                  child:
+                                                      Text('Cancelar edição')),
+                                            ],
+                                          ),
+                                      ]),
                                       const SizedBox(height: 12),
                                       Text(
                                           _event.startsAt == null
@@ -712,18 +783,46 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                           ? 'Siga a comunidade e volte para conferir a próxima data.'
                                           : '${_time(_event.startsAt!)} · ${_event.location}'),
                                       if (_event.startsAt != null) ...[
-                                        const SizedBox(height: 18),
-                                        Wrap(
-                                            spacing: 16,
-                                            runSpacing: 8,
-                                            children: [
-                                              _Metric(Icons.people_outline,
-                                                  '${_event.confirmedCount} ${_event.confirmedCount == 1 ? "confirmado" : "confirmados"}'),
-                                              _Metric(Icons.groups_outlined,
-                                                  '${_event.teamCount} ${_event.teamCount == 1 ? "equipe" : "equipes"}'),
-                                            ]),
-                                        const SizedBox(height: 18),
-                                        FilledButton.icon(
+                                        if (currentEdition != null) ...[
+                                          const SizedBox(height: 16),
+                                          const Divider(),
+                                          ListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            leading: const Icon(
+                                                Icons.people_alt_outlined),
+                                            title: Text(
+                                                '${_event.confirmedCount} ${_event.confirmedCount == 1 ? "pessoa" : "pessoas"} · ${_event.teamCount} ${_event.teamCount == 1 ? "equipe" : "equipes"}'),
+                                            subtitle:
+                                                const Text('Ver participantes'),
+                                            trailing:
+                                                const Icon(Icons.chevron_right),
+                                            onTap: () => _openParticipants(
+                                                currentEdition),
+                                          ),
+                                        ],
+                                        const SizedBox(height: 8),
+                                        if (_event.myPresence == 'confirmada')
+                                          Row(children: [
+                                            const Icon(
+                                                Icons.check_circle_outline),
+                                            const SizedBox(width: 8),
+                                            const Expanded(
+                                                child: Text(
+                                                    'Sua presença está confirmada')),
+                                            TextButton(
+                                              onPressed: _working
+                                                  ? null
+                                                  : () => _change(() => widget
+                                                      .repository
+                                                      .setPresence(_event.id,
+                                                          editionId:
+                                                              _event.editionId!,
+                                                          confirmed: false)),
+                                              child: const Text('Cancelar'),
+                                            ),
+                                          ])
+                                        else
+                                          FilledButton.icon(
                                             onPressed: _working
                                                 ? null
                                                 : () => _change(() => widget
@@ -731,18 +830,15 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                                     .setPresence(_event.id,
                                                         editionId:
                                                             _event.editionId!,
-                                                        confirmed:
-                                                            _event.myPresence !=
-                                                                'confirmada')),
-                                            icon: Icon(_event.myPresence ==
-                                                    'confirmada'
-                                                ? Icons.check_circle
-                                                : Icons.how_to_reg_outlined),
-                                            label: Text(_event.myPresence ==
-                                                    'confirmada'
-                                                ? 'Presença confirmada • Cancelar'
-                                                : 'Confirmar minha presença')),
+                                                        confirmed: true)),
+                                            icon: const Icon(
+                                                Icons.how_to_reg_outlined),
+                                            label: const Text(
+                                                'Confirmar minha presença'),
+                                          ),
                                         if (_event.canRepresentTeam &&
+                                            _event.myTeamParticipation !=
+                                                'confirmada' &&
                                             !(_event.organizerType ==
                                                     'equipe' &&
                                                 _event.organizerId ==
@@ -754,60 +850,22 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                                   : _teamParticipation,
                                               icon: const Icon(
                                                   Icons.groups_outlined),
-                                              label: Text(_event
-                                                          .myTeamParticipation ==
-                                                      'confirmada'
-                                                  ? 'Retirar participação da equipe'
-                                                  : 'Levar ${_event.myTeamName}')),
+                                              label: Text(
+                                                  'Levar ${_event.myTeamName}')),
                                         ],
                                         if (_event.canRepresentTeam &&
                                             _event.myTeamParticipation ==
                                                 'confirmada') ...[
                                           const SizedBox(height: 12),
-                                          TextButton.icon(
+                                          OutlinedButton.icon(
                                               onPressed: _working
                                                   ? null
-                                                  : () => _teamParticipation(
-                                                      membersOnly: true),
+                                                  : _showTeamActions,
                                               icon: const Icon(
-                                                  Icons.group_add_outlined),
+                                                  Icons.groups_outlined),
                                               label: const Text(
-                                                  'Confirmar integrantes da equipe')),
+                                                  'Equipe confirmada · Gerenciar')),
                                         ],
-                                        if (_event.canManage &&
-                                            currentEdition != null) ...[
-                                          const SizedBox(height: 8),
-                                          Row(children: [
-                                            Expanded(
-                                                child: OutlinedButton.icon(
-                                                    onPressed: _working
-                                                        ? null
-                                                        : () => _schedule(
-                                                            currentEdition),
-                                                    icon: const Icon(Icons
-                                                        .edit_calendar_outlined),
-                                                    label: const Text(
-                                                        'Editar edição'))),
-                                            const SizedBox(width: 8),
-                                            IconButton.outlined(
-                                                tooltip: 'Cancelar edição',
-                                                onPressed: _working
-                                                    ? null
-                                                    : () => _cancelEdition(
-                                                        currentEdition),
-                                                icon: const Icon(
-                                                    Icons.event_busy_outlined)),
-                                          ]),
-                                        ],
-                                      ],
-                                      if (_event.canManage) ...[
-                                        const SizedBox(height: 12),
-                                        OutlinedButton.icon(
-                                            onPressed:
-                                                _working ? null : _schedule,
-                                            icon: const Icon(Icons.add),
-                                            label: const Text(
-                                                'Agendar nova edição')),
                                       ],
                                     ]))),
                         if (upcoming.isNotEmpty) ...[
@@ -820,6 +878,7 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                               subtitle: Text(e.location(
                                   fallbackCity: _event.city,
                                   fallbackState: _event.state)),
+                              onTap: () => _openParticipants(e),
                               trailing: _event.canManage
                                   ? PopupMenuButton<String>(
                                       onSelected: (value) {
@@ -856,7 +915,9 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                   : Icons.flag_outlined),
                               title: Text(_date(e.startsAt)),
                               subtitle: Text(
-                                  '${e.status == 'cancelada' ? 'Edição cancelada' : e.location(fallbackCity: _event.city, fallbackState: _event.state)} · ${e.confirmedCount} confirmações'))),
+                                  '${e.status == 'cancelada' ? 'Edição cancelada' : e.location(fallbackCity: _event.city, fallbackState: _event.state)} · ${e.confirmedCount} confirmações'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () => _openParticipants(e))),
                       ])),
             ],
           )),
