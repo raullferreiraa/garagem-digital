@@ -45,6 +45,41 @@ Map<String, Object?> community({bool scheduled = false}) => {
     };
 
 void main() {
+  testWidgets('busca cidade da edição e filtra comunidades com próxima data',
+      (tester) async {
+    final scheduled = community(scheduled: true)
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final unscheduled = community()
+      ..['id'] = 'sem-data'
+      ..['nome'] = 'Garagem Capixaba';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(
+          Response(requestOptions: options, data: [unscheduled, scheduled]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    expect(find.text('Curitiba · PR'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'Curitiba');
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(find.text('Garagem Capixaba'), findsNothing);
+    await tester.tap(find.byTooltip('Limpar busca'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Próximos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(find.text('Garagem Capixaba'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('busca vazia oferece limpar filtros e recupera encontros',
       (tester) async {
     final api =

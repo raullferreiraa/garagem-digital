@@ -31,6 +31,23 @@ class _EventsScreenState extends State<EventsScreen> {
   String _search = '';
   final _searchController = TextEditingController();
 
+  bool _matchesSearch(GarageEvent event) {
+    final query = _search.trim().toLowerCase();
+    if (query.isEmpty) return true;
+    final searchable = [
+      event.name,
+      event.city,
+      event.state,
+      event.editionCity,
+      event.editionState,
+      for (final edition in event.editions) ...[
+        edition.city,
+        edition.state,
+      ],
+    ].whereType<String>().join(' ').toLowerCase();
+    return searchable.contains(query);
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -104,15 +121,23 @@ class _EventsScreenState extends State<EventsScreen> {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final now = DateTime.now();
     final events = (_events ?? []).where((event) {
       final matchesFilter = _filter == 'Todos' ||
           (_filter == 'Seguindo' && event.following) ||
-          (_filter == 'Organizo' && event.canManage);
-      return matchesFilter &&
-          '${event.name} ${event.city ?? ''} ${event.state ?? ''}'
-              .toLowerCase()
-              .contains(_search.toLowerCase().trim());
-    }).toList();
+          (_filter == 'Organizo' && event.canManage) ||
+          (_filter == 'Próximos' &&
+              event.startsAt != null &&
+              !event.startsAt!.isBefore(now));
+      return matchesFilter && _matchesSearch(event);
+    }).toList()
+      ..sort((a, b) {
+        final first = a.startsAt;
+        final second = b.startsAt;
+        if (first == null) return second == null ? 0 : 1;
+        if (second == null) return -1;
+        return first.compareTo(second);
+      });
     return Scaffold(
       appBar: AppBar(title: const Text('Encontros'), actions: [
         IconButton(
@@ -159,7 +184,12 @@ class _EventsScreenState extends State<EventsScreen> {
                               hintText: 'Buscar encontro ou cidade')),
                       const SizedBox(height: 14),
                       Wrap(spacing: 8, runSpacing: 8, children: [
-                        for (final filter in ['Todos', 'Seguindo', 'Organizo'])
+                        for (final filter in [
+                          'Todos',
+                          'Próximos',
+                          'Seguindo',
+                          'Organizo'
+                        ])
                           ChoiceChip(
                               label: Text(filter),
                               selected: _filter == filter,
@@ -200,9 +230,11 @@ class _EventsScreenState extends State<EventsScreen> {
                                     ? 'Nenhum encontro encontrado.'
                                     : _filter == 'Organizo'
                                         ? 'Você ainda não organiza um encontro.'
-                                        : _filter == 'Seguindo'
-                                            ? 'Sua próxima conexão começa aqui.'
-                                            : 'Encontre pessoas que compartilham sua paixão.',
+                                        : _filter == 'Próximos'
+                                            ? 'Nenhuma edição com data marcada.'
+                                            : _filter == 'Seguindo'
+                                                ? 'Sua próxima conexão começa aqui.'
+                                                : 'Encontre pessoas que compartilham sua paixão.',
                                 textAlign: TextAlign.center,
                                 style: Theme.of(context).textTheme.titleLarge),
                             const SizedBox(height: 12),
@@ -280,13 +312,27 @@ class _CommunityCard extends StatelessWidget {
                             const SizedBox(height: 14),
                             Row(children: [
                               Expanded(
-                                  child: Text(
-                                      event.startsAt == null
-                                          ? 'A comunidade continua. Nova data em breve.'
-                                          : 'Próxima edição · ${_date(event.startsAt!)}',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelLarge)),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                    Text(
+                                        event.startsAt == null
+                                            ? 'A comunidade continua. Nova data em breve.'
+                                            : 'Próxima edição · ${_date(event.startsAt!)}',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelLarge),
+                                    if (event.startsAt != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(event.location,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .bodySmall),
+                                    ],
+                                  ])),
                               const Icon(Icons.north_east),
                             ]),
                           ])),
