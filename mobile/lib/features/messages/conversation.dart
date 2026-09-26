@@ -1,4 +1,5 @@
 import 'package:garagem_mobile/core/config/app_config.dart';
+import 'package:garagem_mobile/features/messages/message_reply.dart';
 
 final class ConversationUser {
   const ConversationUser({
@@ -30,6 +31,9 @@ final class DirectMessage {
     required this.senderId,
     required this.content,
     required this.createdAt,
+    this.editedAt,
+    this.deletedAt,
+    this.reply,
   });
 
   factory DirectMessage.fromJson(Map<String, Object?> json) {
@@ -39,6 +43,15 @@ final class DirectMessage {
       senderId: json['remetente_id']! as String,
       content: json['conteudo']! as String,
       createdAt: DateTime.parse(json['criada_em']! as String),
+      editedAt: json['editada_em'] == null
+          ? null
+          : DateTime.parse(json['editada_em']! as String),
+      deletedAt: json['excluida_em'] == null
+          ? null
+          : DateTime.parse(json['excluida_em']! as String),
+      reply: json['resposta_a'] == null
+          ? null
+          : MessageReply.fromJson(json['resposta_a']! as Map<String, Object?>),
     );
   }
 
@@ -47,6 +60,20 @@ final class DirectMessage {
   final String senderId;
   final String content;
   final DateTime createdAt;
+  final DateTime? editedAt;
+  final DateTime? deletedAt;
+  final MessageReply? reply;
+  String get displayContent => deletedAt == null ? content : 'Mensagem apagada';
+
+  DirectMessage asDeleted() => DirectMessage(
+        id: id,
+        conversationId: conversationId,
+        senderId: senderId,
+        content: '',
+        createdAt: createdAt,
+        editedAt: editedAt,
+        deletedAt: DateTime.now(),
+      );
 }
 
 final class DirectConversation {

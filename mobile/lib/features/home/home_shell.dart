@@ -160,7 +160,10 @@ final class _HomeShellState extends State<HomeShell>
           current?.teamName == summary?.teamName &&
           current?.teamAvatarUrl == summary?.teamAvatarUrl &&
           current?.unreadCount == summary?.unreadCount &&
-          current?.lastMessage?.id == summary?.lastMessage?.id) {
+          current?.lastMessage?.id == summary?.lastMessage?.id &&
+          current?.lastMessage?.content == summary?.lastMessage?.content &&
+          current?.lastMessage?.editedAt == summary?.lastMessage?.editedAt &&
+          current?.lastMessage?.deletedAt == summary?.lastMessage?.deletedAt) {
         return;
       }
       setState(() => _teamChatSummary = summary);

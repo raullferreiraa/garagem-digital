@@ -21,7 +21,16 @@ from app.schemas.equipe import (
     TransferenciaLideranca,
 )
 from app.schemas.chat_equipe import MensagemEquipeCriacao, MensagemEquipeResposta, PaginaMensagensEquipe, ResumoChatEquipe
-from app.services.chat_equipe import enviar as enviar_chat, listar as listar_chat, resposta as resposta_chat, resumo as resumo_chat
+from app.services.chat_equipe import (
+    apagar_mensagem as apagar_mensagem_chat,
+    editar_mensagem as editar_mensagem_chat,
+    enviar as enviar_chat,
+    listar as listar_chat,
+    mensagem_do_autor,
+    obter_mensagem as obter_mensagem_chat,
+    resposta as resposta_chat,
+    resumo as resumo_chat,
+)
 from app.services.equipes import (
     AcaoNaoPermitida,
     EquipeNaoEncontrada,
@@ -67,9 +76,12 @@ def resumo_chat_equipe(
 def mensagens_chat_equipe(
     equipe_id: UUID, usuario: UsuarioAtual, db: DbSession,
     limite: Annotated[int, Query(ge=1, le=50)] = 30, cursor: str | None = None,
+    busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
 ) -> PaginaMensagensEquipe:
     try:
-        pagina = listar_chat(db, equipe_id, usuario.id, limite, cursor)
+        if busca is not None and len(busca.strip()) < 2:
+            raise HTTPException(status_code=422, detail="Digite pelo menos dois caracteres.")
+        pagina = listar_chat(db, equipe_id, usuario.id, limite, cursor, busca=busca)
     except ValueError as error:
         raise HTTPException(status_code=422, detail=str(error)) from error
     if pagina is None:
@@ -77,14 +89,54 @@ def mensagens_chat_equipe(
     return pagina
 
 
+@router.get("/{equipe_id}/chat/{mensagem_id}", response_model=MensagemEquipeResposta)
+def obter_mensagem_chat_equipe(
+    equipe_id: UUID, mensagem_id: UUID, usuario: UsuarioAtual, db: DbSession,
+) -> MensagemEquipeResposta:
+    mensagem = obter_mensagem_chat(db, equipe_id, mensagem_id, usuario.id)
+    if mensagem is None:
+        raise HTTPException(status_code=404, detail="Mensagem nao encontrada.")
+    return resposta_chat(mensagem, mensagem.autor)
+
+
 @router.post("/{equipe_id}/chat", response_model=MensagemEquipeResposta, status_code=status.HTTP_201_CREATED)
 def enviar_mensagem_chat_equipe(
     equipe_id: UUID, dados: MensagemEquipeCriacao, usuario: UsuarioAtual, db: DbSession,
 ) -> MensagemEquipeResposta:
-    mensagem = enviar_chat(db, equipe_id, usuario, dados.conteudo)
+    try:
+        mensagem = enviar_chat(db, equipe_id, usuario, dados.conteudo, dados.resposta_a_id)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
     if mensagem is None:
         raise HTTPException(status_code=404, detail="Chat da equipe nao encontrado.")
     return resposta_chat(mensagem, usuario)
+
+
+@router.patch("/{equipe_id}/chat/{mensagem_id}", response_model=MensagemEquipeResposta)
+def alterar_mensagem_chat_equipe(
+    equipe_id: UUID,
+    mensagem_id: UUID,
+    dados: MensagemEquipeCriacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> MensagemEquipeResposta:
+    mensagem = mensagem_do_autor(db, equipe_id, mensagem_id, usuario.id)
+    if mensagem is None:
+        raise HTTPException(status_code=404, detail="Mensagem nao encontrada.")
+    if mensagem.excluida_em is not None:
+        raise HTTPException(status_code=409, detail="Esta mensagem foi apagada.")
+    return resposta_chat(editar_mensagem_chat(db, mensagem, dados.conteudo), usuario)
+
+
+@router.delete("/{equipe_id}/chat/{mensagem_id}", status_code=status.HTTP_204_NO_CONTENT)
+def apagar_mensagem_chat_equipe_rota(
+    equipe_id: UUID, mensagem_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> Response:
+    mensagem = mensagem_do_autor(db, equipe_id, mensagem_id, usuario.id)
+    if mensagem is None:
+        raise HTTPException(status_code=404, detail="Mensagem nao encontrada.")
+    apagar_mensagem_chat(db, mensagem)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 def _erro(error: ValueError) -> HTTPException:

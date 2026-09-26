@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
@@ -52,6 +53,436 @@ Map<String, Object?> _conversation() => {
     };
 
 void main() {
+  for (final teamChat in [false, true]) {
+    testWidgets(
+        '${teamChat ? "Equipe" : "DM"}: resultado antigo volta para a mensagem no chat',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final api = ApiClient(
+          baseUrl: 'http://localhost/api/v1',
+          tokenStorage: _EmptyTokenStorage());
+      final target = teamChat
+          ? <String, Object?>{
+              'id': 'target',
+              'conteudo': 'Encontro na praça',
+              'criada_em': '2026-09-22T17:00:00Z',
+              'autor': {
+                'id': 'other',
+                'nome': 'Bia Garage',
+                'username': 'bia.garage'
+              },
+            }
+          : {
+              ..._message('target', 'Encontro na praça'),
+              'criada_em': '2026-09-22T17:00:00Z',
+            };
+      final recent = teamChat
+          ? <String, Object?>{
+              'id': 'recent',
+              'conteudo': 'Mensagem recente',
+              'criada_em': '2026-09-22T18:30:00Z',
+              'autor': {
+                'id': 'other',
+                'nome': 'Bia Garage',
+                'username': 'bia.garage'
+              },
+            }
+          : _message('recent', 'Mensagem recente');
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method == 'GET') {
+          final search = options.queryParameters['busca'];
+          final cursor = options.queryParameters['cursor'];
+          handler.resolve(Response(requestOptions: options, data: {
+            'itens': search != null || cursor == 'older' ? [target] : [recent],
+            'proximo_cursor':
+                search != null || cursor == 'older' ? null : 'older',
+          }));
+          return;
+        }
+        handler.resolve(Response(requestOptions: options, statusCode: 204));
+      }));
+      await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: teamChat
+              ? TeamChatScreen(
+                  team: const Team(
+                      id: 'team',
+                      name: 'Equipe',
+                      slug: 'equipe',
+                      visibility: 'publica',
+                      memberCount: 2),
+                  repository: TeamsRepository(api),
+                  currentUserId: 'me')
+              : ConversationScreen(
+                  conversation: DirectConversation.fromJson(_conversation()),
+                  repository: MessagesRepository(api),
+                  currentUserId: 'me',
+                  onProfileTap: (_) {},
+                  onChanged: () {})));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('message-bubble-target')), findsNothing);
+      await tester.tap(find.byTooltip('Buscar na conversa'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'praça');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Encontro na praça'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('message-bubble-target')).hitTestable(),
+          findsOneWidget);
+      expect(find.text('Buscar na conversa'), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  for (final teamChat in [false, true]) {
+    testWidgets(
+        '${teamChat ? "Equipe" : "DM"}: toque longo copia e responde sem permitir editar mensagem alheia',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      String? copied;
+      tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData')
+          copied = (call.arguments as Map)['text'] as String;
+        return null;
+      });
+      addTearDown(() => tester.binding.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null));
+      final api = ApiClient(
+          baseUrl: 'http://localhost/api/v1',
+          tokenStorage: _EmptyTokenStorage());
+      final original = teamChat
+          ? <String, Object?>{
+              'id': 'original',
+              'conteudo': 'Qual é o local?',
+              'criada_em': '2026-09-22T18:30:00Z',
+              'autor': {
+                'id': 'other',
+                'nome': 'Bia Garage',
+                'username': 'bia.garage'
+              },
+            }
+          : _message('original', 'Qual é o local?');
+      Map<String, Object?>? sent;
+      String? searched;
+      var attempts = 0;
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method == 'GET') {
+          if (options.path.endsWith('/original')) {
+            handler.resolve(Response(requestOptions: options, data: original));
+            return;
+          }
+          searched = options.queryParameters['busca'] as String?;
+          handler.resolve(Response(requestOptions: options, data: {
+            'itens': [original],
+            'proximo_cursor': null
+          }));
+        } else if (options.method == 'POST' &&
+            !options.path.endsWith('/lida')) {
+          attempts++;
+          sent = Map<String, Object?>.from(options.data as Map);
+          if (attempts == 1) {
+            handler.reject(DioException(
+                requestOptions: options,
+                type: DioExceptionType.connectionError));
+            return;
+          }
+          handler.resolve(Response(requestOptions: options, data: {
+            ...original,
+            'id': 'response',
+            'conteudo': sent!['conteudo'],
+            'criada_em': '2026-09-22T18:31:00Z',
+            'resposta_a': original,
+            if (teamChat)
+              'autor': {'id': 'me', 'nome': 'Raul', 'username': 'raul'},
+            if (!teamChat) 'remetente_id': 'me',
+          }));
+        } else {
+          handler.resolve(Response(requestOptions: options, statusCode: 204));
+        }
+      }));
+      await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: teamChat
+              ? TeamChatScreen(
+                  team: const Team(
+                      id: 'team',
+                      name: 'Equipe',
+                      slug: 'equipe',
+                      visibility: 'publica',
+                      memberCount: 2),
+                  repository: TeamsRepository(api),
+                  currentUserId: 'me')
+              : ConversationScreen(
+                  conversation: DirectConversation.fromJson(_conversation()),
+                  repository: MessagesRepository(api),
+                  currentUserId: 'me',
+                  onProfileTap: (_) {},
+                  onChanged: () {})));
+      await tester.pumpAndSettle();
+      final bubble = find.byKey(const ValueKey('message-bubble-original'));
+      await tester.longPress(bubble);
+      await tester.pumpAndSettle();
+      expect(find.text('Editar mensagem'), findsNothing);
+      expect(find.text('Apagar para todos'), findsNothing);
+      await tester.tap(find.text('Copiar texto'));
+      await tester.pumpAndSettle();
+      expect(copied, 'Qual é o local?');
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.longPress(bubble);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Responder'));
+      await tester.pumpAndSettle();
+      expect(find.text('Respondendo a Bia Garage'), findsOneWidget);
+      await tester.enterText(find.byType(TextField), 'Na praça');
+      await tester.pump();
+      await tester.tap(find.byTooltip('Enviar mensagem'));
+      await tester.pumpAndSettle();
+      expect(attempts, 1);
+      expect(find.text('Respondendo a Bia Garage'), findsOneWidget);
+      expect(tester.widget<TextField>(find.byType(TextField)).controller!.text,
+          'Na praça');
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Enviar mensagem'));
+      await tester.pumpAndSettle();
+      expect(sent, {'conteudo': 'Na praça', 'resposta_a_id': 'original'});
+      expect(find.text('Respondendo a Bia Garage'), findsNothing);
+      final response = find.byKey(const ValueKey('message-bubble-response'));
+      expect(
+          find.descendant(of: response, matching: find.text('Qual é o local?')),
+          findsOneWidget);
+      expect(find.descendant(of: response, matching: find.text('Na praça')),
+          findsOneWidget);
+      await tester.tap(find.descendant(
+          of: response, matching: find.text('Qual é o local?')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('message-bubble-original')),
+          findsOneWidget);
+      await tester.tap(find.byTooltip('Buscar na conversa'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'local');
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pumpAndSettle();
+      expect(searched, 'local');
+      await tester.tap(find.text('Qual é o local?'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('message-bubble-original')),
+          findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
+  }
+
+  for (final teamChat in [false, true]) {
+    testWidgets(
+        '${teamChat ? "Chat da equipe" : "Conversa direta"} recebe edições e exclusões sem reabrir',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1',
+        tokenStorage: _EmptyTokenStorage(),
+      );
+      var loads = 0;
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method != 'GET') {
+          handler.resolve(Response(requestOptions: options, statusCode: 204));
+          return;
+        }
+        loads++;
+        final content = loads == 1
+            ? 'Mensagem inicial'
+            : loads == 2
+                ? 'Mensagem editada'
+                : '';
+        final data = teamChat
+            ? <String, Object?>{
+                'id': 'message',
+                'equipe_id': 'team',
+                'conteudo': content,
+                'criada_em': '2026-09-22T18:30:00Z',
+                'editada_em': loads >= 2 ? '2026-09-22T18:35:00Z' : null,
+                'excluida_em': loads >= 3 ? '2026-09-22T18:36:00Z' : null,
+                'autor': {'id': 'other', 'nome': 'Bia', 'username': 'bia'},
+              }
+            : <String, Object?>{
+                ..._message('message', content),
+                'editada_em': loads >= 2 ? '2026-09-22T18:35:00Z' : null,
+                'excluida_em': loads >= 3 ? '2026-09-22T18:36:00Z' : null,
+              };
+        handler.resolve(Response(requestOptions: options, data: {
+          'itens': [data],
+          'proximo_cursor': null,
+        }));
+      }));
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: teamChat
+            ? TeamChatScreen(
+                team: const Team(
+                    id: 'team',
+                    name: 'Equipe',
+                    slug: 'equipe',
+                    visibility: 'publica',
+                    memberCount: 2),
+                repository: TeamsRepository(api),
+                currentUserId: 'me',
+              )
+            : ConversationScreen(
+                conversation: DirectConversation.fromJson(_conversation()),
+                repository: MessagesRepository(api),
+                currentUserId: 'me',
+                onProfileTap: (_) {},
+                onChanged: () {},
+              ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Mensagem inicial'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(find.text('Mensagem editada'), findsOneWidget);
+      expect(find.textContaining('editada ·'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 8));
+      await tester.pumpAndSettle();
+      expect(find.text('Mensagem apagada'), findsOneWidget);
+      expect(find.text('Mensagem editada'), findsNothing);
+    });
+  }
+
+  for (final teamChat in [false, true]) {
+    testWidgets(
+        '${teamChat ? "Chat da equipe" : "Conversa direta"} permite editar e apagar mensagem própria',
+        (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      tester.view.physicalSize = const Size(320, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      var content = 'Texto original';
+      var edited = false;
+      var deleted = false;
+      Map<String, Object?> message() => teamChat
+          ? {
+              'id': 'message',
+              'equipe_id': 'team',
+              'conteudo': deleted ? '' : content,
+              'criada_em': '2026-09-22T18:30:00Z',
+              'editada_em': edited ? '2026-09-22T18:35:00Z' : null,
+              'excluida_em': deleted ? '2026-09-22T18:36:00Z' : null,
+              'autor': {
+                'id': 'me',
+                'nome': 'Raul',
+                'username': 'raul',
+              },
+            }
+          : {
+              ..._message('message', deleted ? '' : content),
+              'remetente_id': 'me',
+              'editada_em': edited ? '2026-09-22T18:35:00Z' : null,
+              'excluida_em': deleted ? '2026-09-22T18:36:00Z' : null,
+            };
+      final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1',
+        tokenStorage: _EmptyTokenStorage(),
+      );
+      api.dio.interceptors
+          .add(InterceptorsWrapper(onRequest: (options, handler) {
+        if (options.method == 'PATCH') {
+          content =
+              (options.data as Map<String, Object?>)['conteudo']! as String;
+          edited = true;
+          handler.resolve(Response(requestOptions: options, data: message()));
+        } else if (options.method == 'DELETE') {
+          deleted = true;
+          handler.resolve(Response(requestOptions: options, statusCode: 204));
+        } else if (options.method == 'GET') {
+          handler.resolve(Response(
+            requestOptions: options,
+            data: <String, Object?>{
+              'itens': [message()],
+              'proximo_cursor': null
+            },
+          ));
+        } else {
+          handler.resolve(Response(requestOptions: options, statusCode: 204));
+        }
+      }));
+      await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context)
+              .copyWith(textScaler: const TextScaler.linear(1.0)),
+          child: child!,
+        ),
+        home: teamChat
+            ? TeamChatScreen(
+                team: const Team(
+                  id: 'team',
+                  name: 'Equipe',
+                  slug: 'equipe',
+                  visibility: 'publica',
+                  memberCount: 2,
+                ),
+                repository: TeamsRepository(api),
+                currentUserId: 'me',
+              )
+            : ConversationScreen(
+                conversation: DirectConversation.fromJson(_conversation()),
+                repository: MessagesRepository(api),
+                currentUserId: 'me',
+                onProfileTap: (_) {},
+                onChanged: () {},
+              ),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.text('Texto original'), findsOneWidget);
+      final bubble = find.byKey(const ValueKey('message-bubble-message'));
+      expect(find.byIcon(Icons.more_vert_rounded), findsNothing);
+      await tester.longPress(bubble);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Editar mensagem'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byType(TextField),
+        ),
+        'Texto corrigido',
+      );
+      await tester.pump();
+      expect(
+          tester
+              .widget<FilledButton>(find.widgetWithText(FilledButton, 'Salvar'))
+              .onPressed,
+          isNotNull);
+      await tester.tap(find.text('Salvar'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text('Texto corrigido'), findsOneWidget);
+      expect(
+          find.descendant(
+              of: bubble, matching: find.textContaining('editada ·')),
+          findsOneWidget);
+
+      await tester.longPress(bubble);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apagar para todos'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Apagar'));
+      await tester.pumpAndSettle();
+      expect(find.text('Mensagem apagada'), findsOneWidget);
+      expect(find.text('Texto corrigido'), findsNothing);
+      expect(find.byTooltip('Opções da mensagem'), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   for (final teamChat in [false, true]) {
     testWidgets(
         'chat ${teamChat ? "da equipe" : "direto"} avisa sobre novas mensagens fora da tela',
@@ -119,6 +550,7 @@ void main() {
       ));
       await tester.pumpAndSettle();
       expect(find.text('Novas mensagens'), findsNothing);
+      expect(find.text('Mensagem 19').hitTestable(), findsOneWidget);
       await tester.drag(find.byType(ListView), const Offset(0, 500));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 8));

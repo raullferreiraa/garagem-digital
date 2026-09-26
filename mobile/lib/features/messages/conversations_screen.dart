@@ -263,7 +263,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final mine = last?.authorId == widget.currentUserId;
     final preview = last == null
         ? 'Converse com os integrantes da sua equipe.'
-        : '${mine ? 'Você: ' : '${last.authorName}: '}${last.content.replaceAll('\n', ' ')}';
+        : '${mine ? 'Você: ' : '${last.authorName}: '}${last.displayContent.replaceAll('\n', ' ')}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GdReveal(
@@ -399,7 +399,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final mine = last?.senderId == widget.currentUserId;
     final preview = last == null
         ? 'Conversa iniciada. Envie a primeira mensagem.'
-        : '${mine ? 'Você: ' : ''}${last.content.replaceAll('\n', ' ')}';
+        : '${mine ? 'Você: ' : ''}${last.displayContent.replaceAll('\n', ' ')}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: GdReveal(

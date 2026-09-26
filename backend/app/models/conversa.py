@@ -106,6 +106,17 @@ class MensagemDireta(Base):
         default=agora_utc,
         server_default=func.now(),
     )
+    editada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    excluida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resposta_a_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("mensagens_diretas.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    resposta_a: Mapped["MensagemDireta | None"] = relationship(
+        "MensagemDireta", remote_side=[id], foreign_keys=[resposta_a_id],
+        lazy="joined", join_depth=1,
+    )
 
     conversa = relationship("ConversaDireta", back_populates="mensagens")
     remetente = relationship("Usuario", foreign_keys=[remetente_id], lazy="joined")

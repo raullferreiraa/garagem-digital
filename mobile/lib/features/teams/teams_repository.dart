@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garagem_mobile/features/messages/message_reply.dart';
 
 final class TeamChatMessage {
   const TeamChatMessage({
@@ -12,6 +13,9 @@ final class TeamChatMessage {
     required this.authorName,
     required this.authorUsername,
     this.authorAvatarUrl,
+    this.editedAt,
+    this.deletedAt,
+    this.reply,
   });
 
   factory TeamChatMessage.fromJson(Map<String, Object?> json) {
@@ -20,6 +24,15 @@ final class TeamChatMessage {
       id: json['id']! as String,
       content: json['conteudo']! as String,
       createdAt: DateTime.parse(json['criada_em']! as String),
+      editedAt: json['editada_em'] == null
+          ? null
+          : DateTime.parse(json['editada_em']! as String),
+      deletedAt: json['excluida_em'] == null
+          ? null
+          : DateTime.parse(json['excluida_em']! as String),
+      reply: json['resposta_a'] == null
+          ? null
+          : MessageReply.fromJson(json['resposta_a']! as Map<String, Object?>),
       authorId: author['id']! as String,
       authorName: author['nome']! as String,
       authorUsername: author['username']! as String,
@@ -29,6 +42,21 @@ final class TeamChatMessage {
 
   final String id, content, authorId, authorName, authorUsername;
   final DateTime createdAt;
+  final DateTime? editedAt;
+  final DateTime? deletedAt;
+  final MessageReply? reply;
+  String get displayContent => deletedAt == null ? content : 'Mensagem apagada';
+  TeamChatMessage asDeleted() => TeamChatMessage(
+        id: id,
+        content: '',
+        createdAt: createdAt,
+        authorId: authorId,
+        authorName: authorName,
+        authorUsername: authorUsername,
+        authorAvatarUrl: authorAvatarUrl,
+        editedAt: editedAt,
+        deletedAt: DateTime.now(),
+      );
   final String? authorAvatarUrl;
 }
 
@@ -221,19 +249,47 @@ final class TeamsRepository {
     return data == null ? null : TeamChatSummary.fromJson(data);
   }
 
-  Future<TeamChatPage> chat(String teamId, {String? cursor}) async {
+  Future<TeamChatPage> chat(String teamId,
+      {String? cursor, String? query}) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/equipes/$teamId/chat',
-      queryParameters: {if (cursor != null) 'cursor': cursor},
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        if (query != null) 'busca': query,
+      },
     );
     return TeamChatPage.fromJson(response.data!);
   }
 
-  Future<TeamChatMessage> sendChat(String teamId, String content) async {
+  Future<TeamChatMessage> chatMessage(String teamId, String messageId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/equipes/$teamId/chat/$messageId',
+    );
+    return TeamChatMessage.fromJson(response.data!);
+  }
+
+  Future<TeamChatMessage> sendChat(String teamId, String content,
+      {String? replyToId}) async {
     final response = await _api.dio.post<Map<String, Object?>>(
       '/equipes/$teamId/chat',
+      data: {
+        'conteudo': content,
+        if (replyToId != null) 'resposta_a_id': replyToId
+      },
+    );
+    return TeamChatMessage.fromJson(response.data!);
+  }
+
+  Future<TeamChatMessage> editChatMessage(
+      String teamId, String messageId, String content) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/equipes/$teamId/chat/$messageId',
       data: {'conteudo': content},
     );
     return TeamChatMessage.fromJson(response.data!);
+  }
+
+  Future<void> deleteChatMessage(String teamId, String messageId) async {
+    await _api.dio.delete<void>('/equipes/$teamId/chat/$messageId');
   }
 }

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models.equipe import Equipe, LeituraChatEquipe, MensagemEquipe, MembroEquipe
 from app.models.usuario import Usuario
 from app.schemas.chat_equipe import (
+    MensagemEquipeCitada,
     MensagemEquipeResposta,
     PaginaMensagensEquipe,
     ResumoChatEquipe,
@@ -34,7 +35,7 @@ def _ler_cursor(cursor: str) -> tuple[datetime, UUID]:
         raise ValueError("Cursor de paginacao invalido.") from error
 
 
-def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: str | None) -> PaginaMensagensEquipe | None:
+def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: str | None, busca: str | None = None) -> PaginaMensagensEquipe | None:
     if not _membro(db, equipe_id, usuario_id):
         return None
 
@@ -42,7 +43,7 @@ def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: 
     # Valida o cursor antes de alterar o estado de leitura.
     if cursor:
         _ler_cursor(cursor)
-    else:
+    elif busca is None:
         leitura = db.get(LeituraChatEquipe, (equipe_id, usuario_id))
         if leitura is None:
             db.add(LeituraChatEquipe(equipe_id=equipe_id, usuario_id=usuario_id))
@@ -51,6 +52,11 @@ def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: 
         db.commit()
 
     query = select(MensagemEquipe, Usuario).join(Usuario, Usuario.id == MensagemEquipe.autor_id).where(MensagemEquipe.equipe_id == equipe_id)
+    if busca is not None:
+        query = query.where(
+            MensagemEquipe.excluida_em.is_(None),
+            MensagemEquipe.conteudo.icontains(busca.strip(), autoescape=True),
+        )
     if cursor:
         criado_em, mensagem_id = _ler_cursor(cursor)
         query = query.where(or_(MensagemEquipe.criada_em < criado_em, and_(MensagemEquipe.criada_em == criado_em, MensagemEquipe.id < mensagem_id)))
@@ -59,18 +65,68 @@ def listar(db: Session, equipe_id: UUID, usuario_id: UUID, limite: int, cursor: 
     rows = rows[:limite]
     next_cursor = _cursor(rows[-1][0]) if more and rows else None
     rows.reverse()
-    return PaginaMensagensEquipe(itens=[MensagemEquipeResposta(id=item.id, equipe_id=item.equipe_id, conteudo=item.conteudo, criada_em=item.criada_em, autor=UsuarioResumo.model_validate(autor)) for item, autor in rows], proximo_cursor=next_cursor)
+    return PaginaMensagensEquipe(itens=[resposta(item, autor) for item, autor in rows], proximo_cursor=next_cursor)
 
 
-def enviar(db: Session, equipe_id: UUID, usuario: Usuario, conteudo: str) -> MensagemEquipe | None:
+def obter_mensagem(db: Session, equipe_id: UUID, mensagem_id: UUID, usuario_id: UUID) -> MensagemEquipe | None:
+    if not _membro(db, equipe_id, usuario_id):
+        return None
+    mensagem = db.get(MensagemEquipe, mensagem_id)
+    return mensagem if mensagem is not None and mensagem.equipe_id == equipe_id else None
+
+
+def enviar(db: Session, equipe_id: UUID, usuario: Usuario, conteudo: str, resposta_a_id: UUID | None = None) -> MensagemEquipe | None:
     if not _membro(db, equipe_id, usuario.id): return None
-    mensagem = MensagemEquipe(equipe_id=equipe_id, autor_id=usuario.id, conteudo=conteudo)
+    if resposta_a_id is not None:
+        original = db.get(MensagemEquipe, resposta_a_id)
+        if original is None or original.equipe_id != equipe_id or original.excluida_em is not None:
+            raise ValueError("A mensagem respondida não está disponível nesta conversa.")
+    mensagem = MensagemEquipe(equipe_id=equipe_id, autor_id=usuario.id, conteudo=conteudo, resposta_a_id=resposta_a_id)
     db.add(mensagem); db.commit(); db.refresh(mensagem)
     return mensagem
 
 
 def resposta(mensagem: MensagemEquipe, usuario: Usuario) -> MensagemEquipeResposta:
-    return MensagemEquipeResposta(id=mensagem.id, equipe_id=mensagem.equipe_id, conteudo=mensagem.conteudo, criada_em=mensagem.criada_em, autor=UsuarioResumo.model_validate(usuario))
+    return MensagemEquipeResposta(
+        id=mensagem.id, equipe_id=mensagem.equipe_id, conteudo=mensagem.conteudo,
+        criada_em=mensagem.criada_em, editada_em=mensagem.editada_em,
+        excluida_em=mensagem.excluida_em, autor=UsuarioResumo.model_validate(usuario),
+        resposta_a=MensagemEquipeCitada.model_validate(mensagem.resposta_a)
+        if mensagem.resposta_a is not None else None,
+    )
+
+
+def mensagem_do_autor(
+    db: Session, equipe_id: UUID, mensagem_id: UUID, usuario_id: UUID
+) -> MensagemEquipe | None:
+    if not _membro(db, equipe_id, usuario_id):
+        return None
+    mensagem = db.get(MensagemEquipe, mensagem_id)
+    if (
+        mensagem is None
+        or mensagem.equipe_id != equipe_id
+        or mensagem.autor_id != usuario_id
+    ):
+        return None
+    return mensagem
+
+
+def editar_mensagem(
+    db: Session, mensagem: MensagemEquipe, conteudo: str
+) -> MensagemEquipe:
+    mensagem.conteudo = conteudo
+    mensagem.editada_em = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(mensagem)
+    return mensagem
+
+
+def apagar_mensagem(db: Session, mensagem: MensagemEquipe) -> None:
+    if mensagem.excluida_em is not None:
+        return
+    mensagem.conteudo = ""
+    mensagem.excluida_em = datetime.now(timezone.utc)
+    db.commit()
 
 
 def resumo(db: Session, usuario_id: UUID) -> ResumoChatEquipe | None:
@@ -88,6 +144,7 @@ def resumo(db: Session, usuario_id: UUID) -> ResumoChatEquipe | None:
     filtros = [
         MensagemEquipe.equipe_id == equipe.id,
         MensagemEquipe.autor_id != usuario_id,
+        MensagemEquipe.excluida_em.is_(None),
     ]
     if leitura is not None:
         filtros.append(MensagemEquipe.criada_em > leitura.ultima_leitura_em)

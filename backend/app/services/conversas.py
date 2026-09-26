@@ -134,6 +134,7 @@ def _total_nao_lidas(
     consulta = select(func.count()).select_from(MensagemDireta).where(
         MensagemDireta.conversa_id == conversa.id,
         MensagemDireta.remetente_id != usuario_id,
+        MensagemDireta.excluida_em.is_(None),
     )
     lida_em = _leu_em(conversa, usuario_id)
     if lida_em is not None:
@@ -207,6 +208,7 @@ def total_conversas_nao_lidas(db: Session, usuario_id: UUID) -> int:
                     else_=ConversaDireta.usuario_a_id,
                 ).not_in(ids_com_bloqueio(db, usuario_id)),
                 MensagemDireta.remetente_id != usuario_id,
+                MensagemDireta.excluida_em.is_(None),
                 or_(
                     ultima_leitura.is_(None),
                     MensagemDireta.criada_em > ultima_leitura,
@@ -222,13 +224,19 @@ def enviar_mensagem(
     conversa: ConversaDireta,
     remetente_id: UUID,
     conteudo: str,
+    resposta_a_id: UUID | None = None,
 ) -> MensagemDireta:
+    if resposta_a_id is not None:
+        original = db.get(MensagemDireta, resposta_a_id)
+        if original is None or original.conversa_id != conversa.id or original.excluida_em is not None:
+            raise ValueError("A mensagem respondida não está disponível nesta conversa.")
     agora = datetime.now(timezone.utc)
     mensagem = MensagemDireta(
         conversa_id=conversa.id,
         remetente_id=remetente_id,
         conteudo=conteudo,
         criada_em=agora,
+        resposta_a_id=resposta_a_id,
     )
     conversa.atualizada_em = agora
     _marcar_data_leitura(conversa, remetente_id, agora)
@@ -236,6 +244,35 @@ def enviar_mensagem(
     db.commit()
     db.refresh(mensagem)
     return mensagem
+
+
+def mensagem_do_remetente(
+    db: Session, conversa_id: UUID, mensagem_id: UUID, remetente_id: UUID
+) -> MensagemDireta | None:
+    mensagem = db.get(MensagemDireta, mensagem_id)
+    if (
+        mensagem is None
+        or mensagem.conversa_id != conversa_id
+        or mensagem.remetente_id != remetente_id
+    ):
+        return None
+    return mensagem
+
+
+def editar_mensagem(db: Session, mensagem: MensagemDireta, conteudo: str) -> MensagemDireta:
+    mensagem.conteudo = conteudo
+    mensagem.editada_em = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(mensagem)
+    return mensagem
+
+
+def apagar_mensagem(db: Session, mensagem: MensagemDireta) -> None:
+    if mensagem.excluida_em is not None:
+        return
+    mensagem.conteudo = ""
+    mensagem.excluida_em = datetime.now(timezone.utc)
+    db.commit()
 
 
 def marcar_conversa_como_lida(
@@ -270,10 +307,16 @@ def listar_mensagens(
     *,
     limite: int,
     cursor: str | None,
+    busca: str | None = None,
 ) -> PaginaMensagens:
     consulta = select(MensagemDireta).where(
         MensagemDireta.conversa_id == conversa.id
     )
+    if busca is not None:
+        consulta = consulta.where(
+            MensagemDireta.excluida_em.is_(None),
+            MensagemDireta.conteudo.icontains(busca.strip(), autoescape=True),
+        )
     if cursor:
         criada_em, mensagem_id = _decodificar_cursor(cursor)
         consulta = consulta.where(
