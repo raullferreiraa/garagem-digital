@@ -79,18 +79,16 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       final now = DateTime.now();
       setState(() {
+        _fetchRequest++;
         _items = [
           for (final item in _items!)
-            if (!readIds.contains(item.id))
-              item
-            else
-              item.copyWith(readAt: now),
+            readIds.contains(item.id) ? item.copyWith(readAt: now) : item,
         ];
       });
       final unread = await widget.repository.unreadCount();
       if (mounted) widget.onUnreadChanged(unread);
     } catch (_) {
-      // Mantém o estado pendente; um novo acesso ou refresh tenta novamente.
+      // Um novo acesso ou refresh tenta confirmar os avisos restantes.
     } finally {
       _acknowledging = false;
     }
@@ -194,12 +192,12 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       body: FutureBuilder<List<AppNotification>>(
         future: _future,
         builder: (context, snapshot) {
-          final items = _items ?? snapshot.data;
-          if (items == null &&
+          final allItems = _items ?? snapshot.data;
+          if (allItems == null &&
               snapshot.connectionState == ConnectionState.waiting) {
             return const GdSkeleton(compact: true);
           }
-          if (items == null) {
+          if (allItems == null) {
             return Center(
               child: FilledButton.icon(
                 onPressed: _reload,
@@ -208,6 +206,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             );
           }
+          final items = allItems;
+          final newThisVisit =
+              items.where((item) => _newThisVisit.contains(item.id)).length;
           return Column(
             children: [
               if (snapshot.hasError)
@@ -219,6 +220,27 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                       onPressed: _reload,
                       child: const Text('Tentar novamente'),
                     ),
+                  ),
+                ),
+              if (allItems.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GdSectionTitle(
+                        title: newThisVisit == 0
+                            ? 'Você está em dia.'
+                            : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
+                        eyebrow: 'NA SUA COMUNIDADE',
+                        trailing: Icon(
+                          newThisVisit == 0
+                              ? Icons.done_all_rounded
+                              : Icons.bolt_rounded,
+                          color: colors.primary,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               Expanded(
@@ -260,35 +282,14 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                       : ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
-                          itemCount: items.length + 1,
+                          itemCount: items.length,
                           itemBuilder: (context, index) {
-                            if (index == 0) {
-                              final newThisVisit = items
-                                  .where(
-                                      (item) => _newThisVisit.contains(item.id))
-                                  .length;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 24),
-                                child: GdSectionTitle(
-                                  title: newThisVisit == 0
-                                      ? 'Você está em dia.'
-                                      : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
-                                  eyebrow: 'NA SUA COMUNIDADE',
-                                  trailing: Icon(
-                                    newThisVisit == 0
-                                        ? Icons.done_all_rounded
-                                        : Icons.bolt_rounded,
-                                    color: colors.primary,
-                                  ),
-                                ),
-                              );
-                            }
-                            final item = items[index - 1];
+                            final item = items[index];
                             final isNewThisVisit =
                                 _newThisVisit.contains(item.id);
                             final dayLabel = _dayLabel(item.createdAt);
-                            final showDay = index == 1 ||
-                                _dayLabel(items[index - 2].createdAt) !=
+                            final showDay = index == 0 ||
+                                _dayLabel(items[index - 1].createdAt) !=
                                     dayLabel;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,

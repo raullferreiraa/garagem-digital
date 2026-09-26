@@ -35,6 +35,56 @@ Map<String, Object?> _carJson() => {
     };
 
 void main() {
+  testWidgets('salvo pode ser removido na lista e recuperado com Desfazer',
+      (tester) async {
+    var saved = true;
+    final requests = <String>[];
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests.add('${options.method} ${options.path}');
+      if (options.path == '/carros/salvos') {
+        handler.resolve(Response(
+          requestOptions: options,
+          data: <String, Object?>{
+            'itens': saved ? <Object?>[_carJson()] : <Object?>[],
+            'proximo_cursor': null,
+          },
+        ));
+      } else if (options.path == '/carros/opala/salvo') {
+        saved = options.method == 'PUT';
+        handler.resolve(Response(requestOptions: options, statusCode: 204));
+      } else {
+        handler.reject(DioException(requestOptions: options));
+      }
+    }));
+    await tester.pumpWidget(MaterialApp(
+      home: SavedProjectsScreen(
+        repository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        currentUserId: 'visitante',
+        onProfileTap: (_) {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('Remover OPALA dos salvos'));
+    await tester.pumpAndSettle();
+    expect(requests, contains('DELETE /carros/opala/salvo'));
+    expect(find.text('OPALA 1979'), findsNothing);
+    await tester.tap(find.text('Desfazer'));
+    await tester.pumpAndSettle();
+    expect(requests, contains('PUT /carros/opala/salvo'));
+    expect(find.text('OPALA 1979'), findsOneWidget);
+    await tester.tap(find.byTooltip('Remover OPALA dos salvos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Projeto removido dos salvos.'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 6));
+    await tester.pumpAndSettle();
+    expect(find.text('Projeto removido dos salvos.'), findsNothing);
+  });
+
   testWidgets('projeto salvo abre e pode ser removido da coleção',
       (tester) async {
     tester.view.physicalSize = const Size(320, 700);

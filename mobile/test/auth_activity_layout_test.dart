@@ -117,7 +117,6 @@ void main() {
     expect(find.text('HOJE'), findsOneWidget);
     expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
     expect(requests, isNot(contains('POST /notificacoes/lidas')));
-    expect(unread.last, 0);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(
       tester
@@ -130,10 +129,60 @@ void main() {
     await tester.ensureVisible(find.text('@piloto começou a seguir você.'));
     await tester.tap(find.text('@piloto começou a seguir você.'));
     await tester.pumpAndSettle();
+    expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
     expect(unread.last, 0);
     expect(opened, ['aviso-1']);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('atividade reconhece somente avisos exibidos que eram novos',
+      (tester) async {
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _MemoryTokens());
+    final items = <Map<String, Object?>>[
+      {
+        'id': 'novo',
+        'tipo': 'novo_seguidor',
+        'mensagem': 'Aviso novo.',
+        'criada_em': DateTime.now().toUtc().toIso8601String(),
+      },
+      {
+        'id': 'antigo',
+        'tipo': 'novo_seguidor',
+        'mensagem': 'Aviso lido.',
+        'criada_em': DateTime.now().toUtc().toIso8601String(),
+        'lida_em': DateTime.now().toUtc().toIso8601String(),
+      },
+    ];
+    final requests = <String>[];
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests.add('${options.method} ${options.path}');
+      handler.resolve(Response(
+        requestOptions: options,
+        data: options.path == '/notificacoes/nao-lidas'
+            ? <String, Object?>{'total': 0}
+            : options.method == 'PATCH'
+                ? <String, Object?>{
+                    ...items.first,
+                    'lida_em': DateTime.now().toUtc().toIso8601String(),
+                  }
+                : items,
+      ));
+    }));
+    await tester.pumpWidget(_app(NotificationsScreen(
+      repository: NotificationsRepository(api),
+      onUnreadChanged: (_) {},
+      onOpen: (_) async {},
+      refreshRevision: 0,
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Aviso novo.'), findsOneWidget);
+    expect(find.text('Aviso lido.'), findsOneWidget);
+    expect(find.text('1 novidade nesta visita'), findsOneWidget);
+    expect(requests, contains('PATCH /notificacoes/novo/lida'));
+    expect(requests, isNot(contains('PATCH /notificacoes/antigo/lida')));
+    expect(requests, isNot(contains('POST /notificacoes/lidas')));
   });
 
   testWidgets('aviso de encontro usa símbolo da comunidade, não foto do ator',

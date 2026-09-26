@@ -30,6 +30,7 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
   Object? _error;
   bool _loading = false;
   bool _loaded = false;
+  final Set<String> _removing = {};
 
   @override
   void initState() {
@@ -75,6 +76,52 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
       ),
     ));
     if (mounted) await _load(reset: true);
+  }
+
+  Future<void> _removeSaved(Car car) async {
+    if (_removing.contains(car.id)) return;
+    setState(() => _removing.add(car.id));
+    try {
+      await widget.repository.setSaved(car.id, saved: false);
+      if (!mounted) return;
+      final previousIndex = _items.indexWhere((item) => item.id == car.id);
+      setState(() => _items.removeWhere((item) => item.id == car.id));
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        duration: const Duration(seconds: 5),
+        persist: false,
+        content: const Text('Projeto removido dos salvos.'),
+        action: SnackBarAction(
+          label: 'Desfazer',
+          onPressed: () => _restoreSaved(car, previousIndex),
+        ),
+      ));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _removing.remove(car.id));
+    }
+  }
+
+  Future<void> _restoreSaved(Car car, int index) async {
+    try {
+      await widget.repository.setSaved(car.id, saved: true);
+      if (!mounted) return;
+      setState(() {
+        if (_items.any((item) => item.id == car.id)) return;
+        _items.insert(index.clamp(0, _items.length), car);
+      });
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    }
   }
 
   @override
@@ -152,7 +199,20 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
                                 ],
                               ),
                             ),
-                            const Icon(Icons.chevron_right_rounded),
+                            IconButton(
+                              tooltip: 'Remover ${car.model} dos salvos',
+                              onPressed: _removing.contains(car.id)
+                                  ? null
+                                  : () => _removeSaved(car),
+                              icon: _removing.contains(car.id)
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                          strokeWidth: 2),
+                                    )
+                                  : Icon(Icons.bookmark_rounded,
+                                      color: colors.primary),
+                            ),
                           ],
                         ),
                       ),
