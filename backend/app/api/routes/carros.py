@@ -98,9 +98,10 @@ def projetos_salvos(
     db: DbSession,
     limite: Annotated[int, Query(ge=1, le=50)] = 20,
     cursor: str | None = None,
+    busca: Annotated[str | None, Query(max_length=100)] = None,
 ) -> PaginaCarros:
     try:
-        return listar_salvos(db, usuario.id, limite=limite, cursor=cursor)
+        return listar_salvos(db, usuario.id, limite=limite, cursor=cursor, busca=busca)
     except CursorSalvosInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 

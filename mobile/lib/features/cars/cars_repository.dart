@@ -69,10 +69,13 @@ final class CarsRepository {
         .toList(growable: false);
   }
 
-  Future<CarPage> saved({String? cursor}) async {
+  Future<CarPage> saved({String? cursor, String? query}) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/carros/salvos',
-      queryParameters: {if (cursor != null) 'cursor': cursor},
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        if (query != null && query.trim().isNotEmpty) 'busca': query.trim(),
+      },
     );
     final items = response.data!['itens']! as List<Object?>;
     return CarPage(

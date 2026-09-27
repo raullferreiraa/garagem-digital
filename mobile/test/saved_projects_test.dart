@@ -35,6 +35,49 @@ Map<String, Object?> _carJson() => {
     };
 
 void main() {
+  testWidgets('busca salvos no servidor e limpa o filtro', (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    final queries = <String?>[];
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      final query = options.queryParameters['busca'] as String?;
+      queries.add(query);
+      handler.resolve(Response(
+        requestOptions: options,
+        data: {
+          'itens': <Object?>[
+            query == null
+                ? _carJson()
+                : {..._carJson(), 'id': 'omega', 'modelo': 'OMEGA'},
+          ],
+          'proximo_cursor': null,
+        },
+      ));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      home: SavedProjectsScreen(
+        repository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        currentUserId: 'visitante',
+        onProfileTap: (_) {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('OPALA 1979'), findsOneWidget);
+    await tester.enterText(find.byType(TextField), 'omega');
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pumpAndSettle();
+    expect(queries.last, 'omega');
+    expect(find.text('OMEGA 1979'), findsOneWidget);
+    expect(find.text('OPALA 1979'), findsNothing);
+    await tester.tap(find.byTooltip('Limpar busca'));
+    await tester.pumpAndSettle();
+    expect(queries.last, isNull);
+    expect(find.text('OPALA 1979'), findsOneWidget);
+  });
+
   testWidgets('salvo pode ser removido na lista e recuperado com Desfazer',
       (tester) async {
     var saved = true;

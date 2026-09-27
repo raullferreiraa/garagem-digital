@@ -40,6 +40,41 @@ Map<String, Object?> _feedItem(String id) => {
     };
 
 void main() {
+  testWidgets('feed vazio oferece encontrar pessoas e atualiza ao voltar',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    var following = false;
+    var requests = 0;
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests++;
+      handler.resolve(Response(
+        requestOptions: options,
+        data: {
+          'itens': following ? <Object?>[_feedItem('nova')] : <Object?>[],
+          'proximo_cursor': null,
+        },
+      ));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: FollowingFeed(
+          repository: EvolutionsRepository(api),
+          onEvolutionTap: (_) async {},
+          onProfileTap: (_) async {},
+          onFindPeople: () async => following = true,
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Encontrar pessoas'));
+    await tester.pumpAndSettle();
+    expect(requests, 2);
+    expect(find.text('Evolução nova'), findsOneWidget);
+  });
+
   testWidgets('Seguindo carrega mais e não repete evoluções', (tester) async {
     final api = ApiClient(
       baseUrl: 'http://localhost/api/v1',

@@ -473,6 +473,7 @@ final class _HomeShellState extends State<HomeShell>
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),
+        onFindPeople: () => _openSearch(initialCategory: SearchCategory.people),
         onCreateProject: _createCar,
       ),
       EventsScreen(

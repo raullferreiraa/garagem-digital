@@ -93,3 +93,41 @@ def test_bloqueio_oculta_projetos_salvos(client: TestClient) -> None:
     assert client.get("/api/v1/carros/salvos", headers=cabecalho).json()["itens"] == []
     assert client.get(caminho, headers=cabecalho).status_code == 404
     assert client.put(caminho, headers=cabecalho).status_code == 404
+
+
+def test_busca_salvos_filtra_antes_da_paginacao(client: TestClient) -> None:
+    dono = cadastrar(client, "dono.busca.salvos")
+    visitante = cadastrar(client, "visita.busca.salvos")
+    cabecalho = auth_header(visitante)
+    ids = [
+        _criar_carro(client, dono, "Opala cupê"),
+        _criar_carro(client, dono, "Omega"),
+        _criar_carro(client, dono, "Opala sedã"),
+    ]
+    for carro_id in ids:
+        assert client.put(f"/api/v1/carros/{carro_id}/salvo", headers=cabecalho).status_code == 204
+
+    primeira = client.get(
+        "/api/v1/carros/salvos",
+        headers=cabecalho,
+        params={"busca": "opala", "limite": 1},
+    ).json()
+    assert len(primeira["itens"]) == 1
+    assert primeira["proximo_cursor"]
+    segunda = client.get(
+        "/api/v1/carros/salvos",
+        headers=cabecalho,
+        params={"busca": "opala", "limite": 1, "cursor": primeira["proximo_cursor"]},
+    ).json()
+    assert {item["id"] for item in primeira["itens"] + segunda["itens"]} == {ids[0], ids[2]}
+    assert segunda["proximo_cursor"] is None
+    por_usuario = client.get(
+        "/api/v1/carros/salvos", headers=cabecalho, params={"busca": "@dono.busca"}
+    ).json()
+    assert {item["id"] for item in por_usuario["itens"]} == set(ids)
+    assert client.get(
+        "/api/v1/carros/salvos", headers=cabecalho, params={"busca": "inexistente"}
+    ).json()["itens"] == []
+    assert client.get(
+        "/api/v1/carros/salvos", headers=cabecalho, params={"busca": "%"}
+    ).json()["itens"] == []

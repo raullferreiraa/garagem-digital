@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -25,6 +27,10 @@ final class SavedProjectsScreen extends StatefulWidget {
 }
 
 final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
+  final _searchController = TextEditingController();
+  Timer? _searchDebounce;
+  String _query = '';
+  int _loadRequest = 0;
   final List<Car> _items = [];
   String? _nextCursor;
   Object? _error;
@@ -38,28 +44,63 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
     _load(reset: true);
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _searchChanged(String value) {
+    _searchDebounce?.cancel();
+    final query = value.trim();
+    if (_query == query) return;
+    _query = query;
+    ++_loadRequest;
+    _searchDebounce = Timer(
+      query.isEmpty ? Duration.zero : const Duration(milliseconds: 300),
+      () => _load(reset: true),
+    );
+    setState(() {
+      _items.clear();
+      _nextCursor = null;
+      _loaded = false;
+      _loading = true;
+      _error = null;
+    });
+  }
+
   Future<void> _load({bool reset = false}) async {
-    if (_loading) return;
+    if (_loading && !reset) return;
+    final request = ++_loadRequest;
+    final query = _query;
     setState(() {
       _loading = true;
       _error = null;
+      if (reset) {
+        _loaded = false;
+        _items.clear();
+        _nextCursor = null;
+      }
     });
     try {
       final page = await widget.repository.saved(
         cursor: reset ? null : _nextCursor,
+        query: query,
       );
-      if (!mounted) return;
+      if (!mounted || request != _loadRequest) return;
       setState(() {
-        if (reset) _items.clear();
         final known = _items.map((item) => item.id).toSet();
         _items.addAll(page.items.where((item) => known.add(item.id)));
         _nextCursor = page.nextCursor;
         _loaded = true;
       });
     } catch (error) {
-      if (mounted) setState(() => _error = error);
+      if (mounted && request == _loadRequest) setState(() => _error = error);
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted && request == _loadRequest) {
+        setState(() => _loading = false);
+      }
     }
   }
 
@@ -128,7 +169,38 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Projetos salvos')),
+      appBar: AppBar(
+        title: const Text('Projetos salvos'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(72),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: TextField(
+              controller: _searchController,
+              onChanged: _searchChanged,
+              onSubmitted: (_) {
+                _searchDebounce?.cancel();
+                _load(reset: true);
+              },
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: 'Buscar projeto ou pessoa',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: 'Limpar busca',
+                        onPressed: () {
+                          _searchController.clear();
+                          _searchChanged('');
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: RefreshIndicator(
         onRefresh: () => _load(reset: true),
         child: ListView(
@@ -148,10 +220,11 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
                 onPressed: () => _load(reset: true),
               )
             else if (_items.isEmpty)
-              const _Message(
+              _Message(
                 icon: Icons.bookmark_border_rounded,
-                text:
-                    'Nenhum projeto salvo ainda. Encontre um projeto e toque no marcador para guardá-lo aqui.',
+                text: _query.isEmpty
+                    ? 'Nenhum projeto salvo ainda. Encontre um projeto e toque no marcador para guardá-lo aqui.'
+                    : 'Nenhum projeto salvo encontrado para “$_query”.',
               )
             else ...[
               for (final car in _items)

@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.models.carro import Carro
 from app.models.projeto_salvo import ProjetoSalvo
+from app.models.usuario import Usuario
 from app.schemas.carro import CarroPublico, PaginaCarros
 from app.services.bloqueios import existe_bloqueio, ids_com_bloqueio
 
@@ -66,16 +67,35 @@ def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
 
 
 def listar_salvos(
-    db: Session, usuario_id: UUID, *, limite: int, cursor: str | None
+    db: Session,
+    usuario_id: UUID,
+    *,
+    limite: int,
+    cursor: str | None,
+    busca: str | None = None,
 ) -> PaginaCarros:
     consulta = (
         select(ProjetoSalvo, Carro)
         .join(Carro, Carro.id == ProjetoSalvo.carro_id)
+        .join(Usuario, Usuario.id == Carro.proprietario_id)
         .where(
             ProjetoSalvo.usuario_id == usuario_id,
             Carro.proprietario_id.not_in(ids_com_bloqueio(db, usuario_id)),
         )
     )
+    if busca and busca.strip():
+        termo = busca.strip().lstrip("@")
+        if not termo:
+            return PaginaCarros(itens=[], proximo_cursor=None)
+        termo = termo.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        padrao = f"%{termo}%"
+        consulta = consulta.where(
+            or_(
+                Carro.modelo.ilike(padrao, escape="\\"),
+                Usuario.nome.ilike(padrao, escape="\\"),
+                Usuario.username.ilike(padrao, escape="\\"),
+            )
+        )
     if cursor:
         criado_em, carro_id = _decodificar_cursor(cursor)
         consulta = consulta.where(

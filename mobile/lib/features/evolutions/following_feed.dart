@@ -10,6 +10,7 @@ final class FollowingFeed extends StatefulWidget {
     required this.repository,
     required this.onEvolutionTap,
     required this.onProfileTap,
+    this.onFindPeople,
     this.refreshRevision = 0,
     super.key,
   });
@@ -17,6 +18,7 @@ final class FollowingFeed extends StatefulWidget {
   final EvolutionsRepository repository;
   final Future<void> Function(Evolution) onEvolutionTap;
   final Future<void> Function(String) onProfileTap;
+  final Future<void> Function()? onFindPeople;
   final int refreshRevision;
 
   @override
@@ -99,6 +101,11 @@ final class _FollowingFeedState extends State<FollowingFeed> {
     }
   }
 
+  Future<void> _findPeople() async {
+    await widget.onFindPeople?.call();
+    if (mounted) await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<FollowingFeedItem>>(
@@ -139,11 +146,14 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                 const SizedBox(height: 12),
               ],
               if (items.isEmpty)
-                const _FeedMessage(
+                _FeedMessage(
                   icon: Icons.person_add_alt_1_rounded,
                   title: 'Acompanhe novas histórias',
                   message:
                       'Siga pessoas e as evoluções recentes dos projetos delas aparecerão aqui.',
+                  actionLabel:
+                      widget.onFindPeople == null ? null : 'Encontrar pessoas',
+                  onAction: widget.onFindPeople == null ? null : _findPeople,
                 )
               else ...[
                 GdSectionTitle(
