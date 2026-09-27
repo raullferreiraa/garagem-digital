@@ -72,3 +72,48 @@ def test_feed_seguindo_vazio_sem_perfis_acompanhados(
     response = client.get("/api/v1/feed/seguindo", headers=auth(leitor))
     assert response.status_code == 200
     assert response.json() == []
+
+
+def test_feed_seguindo_pagina_carrega_historico_sem_repetir_itens(
+    client: TestClient,
+) -> None:
+    leitor = cadastrar(client, "leitor.pagina")
+    seguido = cadastrar(client, "seguido.pagina")
+    client.put(
+        f"/api/v1/usuarios/{seguido['usuario']['id']}/seguir",
+        headers=auth(leitor),
+    )
+    evolucoes = [
+        criar_evolucao(client, seguido, f"Carro {index}", f"Etapa {index}")
+        for index in range(3)
+    ]
+
+    first = client.get(
+        "/api/v1/feed/seguindo/pagina?limite=2", headers=auth(leitor)
+    )
+    assert first.status_code == 200
+    assert len(first.json()["itens"]) == 2
+    cursor = first.json()["proximo_cursor"]
+    assert cursor
+
+    criar_evolucao(client, seguido, "Carro novo", "Etapa nova")
+    second = client.get(
+        "/api/v1/feed/seguindo/pagina",
+        headers=auth(leitor),
+        params={"limite": 2, "cursor": cursor},
+    )
+    assert second.status_code == 200
+    assert second.json()["proximo_cursor"] is None
+    ids = [
+        item["evolucao"]["id"]
+        for item in first.json()["itens"] + second.json()["itens"]
+    ]
+    assert len(ids) == len(set(ids)) == 3
+    assert set(ids) == {evolucao["id"] for evolucao in evolucoes}
+
+    invalid = client.get(
+        "/api/v1/feed/seguindo/pagina",
+        headers=auth(leitor),
+        params={"cursor": "invalido"},
+    )
+    assert invalid.status_code == 400

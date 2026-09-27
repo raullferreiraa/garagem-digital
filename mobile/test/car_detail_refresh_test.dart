@@ -16,8 +16,8 @@ final class _EmptyTokenStorage implements TokenStorage {
   Future<String?> readRefreshToken() async => null;
 
   @override
-  Future<void> write({required String accessToken, required String refreshToken})
-      async {}
+  Future<void> write(
+      {required String accessToken, required String refreshToken}) async {}
 
   @override
   Future<void> clear() async {}
@@ -55,6 +55,50 @@ Map<String, Object?> _evolutionJson() => {
     };
 
 void main() {
+  testWidgets('foto principal abre inteira sem substituir ação de edição',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+        requestOptions: options,
+        data: options.path == '/carros/omega'
+            ? {
+                ..._carJson('OMEGA'),
+                'foto_principal_url': 'https://example.com/omega.jpg'
+              }
+            : <Object?>[],
+      ));
+    }));
+
+    await tester.pumpWidget(MaterialApp(
+      home: CarDetailScreen(
+        car: const Car(
+          id: 'omega',
+          model: 'OMEGA',
+          ownerId: 'raul',
+          ownerName: 'Raul',
+          ownerUsername: 'raul.omega',
+          photoUrl: 'https://example.com/omega.jpg',
+        ),
+        repository: CarsRepository(api),
+        evolutionsRepository: EvolutionsRepository(api),
+        canManage: true,
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Alterar foto principal'), findsOneWidget);
+    await tester.tap(find.byTooltip('Ver foto inteira'));
+    await tester.pumpAndSettle();
+    expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(find.byTooltip('Alterar foto principal'), findsNothing);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('Alterar foto principal'), findsOneWidget);
+  });
+
   testWidgets('atualiza o projeto ao abrir e ao puxar a tela', (tester) async {
     var carRequests = 0;
     final api = ApiClient(

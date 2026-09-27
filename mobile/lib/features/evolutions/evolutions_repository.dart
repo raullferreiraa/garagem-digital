@@ -17,6 +17,21 @@ final class EvolutionsRepository {
         .toList(growable: false);
   }
 
+  Future<FollowingFeedPage> followingFeedPage({String? cursor}) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/feed/seguindo/pagina',
+      queryParameters: {if (cursor != null) 'cursor': cursor},
+    );
+    final data = response.data!;
+    return FollowingFeedPage(
+      items: (data['itens']! as List<Object?>)
+          .cast<Map<String, Object?>>()
+          .map(FollowingFeedItem.fromJson)
+          .toList(growable: false),
+      nextCursor: data['proximo_cursor'] as String?,
+    );
+  }
+
   Future<List<Evolution>> byCar(String carId) async {
     final response = await _api.dio.get<List<Object?>>(
       '/carros/$carId/evolucoes',

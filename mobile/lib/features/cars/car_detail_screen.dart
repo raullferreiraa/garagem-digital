@@ -111,6 +111,16 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     }
   }
 
+  void _viewPhoto() {
+    final url = _car.photoUrl;
+    if (url == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ProjectPhotoViewer(url: url, title: _car.model),
+      ),
+    );
+  }
+
   Future<void> _reloadProject() async {
     final request = ++_carRequest;
     final carRequest = widget.repository.detail(_car.id);
@@ -788,6 +798,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     canManage: widget.canManage,
                     updatingPhoto: _updatingPhoto,
                     onPhotoTap: _openPhotoActions,
+                    onViewPhoto: _viewPhoto,
                   ),
                   const SizedBox(height: 16),
                   _ProjectIdentity(
@@ -876,12 +887,14 @@ final class _ProjectCover extends StatelessWidget {
     required this.canManage,
     required this.updatingPhoto,
     required this.onPhotoTap,
+    required this.onViewPhoto,
   });
 
   final Car car;
   final bool canManage;
   final bool updatingPhoto;
   final VoidCallback onPhotoTap;
+  final VoidCallback onViewPhoto;
 
   @override
   Widget build(BuildContext context) {
@@ -910,6 +923,24 @@ final class _ProjectCover extends StatelessWidget {
                 ),
               ),
             ),
+            if (car.photoUrl != null)
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onViewPhoto,
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            if (car.photoUrl != null)
+              Positioned(
+                top: 12,
+                right: 12,
+                child: IconButton.filledTonal(
+                  onPressed: onViewPhoto,
+                  tooltip: 'Ver foto inteira',
+                  icon: const Icon(Icons.zoom_out_map_rounded),
+                ),
+              ),
             Positioned(
               top: 18,
               left: 18,
@@ -975,6 +1006,40 @@ final class _ProjectCover extends StatelessWidget {
                 child: Center(child: CircularProgressIndicator()),
               ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+final class _ProjectPhotoViewer extends StatelessWidget {
+  const _ProjectPhotoViewer({required this.url, required this.title});
+
+  final String url;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: InteractiveViewer(
+        minScale: 1,
+        maxScale: 5,
+        child: Center(
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white,
+              size: 64,
+            ),
+          ),
         ),
       ),
     );

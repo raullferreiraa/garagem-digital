@@ -27,12 +27,50 @@ final class _FollowingFeedState extends State<FollowingFeed> {
   late Future<List<FollowingFeedItem>> _items;
   List<FollowingFeedItem>? _lastItems;
   int _loadRequest = 0;
+  String? _nextCursor;
+  bool _loadingMore = false;
+  bool _loadMoreFailed = false;
 
   Future<List<FollowingFeedItem>> _load() async {
     final request = ++_loadRequest;
-    final items = await widget.repository.followingFeed();
-    if (request == _loadRequest) _lastItems = items;
-    return items;
+    final page = await widget.repository.followingFeedPage();
+    if (request == _loadRequest) {
+      _lastItems = page.items;
+      _nextCursor = page.nextCursor;
+      _loadingMore = false;
+      _loadMoreFailed = false;
+    }
+    return page.items;
+  }
+
+  Future<void> _loadMore() async {
+    final cursor = _nextCursor;
+    if (cursor == null || _loadingMore) return;
+    final request = _loadRequest;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final page = await widget.repository.followingFeedPage(cursor: cursor);
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        final existing = _lastItems ?? const <FollowingFeedItem>[];
+        final ids = existing.map((item) => item.evolution.id).toSet();
+        _lastItems = [
+          ...existing,
+          ...page.items.where((item) => ids.add(item.evolution.id)),
+        ];
+        _nextCursor = page.nextCursor;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
   }
 
   @override
@@ -51,6 +89,8 @@ final class _FollowingFeedState extends State<FollowingFeed> {
     final future = _load();
     setState(() {
       _items = future;
+      _loadingMore = false;
+      _loadMoreFailed = false;
     });
     try {
       await future;
@@ -78,7 +118,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
           );
         }
         final items =
-            snapshot.data ?? _lastItems ?? const <FollowingFeedItem>[];
+            _lastItems ?? snapshot.data ?? const <FollowingFeedItem>[];
         return RefreshIndicator(
           onRefresh: _reload,
           child: ListView(
@@ -127,6 +167,26 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                     ),
                   ),
                   if (index != items.length - 1) const SizedBox(height: 24),
+                ],
+                if (_nextCursor != null) ...[
+                  const SizedBox(height: 24),
+                  if (_loadMoreFailed)
+                    const Center(
+                      child:
+                          Text('Não foi possível carregar mais atualizações.'),
+                    ),
+                  if (_loadMoreFailed) const SizedBox(height: 8),
+                  Center(
+                    child: _loadingMore ||
+                            snapshot.connectionState == ConnectionState.waiting
+                        ? const CircularProgressIndicator()
+                        : OutlinedButton(
+                            onPressed: _loadMore,
+                            child: Text(_loadMoreFailed
+                                ? 'Tentar novamente'
+                                : 'Carregar mais atualizações'),
+                          ),
+                  ),
                 ],
               ],
             ],
