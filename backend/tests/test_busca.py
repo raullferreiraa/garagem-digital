@@ -147,3 +147,50 @@ def test_busca_nao_expoe_equipe_privada_para_nao_membro(
     )
     assert resultado.status_code == 200
     assert resultado.json() == []
+
+
+def test_busca_de_projetos_pagina_por_relevancia_e_filtra_ano(
+    client: TestClient,
+) -> None:
+    dono = cadastrar(client, "dono.busca.paginada", "Dono")
+    projetos = [
+        {"modelo": "Omega", "ano": 1996},
+        {"modelo": "Omega CD", "ano": 2005},
+        {"modelo": "Gol GTI", "ano": 1994, "historia": "Inspirado no Omega"},
+    ]
+    ids = []
+    for projeto in projetos:
+        resposta = client.post("/api/v1/carros", headers=auth(dono), json=projeto)
+        assert resposta.status_code == 201
+        ids.append(resposta.json()["id"])
+
+    encontrados = []
+    cursor = None
+    for _ in projetos:
+        resposta = client.get(
+            "/api/v1/carros",
+            params={
+                "busca": "omega",
+                "limite": 1,
+                **({"cursor": cursor} if cursor else {}),
+            },
+        )
+        assert resposta.status_code == 200
+        pagina = resposta.json()
+        encontrados.append(pagina["itens"][0]["id"])
+        cursor = pagina["proximo_cursor"]
+    assert encontrados == ids
+    assert cursor is None
+
+    filtrados = client.get(
+        "/api/v1/carros",
+        params={"busca": "omega", "ano_min": 1990, "ano_max": 1999},
+    )
+    assert filtrados.status_code == 200
+    assert [item["id"] for item in filtrados.json()["itens"]] == [ids[0], ids[2]]
+    assert client.get(
+        "/api/v1/carros", params={"busca": "omega", "ano_min": 2000, "ano_max": 1990}
+    ).status_code == 422
+    assert client.get(
+        "/api/v1/carros", params={"busca": "omega", "cursor": "invalido"}
+    ).status_code == 400

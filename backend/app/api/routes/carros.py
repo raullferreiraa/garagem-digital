@@ -70,7 +70,11 @@ def feed_carros(
     cursor: str | None = None,
     busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
     ordem: Annotated[Literal["recentes", "em_alta"], Query()] = "recentes",
+    ano_min: Annotated[int | None, Query(ge=1886, le=2200)] = None,
+    ano_max: Annotated[int | None, Query(ge=1886, le=2200)] = None,
 ) -> PaginaCarros:
+    if ano_min is not None and ano_max is not None and ano_min > ano_max:
+        raise HTTPException(status_code=422, detail="A faixa de anos é inválida.")
     try:
         return listar_feed(
             db,
@@ -79,6 +83,8 @@ def feed_carros(
             busca=busca,
             ordem=ordem,
             usuario_id=usuario.id if usuario is not None else None,
+            ano_min=ano_min,
+            ano_max=ano_max,
         )
     except CursorInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error

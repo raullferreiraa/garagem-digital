@@ -49,16 +49,32 @@ final class CarsRepository {
     );
   }
 
-  Future<List<Car>> search(String query) async {
+  Future<List<Car>> search(String query) async =>
+      (await searchPage(query)).items;
+
+  Future<CarPage> searchPage(
+    String query, {
+    String? cursor,
+    int? yearMin,
+    int? yearMax,
+  }) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/carros',
-      queryParameters: {'busca': query},
+      queryParameters: {
+        'busca': query,
+        if (cursor != null) 'cursor': cursor,
+        if (yearMin != null) 'ano_min': yearMin,
+        if (yearMax != null) 'ano_max': yearMax,
+      },
     );
     final items = response.data!['itens']! as List<Object?>;
-    return items
-        .cast<Map<String, Object?>>()
-        .map(Car.fromJson)
-        .toList(growable: false);
+    return CarPage(
+      items: items
+          .cast<Map<String, Object?>>()
+          .map(Car.fromJson)
+          .toList(growable: false),
+      nextCursor: response.data!['proximo_cursor'] as String?,
+    );
   }
 
   Future<List<Car>> mine() async {
