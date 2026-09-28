@@ -638,6 +638,57 @@ void main() {
     expect(find.text('Clássicos do Sul'), findsOneWidget);
   });
 
+  testWidgets('filtro de não lidas inclui equipe e permite voltar a todas',
+      (tester) async {
+    final api = ApiClient(
+      baseUrl: 'http://localhost/api/v1',
+      tokenStorage: _EmptyTokenStorage(),
+    );
+    final unread = _conversation();
+    unread['total_nao_lidas'] = 2;
+    final read = _conversation();
+    read['id'] = 'read-conversation';
+    read['total_nao_lidas'] = 0;
+    read['outro_usuario'] = {
+      'id': 'joao',
+      'nome': 'João Silva',
+      'username': 'joao',
+      'avatar_url': null,
+    };
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: [unread, read]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+      theme: AppTheme.dark,
+      home: ConversationsScreen(
+        active: false,
+        repository: MessagesRepository(api),
+        currentUserId: 'me',
+        refreshRevision: 0,
+        onUnreadChanged: () {},
+        onProfileTap: (_) {},
+        onDiscover: () {},
+        teamChat: const TeamChatSummary(
+          teamId: 'team',
+          teamName: 'Clássicos do Sul',
+          unreadCount: 1,
+        ),
+        onTeamChatTap: () {},
+        onTeamChatChanged: () {},
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.text('Não lidas (2)'), findsOneWidget);
+    await tester.tap(find.text('Não lidas (2)'));
+    await tester.pumpAndSettle();
+    expect(find.text('Bia Garage'), findsOneWidget);
+    expect(find.text('Clássicos do Sul'), findsOneWidget);
+    expect(find.text('João Silva'), findsNothing);
+    await tester.tap(find.text('Todas'));
+    await tester.pumpAndSettle();
+    expect(find.text('João Silva'), findsOneWidget);
+  });
+
   testWidgets('caixa de entrada atualiza ao voltar para a aba de conversas',
       (tester) async {
     final api = ApiClient(

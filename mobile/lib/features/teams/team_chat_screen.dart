@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/widgets/chat_message_bubble.dart';
 import 'package:garagem_mobile/features/messages/message_reply.dart';
+import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
 import 'package:garagem_mobile/features/messages/message_history_screen.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -30,6 +31,9 @@ final class TeamChatScreen extends StatefulWidget {
 final class _TeamChatScreenState extends State<TeamChatScreen>
     with WidgetsBindingObserver {
   final _composer = TextEditingController();
+  final _draftStorage = const MessageDraftStorage();
+  Timer? _draftTimer;
+  bool _draftEdited = false;
   final _scroll = ScrollController(keepScrollOffset: false);
   final _composerFocus = FocusNode();
   final _messageKeys = <String, GlobalKey>{};
@@ -54,6 +58,8 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(_clearNewMessagesAtEnd);
+    _composer.addListener(_onDraftChanged);
+    _restoreDraft();
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -66,10 +72,35 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _highlightTimer?.cancel();
+    _draftTimer?.cancel();
+    _queueDraftSave();
     _composer.dispose();
     _composerFocus.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final draft = await _draftStorage.read(
+          widget.currentUserId, 'team', widget.team.id);
+      if (mounted && !_draftEdited && draft != null) _composer.text = draft;
+    } catch (_) {
+      // A conversa continua disponível se o armazenamento local falhar.
+    }
+  }
+
+  void _onDraftChanged() {
+    _draftEdited = true;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 350), _queueDraftSave);
+  }
+
+  void _queueDraftSave() {
+    final text = _composer.text;
+    unawaited(_draftStorage
+        .save(widget.currentUserId, 'team', widget.team.id, text)
+        .catchError((Object _) {}));
   }
 
   @override
@@ -177,6 +208,8 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
           .sendChat(widget.team.id, content, replyToId: _replyTo?.id);
       if (!mounted) return;
       _composer.clear();
+      _draftTimer?.cancel();
+      _queueDraftSave();
       _replyTo = null;
       if (!(_messages ?? const <TeamChatMessage>[])
           .any((item) => item.id == message.id)) {

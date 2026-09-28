@@ -40,6 +40,7 @@ final class ConversationsScreen extends StatefulWidget {
 
 final class _ConversationsScreenState extends State<ConversationsScreen> {
   final _search = TextEditingController();
+  bool _unreadOnly = false;
   List<DirectConversation>? _items;
   Object? _error;
   bool _loading = true;
@@ -149,18 +150,22 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final items = _items ?? const <DirectConversation>[];
     final query =
         _searchKey(_search.text.trim().replaceFirst(RegExp(r'^@'), ''));
-    final visibleItems = query.isEmpty
-        ? items
-        : items.where((conversation) {
-            final user = conversation.otherUser;
-            return _searchKey(user.name).contains(query) ||
-                _searchKey(user.username).contains(query);
-          }).toList();
+    final visibleItems = items.where((conversation) {
+      if (_unreadOnly && conversation.unreadCount == 0) return false;
+      if (query.isEmpty) return true;
+      final user = conversation.otherUser;
+      return _searchKey(user.name).contains(query) ||
+          _searchKey(user.username).contains(query);
+    }).toList();
     final teamChat = widget.teamChat;
     final visibleTeamChat = teamChat != null &&
+            (!_unreadOnly || teamChat.unreadCount > 0) &&
             (query.isEmpty || _searchKey(teamChat.teamName).contains(query))
         ? teamChat
         : null;
+    final unreadConversations =
+        items.where((item) => item.unreadCount > 0).length +
+            (teamChat != null && teamChat.unreadCount > 0 ? 1 : 0);
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
@@ -187,6 +192,21 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
               ),
             ),
             const SizedBox(height: 22),
+          ],
+          if (items.isNotEmpty || teamChat != null) ...[
+            Wrap(spacing: 8, children: [
+              ChoiceChip(
+                label: const Text('Todas'),
+                selected: !_unreadOnly,
+                onSelected: (_) => setState(() => _unreadOnly = false),
+              ),
+              ChoiceChip(
+                label: Text('Não lidas ($unreadConversations)'),
+                selected: _unreadOnly,
+                onSelected: (_) => setState(() => _unreadOnly = true),
+              ),
+            ]),
+            const SizedBox(height: 18),
           ],
           if (_error != null) ...[
             Text(
@@ -219,7 +239,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
             _teamChatTile(visibleTeamChat),
             if (visibleItems.isNotEmpty) const SizedBox(height: 4),
           ],
-          if (query.isNotEmpty &&
+          if ((query.isNotEmpty || _unreadOnly) &&
               visibleItems.isEmpty &&
               visibleTeamChat == null)
             _noSearchResults()
@@ -238,11 +258,16 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
           Icon(Icons.search_off_rounded,
               size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          const Text('Nenhuma conversa encontrada.'),
+          Text(_unreadOnly && _search.text.isEmpty
+              ? 'Nenhuma conversa não lida.'
+              : 'Nenhuma conversa encontrada.'),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => setState(_search.clear),
-            child: const Text('Limpar busca'),
+            onPressed: () => setState(() {
+              _search.clear();
+              _unreadOnly = false;
+            }),
+            child: const Text('Mostrar todas'),
           ),
         ]),
       );

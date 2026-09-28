@@ -11,6 +11,7 @@ import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/core/widgets/message_management.dart';
 import 'package:garagem_mobile/features/messages/conversation.dart';
 import 'package:garagem_mobile/features/messages/messages_repository.dart';
+import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
 
 final class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
@@ -35,6 +36,9 @@ final class ConversationScreen extends StatefulWidget {
 final class _ConversationScreenState extends State<ConversationScreen>
     with WidgetsBindingObserver {
   final _composer = TextEditingController();
+  final _draftStorage = const MessageDraftStorage();
+  Timer? _draftTimer;
+  bool _draftEdited = false;
   final _scroll = ScrollController(keepScrollOffset: false);
   final _composerFocus = FocusNode();
   final _messageKeys = <String, GlobalKey>{};
@@ -60,6 +64,8 @@ final class _ConversationScreenState extends State<ConversationScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _scroll.addListener(_clearNewMessagesAtEnd);
+    _composer.addListener(_onDraftChanged);
+    _restoreDraft();
     _loadInitial();
     _refreshTimer = Timer.periodic(
       const Duration(seconds: 8),
@@ -72,10 +78,35 @@ final class _ConversationScreenState extends State<ConversationScreen>
     WidgetsBinding.instance.removeObserver(this);
     _refreshTimer?.cancel();
     _highlightTimer?.cancel();
+    _draftTimer?.cancel();
+    _queueDraftSave();
     _composer.dispose();
     _composerFocus.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final draft = await _draftStorage.read(
+          widget.currentUserId, 'direct', widget.conversation.id);
+      if (mounted && !_draftEdited && draft != null) _composer.text = draft;
+    } catch (_) {
+      // A conversa continua disponível se o armazenamento local falhar.
+    }
+  }
+
+  void _onDraftChanged() {
+    _draftEdited = true;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 350), _queueDraftSave);
+  }
+
+  void _queueDraftSave() {
+    final text = _composer.text;
+    unawaited(_draftStorage
+        .save(widget.currentUserId, 'direct', widget.conversation.id, text)
+        .catchError((Object _) {}));
   }
 
   @override
@@ -235,6 +266,8 @@ final class _ConversationScreenState extends State<ConversationScreen>
       );
       if (!mounted) return;
       _composer.clear();
+      _draftTimer?.cancel();
+      _queueDraftSave();
       _replyTo = null;
       if (!(_messages ?? const <DirectMessage>[])
           .any((item) => item.id == message.id)) {
