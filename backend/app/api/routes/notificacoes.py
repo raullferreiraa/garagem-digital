@@ -1,7 +1,8 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies.auth import UsuarioAtual
@@ -26,10 +27,17 @@ DbSession = Annotated[Session, Depends(get_db)]
 def minhas_notificacoes(
     usuario: UsuarioAtual,
     db: DbSession,
+    limite: Annotated[int, Query(ge=1, le=100)] = 100,
+    antes_de: datetime | None = None,
+    ultimo_id: UUID | None = None,
 ) -> list[NotificacaoResposta]:
+    if (antes_de is None) != (ultimo_id is None):
+        raise HTTPException(status_code=400, detail="Informe os dois campos da paginação.")
     return [
         NotificacaoResposta.model_validate(item)
-        for item in listar_notificacoes(db, usuario.id)
+        for item in listar_notificacoes(
+            db, usuario.id, limite=limite, antes_de=antes_de, ultimo_id=ultimo_id
+        )
     ]
 
 

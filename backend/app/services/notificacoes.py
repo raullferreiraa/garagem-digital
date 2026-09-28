@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import and_, func, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.models.notificacao import Notificacao
@@ -45,17 +45,27 @@ def listar_notificacoes(
     destinatario_id: UUID,
     *,
     limite: int = 100,
+    antes_de: datetime | None = None,
+    ultimo_id: UUID | None = None,
 ) -> list[Notificacao]:
+    filtros = [
+        Notificacao.destinatario_id == destinatario_id,
+        or_(
+            Notificacao.ator_id.is_(None),
+            Notificacao.ator_id.not_in(ids_com_bloqueio(db, destinatario_id)),
+        ),
+    ]
+    if antes_de is not None and ultimo_id is not None:
+        filtros.append(
+            or_(
+                Notificacao.criada_em < antes_de,
+                and_(Notificacao.criada_em == antes_de, Notificacao.id < ultimo_id),
+            )
+        )
     return list(
         db.scalars(
             select(Notificacao)
-            .where(
-                Notificacao.destinatario_id == destinatario_id,
-                or_(
-                    Notificacao.ator_id.is_(None),
-                    Notificacao.ator_id.not_in(ids_com_bloqueio(db, destinatario_id)),
-                ),
-            )
+            .where(*filtros)
             .order_by(Notificacao.criada_em.desc(), Notificacao.id.desc())
             .limit(limite)
         ).unique()

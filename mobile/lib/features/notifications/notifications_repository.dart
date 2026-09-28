@@ -14,6 +14,20 @@ final class NotificationsRepository {
         .toList(growable: false);
   }
 
+  Future<List<AppNotification>> olderThan(AppNotification last) async {
+    final response = await _api.dio.get<List<Object?>>(
+      '/notificacoes',
+      queryParameters: {
+        'antes_de': last.createdAt.toUtc().toIso8601String(),
+        'ultimo_id': last.id,
+      },
+    );
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(AppNotification.fromJson)
+        .toList(growable: false);
+  }
+
   Future<int> unreadCount() async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/notificacoes/nao-lidas',

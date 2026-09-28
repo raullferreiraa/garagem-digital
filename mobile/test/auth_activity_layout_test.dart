@@ -94,12 +94,14 @@ void main() {
       'ator': <String, Object?>{'id': 'piloto', 'username': 'piloto'},
     };
     final requests = <String>[];
+    var unreadCount = 1;
     api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
       requests.add('${options.method} ${options.path}');
+      if (options.method == 'PATCH') unreadCount = 0;
       handler.resolve(Response(
         requestOptions: options,
         data: options.path == '/notificacoes/nao-lidas'
-            ? {'total': 0}
+            ? {'total': unreadCount}
             : options.method == 'PATCH'
                 ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
                 : [item],
@@ -126,7 +128,12 @@ void main() {
       FontWeight.w700,
     );
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.text('@piloto começou a seguir você.'));
+    await tester.scrollUntilVisible(
+      find.text('@piloto começou a seguir você.'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('@piloto começou a seguir você.'));
     await tester.pumpAndSettle();
     expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
@@ -136,7 +143,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('atividade reconhece somente avisos exibidos que eram novos',
+  testWidgets('atividade filtra avisos e reconhece somente os novos',
       (tester) async {
     final api = ApiClient(
         baseUrl: 'http://localhost/api/v1', tokenStorage: _MemoryTokens());
@@ -149,8 +156,9 @@ void main() {
       },
       {
         'id': 'antigo',
-        'tipo': 'novo_seguidor',
-        'mensagem': 'Aviso lido.',
+        'tipo': 'curtida_evolucao',
+        'mensagem': 'Projeto curtido.',
+        'carro_id': 'carro-1',
         'criada_em': DateTime.now().toUtc().toIso8601String(),
         'lida_em': DateTime.now().toUtc().toIso8601String(),
       },
@@ -178,10 +186,19 @@ void main() {
     )));
     await tester.pumpAndSettle();
     expect(find.text('Aviso novo.'), findsOneWidget);
-    expect(find.text('Aviso lido.'), findsOneWidget);
+    expect(find.text('Projeto curtido.'), findsOneWidget);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(requests, contains('PATCH /notificacoes/novo/lida'));
     expect(requests, isNot(contains('PATCH /notificacoes/antigo/lida')));
+    expect(requests, isNot(contains('POST /notificacoes/lidas')));
+    await tester.tap(find.text('Projetos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Projeto curtido.'), findsOneWidget);
+    expect(find.text('Aviso novo.'), findsNothing);
+    await tester.tap(find.text('Pessoas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aviso novo.'), findsOneWidget);
+    expect(find.text('Projeto curtido.'), findsNothing);
     expect(requests, isNot(contains('POST /notificacoes/lidas')));
   });
 
