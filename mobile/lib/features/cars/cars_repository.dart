@@ -125,6 +125,13 @@ final class CarsRepository {
     return Car.fromJson(response.data!);
   }
 
+  Future<Car> myDetail(String carId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/meu',
+    );
+    return Car.fromJson(response.data!);
+  }
+
   Future<Car> create(CarInput input) async {
     final response = await _api.dio.post<Map<String, Object?>>(
       '/carros',

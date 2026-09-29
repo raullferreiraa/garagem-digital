@@ -145,6 +145,16 @@ def detalhe_carro(carro_id: UUID, db: DbSession) -> CarroPublico:
     return CarroPublico.model_validate(carro)
 
 
+@router.get("/{carro_id}/meu", response_model=CarroPrivado)
+def detalhe_meu_carro(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> CarroPrivado:
+    carro = obter_carro_do_proprietario(db, carro_id, usuario.id)
+    if carro is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    return CarroPrivado.model_validate(carro)
+
+
 @router.patch("/{carro_id}", response_model=CarroPrivado)
 def atualizar_carro(
     carro_id: UUID,

@@ -469,7 +469,10 @@ final class _HomeShellState extends State<HomeShell>
         refreshRevision: _feedRevision,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
-        onCarTap: (car) => _openCar(car, canManage: false),
+        onCarTap: (car) => _openCar(
+          car,
+          canManage: car.ownerId == widget.session.user!.id,
+        ),
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),

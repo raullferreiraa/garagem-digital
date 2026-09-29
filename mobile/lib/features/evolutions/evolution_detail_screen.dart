@@ -7,7 +7,7 @@ import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_comment_draft.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:garagem_mobile/features/sharing/share_content.dart';
 
@@ -446,7 +446,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
         comments: _replaceCommentIn(
           current.comments,
           (_findComment(current.comments, comment.id) ?? comment)
-              .copyWith(content: edited.content),
+              .copyWith(content: edited.content, editedAt: edited.editedAt),
         ),
       );
     });
@@ -594,7 +594,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
                 GdSectionTitle(
-                  eyebrow: 'Diário de bordo',
+                  eyebrow: 'DIÁRIO DE BORDO',
                   title: evolution.title,
                 ),
                 const SizedBox(height: 6),
@@ -603,69 +603,28 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      avatar:
-                          const Icon(Icons.calendar_today_outlined, size: 17),
-                      label: Text(_formatDate(evolution.timelineDate)),
-                    ),
+                Text(
+                  [
+                    _formatDate(evolution.timelineDate),
                     if (evolution.category != null)
-                      Chip(
-                        label: Text(
-                          evolutionCategoryLabels[evolution.category] ??
-                              evolution.category!,
-                        ),
-                      ),
+                      evolutionCategoryLabels[evolution.category] ??
+                          evolution.category!,
                     if (evolution.mileageKm != null)
-                      Chip(
-                        avatar: const Icon(Icons.speed_outlined, size: 18),
-                        label: Text('${evolution.mileageKm} km'),
-                      ),
-                  ],
+                      '${evolution.mileageKm} km',
+                  ].join(' · '),
+                  style: Theme.of(context).textTheme.labelMedium,
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 Text(
                   evolution.description,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(height: 1.55),
                 ),
                 if (evolution.photos.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 190,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: evolution.photos.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final photo = evolution.photos[index];
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () => Navigator.of(context).push<void>(
-                            MaterialPageRoute(
-                              builder: (_) => EvolutionPhotoViewer(
-                                photos: evolution.photos,
-                                initialIndex: index,
-                              ),
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: AspectRatio(
-                              aspectRatio: 4 / 3,
-                              child: GdImage(
-                                url: photo.url,
-                                semanticLabel:
-                                    'Foto da evolução ${evolution.title}',
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  const SizedBox(height: 24),
+                  EvolutionGallery(evolution: evolution),
                 ],
                 const SizedBox(height: 22),
                 const Divider(),
@@ -905,6 +864,12 @@ final class _EditCommentDialogState extends State<_EditCommentDialog> {
       );
 }
 
+String _formatEditedAt(DateTime date) {
+  final local = date.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(local.day)}/${two(local.month)}/${local.year} às ${two(local.hour)}:${two(local.minute)}';
+}
+
 final class _CommentTile extends StatelessWidget {
   const _CommentTile({
     required this.comment,
@@ -981,9 +946,28 @@ final class _CommentTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    date,
-                    style: Theme.of(context).textTheme.labelSmall,
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 3,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(date, style: Theme.of(context).textTheme.labelSmall),
+                      if (comment.editedAt != null)
+                        Tooltip(
+                          message:
+                              'Editado em ${_formatEditedAt(comment.editedAt!)}',
+                          child: Text(
+                            '· Editado',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(comment.content),

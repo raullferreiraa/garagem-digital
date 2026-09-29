@@ -123,6 +123,7 @@ class ComentarioEvolucaoResposta(BaseModel):
     curtido_por_mim: bool = False
     respostas: list["ComentarioEvolucaoResposta"] = Field(default_factory=list)
     criado_em: datetime
+    editado_em: datetime | None = None
 
 
 class InteracoesEvolucaoResposta(BaseModel):

@@ -9,6 +9,7 @@ final class EvolutionComment {
     required this.authorUsername,
     required this.content,
     required this.createdAt,
+    this.editedAt,
     required this.totalLikes,
     required this.likedByMe,
     required this.replies,
@@ -34,6 +35,9 @@ final class EvolutionComment {
           .map(EvolutionComment.fromJson)
           .toList(growable: false),
       createdAt: DateTime.parse(json['criado_em']! as String),
+      editedAt: json['editado_em'] is String
+          ? DateTime.parse(json['editado_em']! as String)
+          : null,
     );
   }
 
@@ -49,9 +53,11 @@ final class EvolutionComment {
   final bool likedByMe;
   final List<EvolutionComment> replies;
   final DateTime createdAt;
+  final DateTime? editedAt;
 
   EvolutionComment copyWith({
     String? content,
+    DateTime? editedAt,
     int? totalLikes,
     bool? likedByMe,
     List<EvolutionComment>? replies,
@@ -69,6 +75,7 @@ final class EvolutionComment {
       likedByMe: likedByMe ?? this.likedByMe,
       replies: replies ?? this.replies,
       createdAt: createdAt,
+      editedAt: editedAt ?? this.editedAt,
     );
   }
 }

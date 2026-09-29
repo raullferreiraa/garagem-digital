@@ -159,13 +159,19 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                   const SizedBox(height: 8),
                   Text(
                     _editing
-                        ? 'Atualize este registro do diário.'
-                        : 'Registre uma nova etapa na história deste projeto.',
+                        ? 'Ajuste a história desta etapa do projeto.'
+                        : 'Conte o que mudou. Você poderá voltar e adicionar mais fotos depois.',
                   ),
                   const SizedBox(height: 24),
+                  const GdSectionTitle(
+                    eyebrow: '01 / HISTÓRIA',
+                    title: 'O que aconteceu?',
+                  ),
+                  const SizedBox(height: 12),
                   if (!_editing)
                     FormPhoto(
                         label: 'Foto da evolução',
+                        crop: false,
                         bytes: _photo,
                         enabled: !_submitting,
                         onChanged: (value) => setState(() => _photo = value)),
@@ -197,7 +203,17 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                     validator: (value) => _requiredText(
                         value, 'Descreva o que mudou no projeto.'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  const GdSectionTitle(
+                    eyebrow: '02 / CONTEXTO',
+                    title: 'Detalhes da etapa',
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Categoria, data e quilometragem ajudam a acompanhar a evolução ao longo do tempo.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _category,
                     decoration: const InputDecoration(

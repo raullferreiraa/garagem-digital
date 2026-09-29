@@ -58,8 +58,10 @@ void main() {
       if (options.method == 'PATCH') {
         submitted =
             (options.data as Map<String, Object?>)['conteudo'] as String;
-        handler.resolve(Response(
-            requestOptions: options, data: _comment(content: submitted!)));
+        handler.resolve(Response(requestOptions: options, data: {
+          ..._comment(content: submitted!),
+          'editado_em': '2026-09-02T13:00:00Z',
+        }));
       } else {
         handler.resolve(Response(requestOptions: options, data: {
           'total_curtidas': 0,
@@ -87,6 +89,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(submitted, 'Comentário corrigido');
     expect(find.text('Comentário corrigido'), findsOneWidget);
+    expect(find.text('· Editado'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
   });
 

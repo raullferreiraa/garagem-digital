@@ -52,6 +52,7 @@ class FormPhoto extends StatefulWidget {
       required this.onChanged,
       this.enabled = true,
       this.compact = false,
+      this.crop = true,
       this.aspectRatio = 16 / 10,
       super.key});
   final String label;
@@ -59,6 +60,7 @@ class FormPhoto extends StatefulWidget {
   final ValueChanged<Uint8List?> onChanged;
   final bool enabled;
   final bool compact;
+  final bool crop;
   final double aspectRatio;
 
   @override
@@ -93,6 +95,10 @@ class _FormPhotoState extends State<FormPhoto> {
       if (file == null || !mounted) return;
       final bytes = await file.readAsBytes();
       if (!mounted) return;
+      if (!widget.crop) {
+        if (widget.enabled) widget.onChanged(bytes);
+        return;
+      }
       final cropped = await Navigator.of(context).push<Uint8List>(
         MaterialPageRoute(
             builder: (_) => PhotoCropScreen(
@@ -131,7 +137,7 @@ class _FormPhotoState extends State<FormPhoto> {
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(16),
                           child: Image.memory(widget.bytes!,
-                              fit: BoxFit.cover,
+                              fit: widget.crop ? BoxFit.cover : BoxFit.contain,
                               semanticLabel: 'Prévia: ${widget.label}'),
                         )))),
           const SizedBox(height: 8),

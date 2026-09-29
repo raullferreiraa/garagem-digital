@@ -76,10 +76,10 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
         selected = photo == null ? [] : [photo];
       } else {
         selected = (await picker.pickMultiImage(
-            maxWidth: 2048,
-            maxHeight: 2048,
-            imageQuality: 90,
-          ))
+          maxWidth: 2048,
+          maxHeight: 2048,
+          imageQuality: 90,
+        ))
             .take(available)
             .toList(growable: false);
       }
@@ -291,6 +291,13 @@ final class EvolutionPhotoViewer extends StatefulWidget {
 
 class _EvolutionPhotoViewerState extends State<EvolutionPhotoViewer> {
   late var _index = widget.initialIndex;
+  late final _pageController = PageController(initialPage: widget.initialIndex);
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +309,7 @@ class _EvolutionPhotoViewerState extends State<EvolutionPhotoViewer> {
         title: Text('${_index + 1} de ${widget.photos.length}'),
       ),
       body: PageView.builder(
-        controller: PageController(initialPage: widget.initialIndex),
+        controller: _pageController,
         itemCount: widget.photos.length,
         onPageChanged: (index) => setState(() => _index = index),
         itemBuilder: (context, index) => InteractiveViewer(

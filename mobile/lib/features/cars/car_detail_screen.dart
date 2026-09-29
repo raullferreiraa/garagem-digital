@@ -10,6 +10,8 @@ import 'package:garagem_mobile/features/cars/car_form_screen.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
 import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_carousel.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_journal_card.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
@@ -18,8 +20,6 @@ import 'package:garagem_mobile/features/sharing/share_content.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _CarAction { edit, delete }
-
-enum _EvolutionAction { edit, delete }
 
 enum _PhotoAction { camera, gallery, remove }
 
@@ -49,6 +49,13 @@ final class CarDetailScreen extends StatefulWidget {
 
 class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
+  bool get _canManage => widget.currentUserId.isNotEmpty
+      ? _car.ownerId == widget.currentUserId
+      : widget.canManage;
+
+  Future<Car> _loadCarDetail() => _canManage && widget.currentUserId.isNotEmpty
+      ? widget.repository.myDetail(_car.id)
+      : widget.repository.detail(_car.id);
   late Future<List<Evolution>> _evolutions;
   int _carRequest = 0;
   bool _deleting = false;
@@ -61,7 +68,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     super.initState();
     _evolutions = widget.evolutionsRepository.byCar(_car.id);
     unawaited(_refreshCarSilently());
-    if (!widget.canManage && widget.currentUserId.isNotEmpty) {
+    if (!_canManage && widget.currentUserId.isNotEmpty) {
       unawaited(_loadSaved());
     }
   }
@@ -100,11 +107,12 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   Future<void> _refreshCarSilently() async {
     final request = ++_carRequest;
     try {
-      final refreshed = await widget.repository.detail(_car.id);
+      final refreshed = await _loadCarDetail();
       if (!mounted || request != _carRequest) return;
       setState(() {
-        _car =
-            widget.canManage ? refreshed.withPrivateDataFrom(_car) : refreshed;
+        _car = _canManage && widget.currentUserId.isEmpty
+            ? refreshed.withPrivateDataFrom(_car)
+            : refreshed;
       });
     } catch (_) {
       // O card recebido mantém a tela utilizável quando a atualização falha.
@@ -123,7 +131,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
 
   Future<void> _reloadProject() async {
     final request = ++_carRequest;
-    final carRequest = widget.repository.detail(_car.id);
+    final carRequest = _loadCarDetail();
     final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
     setState(() {
       _evolutions = evolutionsRequest;
@@ -134,7 +142,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       final refreshed = await carRequest;
       if (mounted && request == _carRequest) {
         setState(() {
-          _car = widget.canManage
+          _car = _canManage && widget.currentUserId.isEmpty
               ? refreshed.withPrivateDataFrom(_car)
               : refreshed;
         });
@@ -157,11 +165,25 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Future<void> _edit() async {
+    Car editableCar;
+    try {
+      editableCar = _canManage && widget.currentUserId.isNotEmpty
+          ? await widget.repository.myDetail(_car.id)
+          : _car;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
     final updated = await Navigator.of(context).push<Car>(
       MaterialPageRoute(
         builder: (_) => CarFormScreen(
           repository: widget.repository,
-          car: _car,
+          car: editableCar,
         ),
       ),
     );
@@ -484,14 +506,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   void _selectEvolutionAction(
-    _EvolutionAction action,
+    EvolutionJournalAction action,
     Evolution evolution,
   ) {
     switch (action) {
-      case _EvolutionAction.edit:
+      case EvolutionJournalAction.edit:
         _editEvolution(evolution);
         break;
-      case _EvolutionAction.delete:
+      case EvolutionJournalAction.photos:
+        _openEvolutionPhotos(evolution);
+        break;
+      case EvolutionJournalAction.delete:
         _deleteEvolution(evolution);
         break;
     }
@@ -522,7 +547,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return FutureBuilder<List<Evolution>>(
       future: _evolutions,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
           return const SizedBox(height: 180, child: GdSkeleton(compact: true));
         }
         if (snapshot.hasError) {
@@ -543,7 +569,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
           );
         }
 
-        final evolutions = snapshot.data ?? const <Evolution>[];
+        final evolutions = [...?snapshot.data]
+          ..sort((a, b) => b.timelineDate.compareTo(a.timelineDate));
         if (evolutions.isEmpty) {
           return const Card(
             child: Padding(
@@ -568,7 +595,6 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 candidate.timelineDate.isAfter(current.timelineDate)
                     ? candidate
                     : current);
-
         return Column(
           children: [
             _DiarySummary(
@@ -579,148 +605,11 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   : _formatMileage(latestMileageEvolution!.mileageKm!),
             ),
             const SizedBox(height: 12),
-            for (final evolution in evolutions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border(
-                        left: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _formatDate(evolution.timelineDate),
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ),
-                            if (widget.canManage)
-                              PopupMenuButton<_EvolutionAction>(
-                                tooltip: 'Opções da evolução',
-                                onSelected: (action) =>
-                                    _selectEvolutionAction(action, evolution),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: _EvolutionAction.edit,
-                                    child: ListTile(
-                                      leading: Icon(Icons.edit_outlined),
-                                      title: Text('Editar'),
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _EvolutionAction.delete,
-                                    child: ListTile(
-                                      leading: Icon(Icons.delete_outline),
-                                      title: Text('Excluir'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                        if (evolution.category != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            (evolutionCategoryLabels[evolution.category] ??
-                                    evolution.category!)
-                                .toUpperCase(),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  letterSpacing: 1,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        Text(
-                          evolution.title,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(evolution.description),
-                        if (evolution.mileageKm != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(Icons.speed_outlined, size: 18),
-                              const SizedBox(width: 6),
-                              Text(_formatMileage(evolution.mileageKm!)),
-                            ],
-                          ),
-                        ],
-                        if (evolution.photos.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 112,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: evolution.photos.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final photo = evolution.photos[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () => Navigator.of(context).push<void>(
-                                    MaterialPageRoute(
-                                      builder: (_) => EvolutionPhotoViewer(
-                                        photos: evolution.photos,
-                                        initialIndex: index,
-                                      ),
-                                    ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: AspectRatio(
-                                      aspectRatio: 4 / 3,
-                                      child: GdImage(
-                                          url: photo.url,
-                                          semanticLabel: evolution.title),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () => _openEvolutionDetail(evolution),
-                            icon: const Icon(Icons.forum_outlined),
-                            label: const Text('Ver conversa'),
-                          ),
-                        ),
-                        if (widget.canManage) ...[
-                          TextButton.icon(
-                            onPressed: () => _openEvolutionPhotos(evolution),
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: Text(
-                              evolution.photos.isEmpty
-                                  ? 'Adicionar fotos'
-                                  : 'Gerenciar ${evolution.photos.length} fotos',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            EvolutionCarousel(
+              evolutions: evolutions,
+              onOpen: _openEvolutionDetail,
+              onManage: _canManage ? _selectEvolutionAction : null,
+            ),
           ],
         );
       },
@@ -750,7 +639,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       appBar: AppBar(
         title: const Text('Projeto'),
         actions: [
-          if (!widget.canManage && widget.currentUserId.isNotEmpty)
+          if (!_canManage && widget.currentUserId.isNotEmpty)
             IconButton(
               onPressed: _saved == null || _changingSaved ? null : _toggleSaved,
               tooltip: _saved == true ? 'Remover dos salvos' : 'Salvar projeto',
@@ -762,7 +651,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
             payload: ShareContent.project(_car),
             tooltip: 'Compartilhar projeto',
           ),
-          if (widget.canManage)
+          if (_canManage)
             PopupMenuButton<_CarAction>(
               enabled: !_deleting,
               onSelected: _selectAction,
@@ -795,7 +684,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 children: [
                   _ProjectCover(
                     car: _car,
-                    canManage: widget.canManage,
+                    canManage: _canManage,
                     updatingPhoto: _updatingPhoto,
                     onPhotoTap: _openPhotoActions,
                     onViewPhoto: _viewPhoto,
@@ -858,13 +747,12 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   Row(
                     children: [
                       const Expanded(
-                        child: _SectionHeading(
+                        child: GdSectionTitle(
                           eyebrow: 'DIÁRIO DO PROJETO',
                           title: 'Evoluções',
-                          icon: Icons.timeline_rounded,
                         ),
                       ),
-                      if (widget.canManage)
+                      if (_canManage)
                         IconButton.filled(
                           onPressed: _openEvolutionForm,
                           tooltip: 'Registrar evolução',
@@ -1166,107 +1054,30 @@ final class _SectionHeading extends StatelessWidget {
 }
 
 final class _DiarySummary extends StatelessWidget {
-  const _DiarySummary({
-    required this.count,
-    required this.latestDate,
-    required this.mileage,
-  });
-
+  const _DiarySummary(
+      {required this.count, required this.latestDate, required this.mileage});
   final int count;
   final String latestDate;
   final String? mileage;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: colors.outlineVariant),
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(count == 1 ? '1 registro' : '$count registros',
+              style: theme.textTheme.labelLarge),
+          Text('Última atualização: $latestDate',
+              style: theme.textTheme.labelMedium),
+          if (mileage != null)
+            Text(mileage!, style: theme.textTheme.labelMedium),
+        ],
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final itemWidth = (constraints.maxWidth - 12) / 2;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 16,
-            children: [
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.library_books_outlined,
-                  label: 'Registros',
-                  value: count == 1 ? '1 registro' : '$count registros',
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.event_outlined,
-                  label: 'Última evolução',
-                  value: latestDate,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.speed_outlined,
-                  label: 'Quilometragem',
-                  value: mileage ?? 'Não informada',
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-final class _DiaryStat extends StatelessWidget {
-  const _DiaryStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: colors.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }

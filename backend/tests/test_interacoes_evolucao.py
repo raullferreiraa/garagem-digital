@@ -175,6 +175,8 @@ def test_autor_edita_comentario_e_resposta_sem_alterar_autoria(client: TestClien
         f"{base}/comentarios/{comentario['id']}/respostas",
         headers=auth_header(dono), json={"conteudo": "Obrigado"},
     ).json()
+    assert comentario["editado_em"] is None
+    assert resposta["editado_em"] is None
 
     comentario_url = f"{base}/comentarios/{comentario['id']}"
     assert client.patch(
@@ -192,6 +194,7 @@ def test_autor_edita_comentario_e_resposta_sem_alterar_autoria(client: TestClien
     assert editado.status_code == 200
     assert editado.json()["conteudo"] == "Cor verde"
     assert editado.json()["autor"]["username"] == "autor.edicao"
+    assert editado.json()["editado_em"] is not None
 
     resposta_url = f"{base}/comentarios/{resposta['id']}"
     assert client.patch(
@@ -204,4 +207,6 @@ def test_autor_edita_comentario_e_resposta_sem_alterar_autoria(client: TestClien
     ).status_code == 200
     historico = client.get(base + "/interacoes", headers=auth_header(autor)).json()
     assert historico["comentarios"][0]["conteudo"] == "Cor verde"
+    assert historico["comentarios"][0]["editado_em"] is not None
     assert historico["comentarios"][0]["respostas"][0]["conteudo"] == "Muito obrigado"
+    assert historico["comentarios"][0]["respostas"][0]["editado_em"] is not None

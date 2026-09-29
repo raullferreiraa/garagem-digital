@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -81,6 +82,7 @@ def _comentario_resposta(
         curtido_por_mim=curtido_por_mim,
         respostas=respostas or [],
         criado_em=comentario.criado_em,
+        editado_em=comentario.editado_em,
     )
 
 
@@ -585,6 +587,7 @@ def editar_comentario(
     if comentario is None:
         raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
     comentario.conteudo = dados.conteudo
+    comentario.editado_em = datetime.now(timezone.utc)
     db.commit()
     db.refresh(comentario)
     return _comentario_resposta(comentario)

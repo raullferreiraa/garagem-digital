@@ -48,5 +48,8 @@ class ComentarioEvolucao(Base):
         server_default=func.now(),
         onupdate=agora_utc,
     )
+    editado_em: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     autor = relationship("Usuario", lazy="joined")
