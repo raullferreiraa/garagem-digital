@@ -6,6 +6,7 @@ import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/events/event.dart';
+import 'package:garagem_mobile/features/events/event_calendar.dart';
 import 'package:garagem_mobile/features/events/event_form_screen.dart';
 import 'package:garagem_mobile/features/events/event_participants_screen.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
@@ -58,6 +59,8 @@ class _EventsScreenState extends State<EventsScreen> {
   int _revision = 0;
   String _filter = 'Todos';
   String _search = '';
+  String _city = '';
+  String _state = '';
   final _searchController = TextEditingController();
 
   bool _matchesSearch(GarageEvent event) {
@@ -88,7 +91,24 @@ class _EventsScreenState extends State<EventsScreen> {
     setState(() {
       _search = '';
       _filter = 'Todos';
+      _city = '';
+      _state = '';
     });
+  }
+
+  Future<void> _chooseCity() async {
+    final selected = await showModalBottomSheet<({String city, String state})>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => const _EventCityFilterSheet(),
+    );
+    if (mounted && selected != null) {
+      setState(() {
+        _city = selected.city;
+        _state = selected.state;
+      });
+    }
   }
 
   Future<void> _chooseFilter() async {
@@ -210,7 +230,14 @@ class _EventsScreenState extends State<EventsScreen> {
           (_filter == 'Próximos' &&
               event.startsAt != null &&
               !event.startsAt!.isBefore(now));
-      return matchesFilter && _matchesSearch(event);
+      final matchesCity = _city.isEmpty ||
+          ((event.city?.toLowerCase() == _city.toLowerCase() &&
+                  event.state?.toUpperCase() == _state.toUpperCase()) ||
+              ((event.editionCity ?? event.city)?.toLowerCase() ==
+                      _city.toLowerCase() &&
+                  (event.editionState ?? event.state)?.toUpperCase() ==
+                      _state.toUpperCase()));
+      return matchesFilter && matchesCity && _matchesSearch(event);
     }).toList()
       ..sort((a, b) {
         final first = a.startsAt;
@@ -276,6 +303,21 @@ class _EventsScreenState extends State<EventsScreen> {
                                   ]),
                               prefixIcon: const Icon(Icons.search),
                               hintText: 'Buscar encontro ou cidade')),
+                      const SizedBox(height: 12),
+                      OutlinedButton.icon(
+                          onPressed: _chooseCity,
+                          icon: const Icon(Icons.location_on_outlined),
+                          label: Text(_city.isEmpty
+                              ? 'Filtrar por cidade'
+                              : '$_city · $_state')),
+                      if (_city.isNotEmpty)
+                        TextButton.icon(
+                            onPressed: () => setState(() {
+                                  _city = '';
+                                  _state = '';
+                                }),
+                            icon: const Icon(Icons.close_rounded),
+                            label: const Text('Limpar cidade')),
                       if (_filter != 'Todos') ...[
                         const SizedBox(height: 10),
                         Row(children: [
@@ -352,7 +394,9 @@ class _EventsScreenState extends State<EventsScreen> {
                                                 : 'Explore outra busca ou crie o seu encontro.',
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 18),
-                            if (_search.isNotEmpty || _filter != 'Todos')
+                            if (_search.isNotEmpty ||
+                                _filter != 'Todos' ||
+                                _city.isNotEmpty)
                               TextButton.icon(
                                   onPressed: _clearFilters,
                                   icon:
@@ -377,6 +421,57 @@ class _EventsScreenState extends State<EventsScreen> {
       ),
     );
   }
+}
+
+class _EventCityFilterSheet extends StatefulWidget {
+  const _EventCityFilterSheet();
+
+  @override
+  State<_EventCityFilterSheet> createState() => _EventCityFilterSheetState();
+}
+
+class _EventCityFilterSheetState extends State<_EventCityFilterSheet> {
+  final _city = TextEditingController();
+  final _state = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _city.addListener(_refresh);
+  }
+
+  void _refresh() => setState(() {});
+
+  @override
+  void dispose() {
+    _city.removeListener(_refresh);
+    _city.dispose();
+    _state.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 0, 20, MediaQuery.viewInsetsOf(context).bottom + 24),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Text('Encontros por cidade',
+              style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 18),
+          BrazilCityField(cityController: _city, stateController: _state),
+          const SizedBox(height: 18),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _city.text.isEmpty
+                  ? null
+                  : () => Navigator.pop(
+                      context, (city: _city.text, state: _state.text)),
+              child: const Text('Mostrar encontros'),
+            ),
+          ),
+        ]),
+      );
 }
 
 class _CommunityCard extends StatelessWidget {
@@ -760,6 +855,25 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
     if (action == 'remove') _teamParticipation();
   }
 
+  Future<void> _addToCalendar() async {
+    final startsAt = _event.startsAt;
+    if (startsAt == null) return;
+    try {
+      await EventCalendar.open(
+        title: _event.name,
+        startsAt: startsAt,
+        endsAt: _event.endsAt,
+        location: _event.location,
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Não foi possível abrir a agenda neste aparelho.'),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
@@ -914,6 +1028,14 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
                                           ? 'Siga a comunidade e volte para conferir a próxima data.'
                                           : '${_time(_event.startsAt!)} · ${_event.location}'),
                                       if (_event.startsAt != null) ...[
+                                        const SizedBox(height: 12),
+                                        OutlinedButton.icon(
+                                          onPressed: _addToCalendar,
+                                          icon: const Icon(
+                                              Icons.event_available_outlined),
+                                          label:
+                                              const Text('Adicionar à agenda'),
+                                        ),
                                         if (currentEdition != null) ...[
                                           const SizedBox(height: 16),
                                           const Divider(),

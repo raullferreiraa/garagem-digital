@@ -1,10 +1,13 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
+import 'package:garagem_mobile/core/location/brazil_city.dart';
 import 'package:garagem_mobile/core/storage/token_storage.dart';
 import 'package:garagem_mobile/core/theme/app_theme.dart';
 import 'package:garagem_mobile/features/events/event.dart';
+import 'package:garagem_mobile/features/events/event_calendar.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
 import 'package:garagem_mobile/features/events/events_screen.dart';
 import 'package:garagem_mobile/features/sharing/share_content.dart';
@@ -46,6 +49,95 @@ Map<String, Object?> community({bool scheduled = false}) => {
     };
 
 void main() {
+  testWidgets('cidade filtra pela localização da próxima edição',
+      (tester) async {
+    await tester.runAsync(() async => BrazilCities.load());
+    final curitiba = community(scheduled: true)
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final capixaba = community()
+      ..['id'] = 'capixaba'
+      ..['nome'] = 'Garagem Capixaba';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(
+          Response(requestOptions: options, data: [curitiba, capixaba]));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventsScreen(
+            repository: EventsRepository(api),
+            teamsRepository: TeamsRepository(api),
+            refreshRevision: 0)));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Filtrar por cidade'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(TextField).last);
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Paraná'), 120,
+        scrollable: find.byType(Scrollable).last);
+    await tester.tap(find.text('Paraná'));
+    await tester.runAsync(() async => await BrazilCities.load());
+    await tester.pumpAndSettle();
+    expect(
+        find.text('Digite pelo menos 2 letras para buscar.'), findsOneWidget);
+    await tester.enterText(find.byType(TextField).last, 'Curitiba');
+    await tester.pumpAndSettle();
+    expect(find.text('Nenhuma cidade encontrada.'), findsNothing);
+    await tester.tap(find.widgetWithText(ListTile, 'Curitiba'));
+    await tester.pumpAndSettle();
+    expect(find.text('Encontros por cidade'), findsOneWidget);
+    await tester.tap(find.text('Mostrar encontros'));
+    await tester.pumpAndSettle();
+    expect(find.text('Clássicos da Praia'), findsOneWidget);
+    expect(find.text('Garagem Capixaba'), findsNothing);
+    await tester.tap(find.text('Limpar cidade'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Garagem Capixaba'), 250,
+        scrollable: find.byType(Scrollable).first);
+    expect(find.text('Garagem Capixaba'), findsOneWidget);
+  });
+
+  testWidgets('agenda recebe data e localização da próxima edição',
+      (tester) async {
+    MethodCall? received;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(EventCalendar.channel, (call) async {
+      received = call;
+      return null;
+    });
+    addTearDown(() => TestDefaultBinaryMessengerBinding
+        .instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(EventCalendar.channel, null));
+    final data = community(scheduled: true)
+      ..['endereco_publico'] = 'Autódromo'
+      ..['edicao_cidade'] = 'Curitiba'
+      ..['edicao_estado'] = 'PR';
+    final api =
+        ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: _Tokens());
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(requestOptions: options, data: data));
+    }));
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: EventCommunityScreen(
+            event: GarageEvent.fromJson(data),
+            repository: EventsRepository(api))));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Adicionar à agenda'), 250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Adicionar à agenda'));
+    await tester.pumpAndSettle();
+    expect(received?.method, 'addEvent');
+    final args = received!.arguments as Map<Object?, Object?>;
+    expect(args['title'], 'Clássicos da Praia');
+    expect(args['location'], 'Autódromo · Curitiba · PR');
+    expect((args['endMillis'] as int) - (args['startMillis'] as int),
+        const Duration(hours: 2).inMilliseconds);
+  });
+
   testWidgets('busca cidade da edição e filtra comunidades com próxima data',
       (tester) async {
     final scheduled = community(scheduled: true)
