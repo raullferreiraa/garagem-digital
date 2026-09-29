@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_comment_draft.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
 import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
 import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
@@ -30,6 +33,12 @@ final class EvolutionDetailScreen extends StatefulWidget {
 
 final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   final _commentController = TextEditingController();
+  final _draftStorage = const EvolutionCommentDraftStorage();
+  Timer? _draftTimer;
+  bool _draftEdited = false;
+  bool _draftLoaded = false;
+  String? _draftReplyId;
+  bool _draftReplyMissing = false;
   final _commentFocusNode = FocusNode();
   final _scrollController = ScrollController();
   final Map<String, GlobalKey> _commentKeys = {};
@@ -45,15 +54,63 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _commentController.addListener(_onDraftChanged);
+    _restoreDraft();
     _future = _fetchInteractions();
   }
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    if (_draftLoaded || _draftEdited) _saveDraft();
     _commentController.dispose();
     _commentFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final draft =
+          await _draftStorage.read(widget.currentUserId, widget.evolution.id);
+      if (!mounted) return;
+      _draftLoaded = true;
+      if (_draftEdited || draft == null) return;
+      _draftReplyId = draft.replyToId;
+      _commentController.text = draft.text;
+      _applyDraftReply();
+    } catch (_) {
+      _draftLoaded = true;
+    }
+  }
+
+  void _onDraftChanged() {
+    _draftEdited = true;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 350), _saveDraft);
+  }
+
+  void _saveDraft() {
+    final draft = EvolutionCommentDraft(
+      _commentController.text,
+      _replyingTo?.id ?? _draftReplyId,
+    );
+    unawaited(_draftStorage
+        .save(widget.currentUserId, widget.evolution.id, draft)
+        .catchError((Object _) {}));
+  }
+
+  void _applyDraftReply() {
+    final interactions = _interactions;
+    final replyId = _draftReplyId;
+    if (interactions == null || replyId == null || !mounted) return;
+    final target =
+        interactions.comments.where((item) => item.id == replyId).firstOrNull;
+    setState(() {
+      _replyingTo = target;
+      _draftReplyMissing = target == null;
+    });
+    _draftReplyId = null;
   }
 
   Future<EvolutionInteractions> _fetchInteractions() async {
@@ -63,6 +120,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     );
     if (mounted) {
       setState(() => _interactions = interactions);
+      _applyDraftReply();
       _scheduleHighlightedComment();
     } else {
       _interactions = interactions;
@@ -272,12 +330,23 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 
   void _startReply(EvolutionComment comment) {
-    setState(() => _replyingTo = comment);
+    setState(() {
+      _replyingTo = comment;
+      _draftReplyMissing = false;
+    });
+    _draftEdited = true;
+    _draftReplyId = null;
+    _saveDraft();
     _commentFocusNode.requestFocus();
   }
 
   void _cancelReply() {
-    setState(() => _replyingTo = null);
+    setState(() {
+      _replyingTo = null;
+      _draftReplyMissing = false;
+    });
+    _draftReplyId = null;
+    _saveDraft();
   }
 
   Future<void> _sendComment() async {
@@ -316,8 +385,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                 ],
         );
         _replyingTo = null;
+        _draftReplyMissing = false;
         _sendingComment = false;
       });
+      _draftReplyId = null;
+      _draftTimer?.cancel();
+      _saveDraft();
     } catch (error) {
       if (!mounted) return;
       setState(() => _sendingComment = false);
@@ -350,6 +423,33 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     if (confirmed == true && mounted) {
       await _deleteComment(comment);
     }
+  }
+
+  Future<void> _editComment(EvolutionComment comment) async {
+    final edited = await showDialog<EvolutionComment>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _EditCommentDialog(
+        comment: comment,
+        onSave: (content) => widget.repository.editComment(
+          widget.evolution.carId,
+          widget.evolution.id,
+          comment.id,
+          content,
+        ),
+      ),
+    );
+    if (!mounted || edited == null || _interactions == null) return;
+    setState(() {
+      final current = _interactions!;
+      _interactions = current.copyWith(
+        comments: _replaceCommentIn(
+          current.comments,
+          (_findComment(current.comments, comment.id) ?? comment)
+              .copyWith(content: edited.content),
+        ),
+      );
+    });
   }
 
   Future<void> _deleteComment(EvolutionComment comment) async {
@@ -419,6 +519,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       onLike: () => _toggleCommentLike(comment),
       onReply: isReply ? null : () => _startReply(comment),
       onDelete: () => _confirmDeleteComment(comment),
+      onEdit: () => _editComment(comment),
     );
   }
 
@@ -658,6 +759,15 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (_draftReplyMissing)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'O comentário original não está mais disponível. Seu texto foi mantido como comentário.',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error),
+                          ),
+                        ),
                       if (_replyingTo != null)
                         Row(
                           children: [
@@ -724,6 +834,77 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 }
 
+final class _EditCommentDialog extends StatefulWidget {
+  const _EditCommentDialog({required this.comment, required this.onSave});
+
+  final EvolutionComment comment;
+  final Future<EvolutionComment> Function(String content) onSave;
+
+  @override
+  State<_EditCommentDialog> createState() => _EditCommentDialogState();
+}
+
+final class _EditCommentDialogState extends State<_EditCommentDialog> {
+  late final _controller = TextEditingController(text: widget.comment.content);
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving || _controller.text.trim().isEmpty) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final edited = await widget.onSave(_controller.text);
+      if (mounted) Navigator.pop(context, edited);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = apiErrorMessage(error);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Editar comentário'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: _controller,
+            onChanged: (_) => setState(() {}),
+            maxLength: 1000,
+            minLines: 2,
+            maxLines: 5,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Comentário'),
+          ),
+          if (_error != null)
+            Text(_error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed:
+                _saving || _controller.text.trim().isEmpty ? null : _save,
+            child: const Text('Salvar'),
+          ),
+        ],
+      );
+}
+
 final class _CommentTile extends StatelessWidget {
   const _CommentTile({
     required this.comment,
@@ -735,6 +916,7 @@ final class _CommentTile extends StatelessWidget {
     required this.highlighted,
     required this.onLike,
     required this.onDelete,
+    required this.onEdit,
     this.onReply,
     this.onAuthorTap,
     super.key,
@@ -749,6 +931,7 @@ final class _CommentTile extends StatelessWidget {
   final bool highlighted;
   final VoidCallback onLike;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   final VoidCallback? onReply;
   final VoidCallback? onAuthorTap;
 
@@ -839,15 +1022,17 @@ final class _CommentTile extends StatelessWidget {
               ),
             ),
             if (canDelete)
-              IconButton(
-                onPressed: deleting ? null : onDelete,
-                tooltip: 'Excluir comentário',
-                icon: deleting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.delete_outline),
+              PopupMenuButton<String>(
+                enabled: !deleting,
+                tooltip: 'Opções do comentário',
+                onSelected: (action) {
+                  if (action == 'edit') onEdit();
+                  if (action == 'delete') onDelete();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  PopupMenuItem(value: 'delete', child: Text('Excluir')),
+                ],
               ),
           ],
         ),

@@ -51,6 +51,7 @@ final class EvolutionComment {
   final DateTime createdAt;
 
   EvolutionComment copyWith({
+    String? content,
     int? totalLikes,
     bool? likedByMe,
     List<EvolutionComment>? replies,
@@ -63,7 +64,7 @@ final class EvolutionComment {
       authorUsername: authorUsername,
       authorAvatarUrl: authorAvatarUrl,
       parentCommentId: parentCommentId,
-      content: content,
+      content: content ?? this.content,
       totalLikes: totalLikes ?? this.totalLikes,
       likedByMe: likedByMe ?? this.likedByMe,
       replies: replies ?? this.replies,

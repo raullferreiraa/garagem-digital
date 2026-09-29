@@ -175,4 +175,17 @@ final class EvolutionsRepository {
       '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId',
     );
   }
+
+  Future<EvolutionComment> editComment(
+    String carId,
+    String evolutionId,
+    String commentId,
+    String content,
+  ) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId',
+      data: {'conteudo': content.trim()},
+    );
+    return EvolutionComment.fromJson(response.data!);
+  }
 }
