@@ -1,6 +1,7 @@
 import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
@@ -152,16 +153,12 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  GdSectionTitle(
-                    eyebrow: 'Diário de bordo',
-                    title: widget.carModel,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _editing
-                        ? 'Ajuste a história desta etapa do projeto.'
-                        : 'Conte o que mudou. Você poderá voltar e adicionar mais fotos depois.',
-                  ),
+                  GdIntro(
+                      eyebrow: 'Diário de bordo',
+                      title: widget.carModel,
+                      description: _editing
+                          ? 'Ajuste a história desta etapa do projeto.'
+                          : 'Conte o que mudou. Você poderá voltar e adicionar mais fotos depois.'),
                   const SizedBox(height: 24),
                   const GdSectionTitle(
                     eyebrow: '01 / HISTÓRIA',

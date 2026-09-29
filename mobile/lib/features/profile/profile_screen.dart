@@ -5,6 +5,8 @@ import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garagem_mobile/features/cars/project_card.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
 import 'package:garagem_mobile/features/cars/car.dart';
 import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
@@ -360,7 +362,9 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   ...cars.map(
                     (car) => Padding(
                       padding: const EdgeInsets.only(bottom: 14),
-                      child: _ProjectCard(
+                      child: GdProjectCard(
+                        compact: true,
+                        highlighted: true,
                         car: car,
                         onTap: () => _openCar(car),
                       ),
@@ -456,94 +460,100 @@ final class _ProfileHero extends StatelessWidget {
     final location = [city, state]
         .where((value) => value != null && value.isNotEmpty)
         .join(' · ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return GdPanel(
+        technical: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-                child: Text(
-              'QUEM ESTÁ AO VOLANTE',
-              style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 2,
-                color: colors.primary,
+            Row(
+              children: [
+                Expanded(
+                    child: Text(
+                  'QUEM ESTÁ AO VOLANTE',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    letterSpacing: 2,
+                    color: colors.primary,
+                  ),
+                )),
+                Icon(Icons.sports_motorsports_outlined,
+                    color: colors.primary, size: 24),
+              ],
+            ),
+            const SizedBox(height: 22),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GdAvatar(name: name, url: avatarUrl, size: 88),
+                const SizedBox(width: 18),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(name, style: theme.textTheme.headlineLarge),
+                      const SizedBox(height: 3),
+                      Text('@$username',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colors.primary,
+                          )),
+                      if (location.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          Icon(Icons.location_on_outlined,
+                              size: 14, color: colors.onSurfaceVariant),
+                          const SizedBox(width: 4),
+                          Expanded(
+                              child: Text(
+                            location,
+                            style: theme.textTheme.labelMedium
+                                ?.copyWith(color: colors.onSurfaceVariant),
+                          )),
+                        ]),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              bio?.isNotEmpty == true
+                  ? bio!
+                  : 'Sua história também faz parte do projeto. Adicione uma bio.',
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: colors.outlineVariant),
+                  bottom: BorderSide(color: colors.outlineVariant),
+                ),
               ),
-            )),
-            Icon(Icons.sports_motorsports_outlined,
-                color: colors.primary, size: 24),
-          ],
-        ),
-        const SizedBox(height: 22),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            GdAvatar(name: name, url: avatarUrl, size: 88),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: theme.textTheme.headlineLarge),
-                  const SizedBox(height: 3),
-                  Text('@$username',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.primary,
-                      )),
-                  if (location.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 14, color: colors.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Expanded(
-                          child: Text(
-                        location,
-                        style: theme.textTheme.labelMedium
-                            ?.copyWith(color: colors.onSurfaceVariant),
-                      )),
-                    ]),
-                  ],
-                ],
+              child: Row(children: [
+                _ProfileSocialStat(value: projectsCount, label: 'projetos'),
+                _ProfileSocialStat(
+                    value: followersCount,
+                    label: 'seguidores',
+                    onTap: onFollowers),
+                _ProfileSocialStat(
+                    value: followingCount,
+                    label: 'seguindo',
+                    onTap: onFollowing),
+              ]),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onEdit,
+                icon: const Icon(Icons.tune_rounded, size: 18),
+                label: const Text('Editar perfil'),
               ),
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        Text(
-          bio?.isNotEmpty == true
-              ? bio!
-              : 'Sua história também faz parte do projeto. Adicione uma bio.',
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: colors.outlineVariant),
-              bottom: BorderSide(color: colors.outlineVariant),
-            ),
-          ),
-          child: Row(children: [
-            _ProfileSocialStat(value: projectsCount, label: 'projetos'),
-            _ProfileSocialStat(
-                value: followersCount, label: 'seguidores', onTap: onFollowers),
-            _ProfileSocialStat(
-                value: followingCount, label: 'seguindo', onTap: onFollowing),
-          ]),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: onEdit,
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('Editar perfil'),
-          ),
-        ),
-      ],
-    );
+        ));
   }
 }
 
@@ -571,63 +581,6 @@ final class _ProfileSocialStat extends StatelessWidget {
                   color: theme.colorScheme.onSurfaceVariant,
                 )),
           ]),
-        ),
-      ),
-    );
-  }
-}
-
-final class _ProjectCard extends StatelessWidget {
-  const _ProjectCard({required this.car, required this.onTap});
-
-  final Car car;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final title =
-        [car.model, car.year].where((value) => value != null).join(' ');
-    return GdReveal(
-      child: Card(
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: GdImage(url: car.photoUrl, semanticLabel: title),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(children: [
-                  Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (car.projectStatus != null) ...[
-                        Text(
-                          car.projectStatus!.toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                      ],
-                      Text(title, style: theme.textTheme.titleLarge),
-                    ],
-                  )),
-                  const SizedBox(width: 12),
-                  Icon(Icons.north_east_rounded,
-                      color: theme.colorScheme.primary, size: 22),
-                ]),
-              ),
-            ],
-          ),
         ),
       ),
     );
@@ -669,25 +622,10 @@ final class _ProfileMessage extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(icon, size: 44),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            if (onAction != null) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GdEmptyState(
+      icon: icon,
+      title: message,
+      action: onAction == null
+          ? null
+          : FilledButton(onPressed: onAction, child: Text(actionLabel!)));
 }

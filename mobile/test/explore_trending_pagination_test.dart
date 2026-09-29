@@ -96,6 +96,10 @@ void main() {
     expect(find.text('Omega CD'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.text('Carregar mais projetos'), 250);
+    await Scrollable.ensureVisible(
+        tester.element(find.text('Carregar mais projetos')),
+        alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Carregar mais projetos'));
     await tester.pumpAndSettle();
     expect(requests.last['ordem'], 'em_alta');

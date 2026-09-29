@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/config/app_config.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
@@ -265,13 +266,11 @@ class _EventsScreenState extends State<EventsScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const _Eyebrow('CULTURA QUE CONECTA'),
-                      const SizedBox(height: 10),
-                      Text('O seu próximo\nponto de encontro.',
-                          style: Theme.of(context).textTheme.displaySmall),
-                      const SizedBox(height: 10),
-                      Text('Conheça a comunidade. Faça parte da história.',
-                          style: TextStyle(color: colors.onSurfaceVariant)),
+                      const GdIntro(
+                          eyebrow: 'Cultura que conecta',
+                          title: 'O seu próximo ponto de encontro.',
+                          description:
+                              'Conheça a comunidade. Faça parte da história.'),
                       const SizedBox(height: 24),
                       TextField(
                           controller: _searchController,
@@ -520,6 +519,10 @@ class _CommunityCard extends StatelessWidget {
                             const Divider(height: 1),
                             const SizedBox(height: 14),
                             Row(children: [
+                              if (event.startsAt != null) ...[
+                                _EditionDateStamp(date: event.startsAt!),
+                                const SizedBox(width: 12),
+                              ],
                               Expanded(
                                   child: Column(
                                       crossAxisAlignment:
@@ -560,14 +563,16 @@ class _CommunityCover extends StatelessWidget {
       Positioned.fill(
           child: event.coverUrl == null
               ? ColoredBox(
-                  color: colors.surfaceContainerHighest,
-                  child: Align(
-                      alignment: Alignment.topRight,
-                      child: Padding(
-                          padding: const EdgeInsets.all(24),
-                          child: Icon(Icons.sports_motorsports_outlined,
-                              size: 110,
-                              color: colors.primary.withValues(alpha: .15)))))
+                  color: colors.surfaceContainer,
+                  child: GdTechnicalBackdrop(
+                      child: Align(
+                    alignment: Alignment.topRight,
+                    child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Icon(Icons.sports_motorsports_outlined,
+                            size: 110,
+                            color: colors.primary.withValues(alpha: .10))),
+                  )))
               : GdImage(
                   url: AppConfig.resolveApiUrl(event.coverUrl),
                   semanticLabel: 'Capa de ${event.name}')),
@@ -582,7 +587,7 @@ class _CommunityCover extends StatelessWidget {
             Colors.black.withValues(alpha: .85)
           ])))),
       Padding(
-          padding: EdgeInsets.fromLTRB(22, compact ? 38 : 70, 22, 22),
+          padding: EdgeInsets.fromLTRB(22, compact ? 26 : 52, 22, 22),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
@@ -594,7 +599,7 @@ class _CommunityCover extends StatelessWidget {
                     letterSpacing: 2,
                     fontSize: 11,
                     fontWeight: FontWeight.w700)),
-            SizedBox(height: compact ? 30 : 46),
+            SizedBox(height: compact ? 24 : 32),
             Container(width: 30, height: 3, color: colors.primary),
             const SizedBox(height: 10),
             Text(event.name,
@@ -1381,4 +1386,37 @@ String _date(DateTime value) {
 String _time(DateTime value) {
   final d = value.toLocal();
   return '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+}
+
+class _EditionDateStamp extends StatelessWidget {
+  const _EditionDateStamp({required this.date});
+  final DateTime date;
+  @override
+  Widget build(BuildContext context) {
+    final local = date.toLocal();
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+        label: _date(date),
+        excludeSemantics: true,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 54),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          decoration: BoxDecoration(
+              color: colors.primary.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: colors.primary.withValues(alpha: .25))),
+          child: Column(children: [
+            Text('${local.day}'.padLeft(2, '0'),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(color: colors.primary)),
+            Text(_date(date).split(' ')[1],
+                style: Theme.of(context)
+                    .textTheme
+                    .labelSmall
+                    ?.copyWith(color: colors.primary)),
+          ]),
+        ));
+  }
 }

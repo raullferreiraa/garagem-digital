@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:flutter/services.dart';
 import 'package:garagem_mobile/core/widgets/chat_message_bubble.dart';
 import 'package:garagem_mobile/features/messages/message_reply.dart';
@@ -688,12 +689,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
 
   Widget _composerBar() {
     if (_unavailable) return const SizedBox.shrink();
-    final colors = Theme.of(context).colorScheme;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        border: Border(top: BorderSide(color: colors.outlineVariant)),
-      ),
+    return GdComposerSurface(
       child: SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [

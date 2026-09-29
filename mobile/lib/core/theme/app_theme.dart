@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 abstract final class AppColors {
-  static const canvas = Color(0xFF0C0E11);
-  static const surface = Color(0xFF121519);
-  static const surfaceRaised = Color(0xFF191D22);
-  static const surfaceStrong = Color(0xFF242A31);
+  static const canvas = Color(0xFF0B0E12);
+  static const surface = Color(0xFF10151B);
+  static const surfaceRaised = Color(0xFF171E26);
+  static const surfaceStrong = Color(0xFF222C37);
   static const primary = Color(0xFFFF642E);
   static const onPrimary = Color(0xFF2A0B00);
   static const secondary = Color(0xFFADC4D1);
   static const text = Color(0xFFF6F2EA);
-  static const textMuted = Color(0xFFA8B0BA);
-  static const outline = Color(0xFF343A44);
+  static const textMuted = Color(0xFFADB8C5);
+  static const outline = Color(0xFF3B4857);
 }
 
 abstract final class AppTheme {
@@ -32,12 +32,12 @@ abstract final class AppTheme {
       onSurface: AppColors.text,
       onSurfaceVariant: AppColors.textMuted,
       outline: AppColors.outline,
-      outlineVariant: AppColors.outline.withValues(alpha: 0.66),
+      outlineVariant: AppColors.outline.withValues(alpha: 0.48),
       surfaceContainerLowest: AppColors.canvas,
       surfaceContainerLow: AppColors.surface,
       surfaceContainer: AppColors.surfaceRaised,
       surfaceContainerHigh: AppColors.surfaceStrong,
-      surfaceContainerHighest: const Color(0xFF2B313A),
+      surfaceContainerHighest: const Color(0xFF2C3744),
     );
 
     final base = ThemeData(
@@ -63,17 +63,17 @@ abstract final class AppTheme {
           height: 1.05),
       displaySmall: const TextStyle(
           fontFamily: 'BarlowCondensed',
-          fontSize: 44,
+          fontSize: 40,
           fontWeight: FontWeight.w700,
           height: 1.06),
       headlineLarge: const TextStyle(
           fontFamily: 'BarlowCondensed',
-          fontSize: 38,
+          fontSize: 36,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineMedium: const TextStyle(
           fontFamily: 'BarlowCondensed',
-          fontSize: 32,
+          fontSize: 30,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
@@ -84,7 +84,7 @@ abstract final class AppTheme {
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
         fontFamily: 'BarlowCondensed',
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: FontWeight.w600,
         height: 1.15,
       ),
@@ -94,6 +94,11 @@ abstract final class AppTheme {
       labelLarge: base.textTheme.labelLarge?.copyWith(
         fontWeight: FontWeight.w700,
         letterSpacing: 0.1,
+      ),
+      labelSmall: base.textTheme.labelSmall?.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: .3,
       ),
       bodyLarge: base.textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.5),
       bodyMedium:
@@ -117,6 +122,9 @@ abstract final class AppTheme {
         foregroundColor: colors.onSurface,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge,
+        iconTheme: IconThemeData(color: colors.onSurface, size: 22),
+        actionsIconTheme:
+            IconThemeData(color: colors.onSurfaceVariant, size: 22),
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -126,6 +134,7 @@ abstract final class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
+        margin: EdgeInsets.zero,
         elevation: 0,
         color: colors.surfaceContainer,
         surfaceTintColor: Colors.transparent,
@@ -137,7 +146,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colors.surfaceContainer,
+        fillColor: colors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 17,
@@ -148,6 +157,10 @@ abstract final class AppTheme {
         errorBorder: inputBorder(colors.error),
         focusedErrorBorder: inputBorder(colors.error, 1.5),
         hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        floatingLabelStyle:
+            textTheme.labelLarge?.copyWith(color: colors.primary),
+        prefixIconColor: colors.onSurfaceVariant,
+        suffixIconColor: colors.onSurfaceVariant,
         errorMaxLines: 3,
         helperMaxLines: 3,
       ),
@@ -204,6 +217,30 @@ abstract final class AppTheme {
           ),
           textStyle: textTheme.labelLarge,
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          textStyle: textTheme.labelLarge,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: colors.onSurfaceVariant,
+        titleTextStyle: textTheme.titleSmall,
+        subtitleTextStyle:
+            textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(

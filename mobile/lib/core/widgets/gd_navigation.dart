@@ -35,7 +35,10 @@ class GdNavigation extends StatelessWidget {
         : const Duration(milliseconds: 200);
     return DecoratedBox(
       decoration: BoxDecoration(
-          color: colors.surface,
+          gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [colors.surfaceContainer, colors.surface]),
           border: Border(top: BorderSide(color: colors.outlineVariant))),
       child: SafeArea(
           top: false,

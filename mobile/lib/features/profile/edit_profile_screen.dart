@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
@@ -184,17 +185,7 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              CircleAvatar(
-                radius: 54,
-                backgroundImage:
-                    avatarUrl == null ? null : NetworkImage(avatarUrl),
-                child: avatarUrl == null
-                    ? Text(
-                        user.name.substring(0, 1).toUpperCase(),
-                        style: Theme.of(context).textTheme.headlineLarge,
-                      )
-                    : null,
-              ),
+              GdAvatar(name: user.name, url: avatarUrl, size: 108),
               Positioned(
                 right: -4,
                 bottom: -4,

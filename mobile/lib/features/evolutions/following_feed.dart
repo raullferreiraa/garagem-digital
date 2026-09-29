@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/evolutions/evolution.dart';
@@ -235,13 +236,13 @@ final class _EvolutionFeedCard extends StatelessWidget {
 
     return Material(
       color: colors.surfaceContainer,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: colors.outlineVariant),
           ),
           child: Column(
@@ -298,13 +299,10 @@ final class _EvolutionFeedCard extends StatelessWidget {
                 ),
               ),
               if (imageUrl != null)
-                AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: GdImage(
-                    url: imageUrl,
-                    semanticLabel: evolution.title,
-                  ),
-                ),
+                EvolutionPhotoFrame(
+                    image: NetworkImage(imageUrl),
+                    label: evolution.title,
+                    maxHeight: 260),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
                 child: Column(

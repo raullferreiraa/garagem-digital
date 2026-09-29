@@ -3,6 +3,7 @@ import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/features/events/event.dart';
 import 'package:garagem_mobile/features/events/events_repository.dart';
@@ -114,11 +115,11 @@ class _EventFormScreenState extends State<EventFormScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(20),
               children: [
-                Text('Crie um ponto de encontro permanente',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 8),
-                const Text(
-                    'Conte o que reúne vocês. A comunidade continua viva entre uma edição e outra.'),
+                const GdIntro(
+                    eyebrow: 'Encontros / Comunidade',
+                    title: 'Crie um ponto de encontro permanente',
+                    description:
+                        'Conte o que reúne vocês. A comunidade continua viva entre uma edição e outra.'),
                 const SizedBox(height: 24),
                 if (widget.event == null)
                   FormPhoto(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -775,12 +776,15 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
                   team == null
               ? const GdSkeleton()
               : snapshot.hasError && team == null
-                  ? Center(
-                      child: FilledButton(
-                        onPressed: _reload,
-                        child: Text(apiErrorMessage(snapshot.error!)),
-                      ),
-                    )
+                  ? SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: GdEmptyState(
+                          icon: Icons.cloud_off_outlined,
+                          title: 'Não foi possível abrir a equipe.',
+                          description: apiErrorMessage(snapshot.error!),
+                          action: FilledButton(
+                              onPressed: _reload,
+                              child: const Text('Tentar novamente'))))
                   : RefreshIndicator(
                       onRefresh: _reload,
                       child: _content(team!),
@@ -1245,106 +1249,108 @@ final class _TeamHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (team.coverUrl != null) ...[
-          ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: AspectRatio(
-              aspectRatio: 16 / 7,
-              child: GdImage(
-                url: team.coverUrl,
-                semanticLabel: 'Capa de ${team.name}',
-                fallbackIcon: Icons.panorama_outlined,
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-        ],
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
+    return GdPanel(
+        technical: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _StatusPill(
-              icon: team.visibility == 'publica'
-                  ? Icons.public
-                  : Icons.lock_outline,
-              label: team.visibility == 'publica' ? 'Pública' : 'Privada',
-            ),
-            if (team.myRole != null)
-              _StatusPill(
-                icon: Icons.shield_outlined,
-                label: _roleName(team.myRole!),
-                highlighted: true,
+            if (team.coverUrl != null) ...[
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: AspectRatio(
+                  aspectRatio: 16 / 7,
+                  child: GdImage(
+                    url: team.coverUrl,
+                    semanticLabel: 'Capa de ${team.name}',
+                    fallbackIcon: Icons.panorama_outlined,
+                  ),
+                ),
               ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            GdAvatar(name: team.name, url: team.avatarUrl, size: 72),
-            const SizedBox(width: 16),
-            Expanded(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              const SizedBox(height: 20),
+            ],
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                Text(team.name, style: theme.textTheme.headlineLarge),
-                if (team.location != null) ...[
-                  const SizedBox(height: 5),
-                  Row(children: [
-                    Icon(Icons.location_on_outlined,
-                        size: 14, color: colors.primary),
-                    const SizedBox(width: 4),
-                    Expanded(
-                        child: Text(
-                      team.location!,
-                      style: theme.textTheme.labelMedium
-                          ?.copyWith(color: colors.onSurfaceVariant),
-                    )),
-                  ]),
-                ],
+                _StatusPill(
+                  icon: team.visibility == 'publica'
+                      ? Icons.public
+                      : Icons.lock_outline,
+                  label: team.visibility == 'publica' ? 'Pública' : 'Privada',
+                ),
+                if (team.myRole != null)
+                  _StatusPill(
+                    icon: Icons.shield_outlined,
+                    label: _roleName(team.myRole!),
+                    highlighted: true,
+                  ),
               ],
-            )),
-          ],
-        ),
-        if (team.description != null) ...[
-          const SizedBox(height: 18),
-          Text(
-            team.description!,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-              height: 1.6,
             ),
-          ),
-        ],
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-              border: Border(
-            top: BorderSide(color: colors.outlineVariant),
-            bottom: BorderSide(color: colors.outlineVariant),
-          )),
-          child: Row(children: [
-            Expanded(
-                child: _TeamStat(
-              icon: Icons.people_outline,
-              value: '${team.memberCount}',
-              label: team.memberCount == 1 ? 'integrante' : 'integrantes',
-            )),
-            const SizedBox(width: 10),
-            Expanded(
-                child: _TeamStat(
-              icon: Icons.directions_car_outlined,
-              value: '${team.cars.length}',
-              label: team.cars.length == 1 ? 'projeto' : 'projetos',
-            )),
-          ]),
-        ),
-      ],
-    );
+            const SizedBox(height: 16),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                GdAvatar(name: team.name, url: team.avatarUrl, size: 72),
+                const SizedBox(width: 16),
+                Expanded(
+                    child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(team.name, style: theme.textTheme.headlineLarge),
+                    if (team.location != null) ...[
+                      const SizedBox(height: 5),
+                      Row(children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 14, color: colors.primary),
+                        const SizedBox(width: 4),
+                        Expanded(
+                            child: Text(
+                          team.location!,
+                          style: theme.textTheme.labelMedium
+                              ?.copyWith(color: colors.onSurfaceVariant),
+                        )),
+                      ]),
+                    ],
+                  ],
+                )),
+              ],
+            ),
+            if (team.description != null) ...[
+              const SizedBox(height: 18),
+              Text(
+                team.description!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colors.onSurfaceVariant,
+                  height: 1.6,
+                ),
+              ),
+            ],
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              decoration: BoxDecoration(
+                  border: Border(
+                top: BorderSide(color: colors.outlineVariant),
+                bottom: BorderSide(color: colors.outlineVariant),
+              )),
+              child: Row(children: [
+                Expanded(
+                    child: _TeamStat(
+                  icon: Icons.people_outline,
+                  value: '${team.memberCount}',
+                  label: team.memberCount == 1 ? 'integrante' : 'integrantes',
+                )),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: _TeamStat(
+                  icon: Icons.directions_car_outlined,
+                  value: '${team.cars.length}',
+                  label: team.cars.length == 1 ? 'projeto' : 'projetos',
+                )),
+              ]),
+            ),
+          ],
+        ));
   }
 }
 
@@ -1367,26 +1373,8 @@ final class _StatusPill extends StatelessWidget {
   final bool highlighted;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: highlighted ? colors.primary : null),
-          const SizedBox(width: 5),
-          Flexible(
-              child:
-                  Text(label, style: Theme.of(context).textTheme.labelSmall)),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      GdBadge(label: label, icon: icon, accent: highlighted);
 }
 
 final class _TeamStat extends StatelessWidget {

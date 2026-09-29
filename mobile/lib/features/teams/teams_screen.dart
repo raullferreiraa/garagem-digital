@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/cars/cars_repository.dart';
@@ -294,28 +295,16 @@ final class _TeamMessage extends StatelessWidget {
   final Future<void> Function()? onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.groups_outlined, size: 64),
-            const SizedBox(height: 16),
-            Text(message, textAlign: TextAlign.center),
-            if (onRetry != null) ...[
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: onRetry,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: GdEmptyState(
+            icon: Icons.groups_outlined,
+            title: message,
+            action: onRetry == null
+                ? null
+                : FilledButton(
+                    onPressed: onRetry, child: const Text('Tentar novamente'))),
+      );
 }
 
 final class _TeamsIntro extends StatelessWidget {
@@ -324,39 +313,15 @@ final class _TeamsIntro extends StatelessWidget {
   final VoidCallback onCreate;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'CULTURA AUTOMOTIVA',
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: colors.primary,
-                letterSpacing: 2.2,
-              ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'A PAIXÃO É MAIOR\nQUANDO É COMPARTILHADA.',
-          style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Pessoas, máquinas e histórias na mesma direção.',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-        ),
-        const SizedBox(height: 18),
-        FilledButton.icon(
-          onPressed: onCreate,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Criar minha equipe'),
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => GdIntro(
+        eyebrow: 'Cultura automotiva',
+        title: 'Encontre sua equipe.',
+        description: 'Pessoas, máquinas e histórias na mesma direção.',
+        action: FilledButton.icon(
+            onPressed: onCreate,
+            icon: const Icon(Icons.add, size: 18),
+            label: const Text('Criar minha equipe')),
+      );
 }
 
 final class _FilterChip extends StatelessWidget {
@@ -511,26 +476,8 @@ final class _MetaPill extends StatelessWidget {
   final bool highlighted;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 14, color: highlighted ? colors.primary : null),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(label, style: Theme.of(context).textTheme.labelSmall),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) =>
+      GdBadge(label: label, icon: icon, accent: highlighted);
 }
 
 final class _FilteredEmpty extends StatelessWidget {
@@ -539,25 +486,11 @@ final class _FilteredEmpty extends StatelessWidget {
   final _TeamView view;
 
   @override
-  Widget build(BuildContext context) {
-    final message = switch (view) {
-      _TeamView.all => 'Nenhuma equipe foi criada ainda.',
-      _TeamView.pending => 'Você não tem pedidos pendentes.',
-      _TeamView.invites => 'Você não tem convites pendentes.',
-    };
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant),
-      ),
-      child: Column(
-        children: [
-          const Icon(Icons.flag_outlined, size: 42),
-          const SizedBox(height: 12),
-          Text(message, textAlign: TextAlign.center),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GdEmptyState(
+      icon: Icons.groups_outlined,
+      title: switch (view) {
+        _TeamView.all => 'Nenhuma equipe foi criada ainda.',
+        _TeamView.pending => 'Você não tem pedidos pendentes.',
+        _TeamView.invites => 'Você não tem convites pendentes.',
+      });
 }

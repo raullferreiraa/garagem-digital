@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -705,9 +706,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           ? null
           : SafeArea(
               top: false,
-              child: Material(
-                elevation: 12,
-                color: Theme.of(context).colorScheme.surface,
+              child: GdComposerSurface(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     12,

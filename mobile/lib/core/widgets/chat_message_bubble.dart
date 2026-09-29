@@ -57,7 +57,9 @@ class ChatMessageBubble extends StatelessWidget {
             onSecondaryTap: deleted ? null : onLongPress,
             child: AnimatedContainer(
               key: ValueKey('message-bubble-$messageId'),
-              duration: const Duration(milliseconds: 250),
+              duration: MediaQuery.disableAnimationsOf(context)
+                  ? Duration.zero
+                  : const Duration(milliseconds: 250),
               constraints: BoxConstraints(
                   maxWidth: MediaQuery.sizeOf(context).width * .80),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -68,7 +70,7 @@ class ChatMessageBubble extends StatelessWidget {
                       ? highlightColor
                       : mine
                           ? colors.primary.withValues(alpha: .28)
-                          : Colors.transparent,
+                          : colors.outlineVariant,
                   width: highlighted ? 3 : 1,
                 ),
                 boxShadow: highlighted

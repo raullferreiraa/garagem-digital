@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 
 /// Shared visual elements; no network requests besides the requested image.
 class GdImage extends StatelessWidget {
@@ -20,16 +21,22 @@ class GdImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    Widget placeholder({bool failed = false}) => ColoredBox(
-          color: colors.surfaceContainerHigh,
-          child: Center(
-              child: Padding(
+    Widget placeholder({bool failed = false}) => DecoratedBox(
+          decoration: BoxDecoration(
+              gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [colors.surfaceContainerHigh, colors.surfaceContainerLow],
+          )),
+          child: GdTechnicalBackdrop(
+              child: Center(
+                  child: Padding(
             padding: const EdgeInsets.all(8),
             child: Icon(
                 failed ? Icons.image_not_supported_outlined : fallbackIcon,
                 size: 32,
                 color: colors.onSurfaceVariant),
-          )),
+          ))),
         );
     final source = url?.trim();
     return Semantics(
@@ -77,27 +84,45 @@ class GdAvatar extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final initial =
         name.trim().isEmpty ? '?' : name.trim().characters.first.toUpperCase();
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(size * .3),
-      child: SizedBox.square(
-        dimension: size,
-        child: url == null || url!.trim().isEmpty
-            ? ColoredBox(
-                color: colors.surfaceContainerHighest,
-                child: Center(
-                    child: Text(initial,
-                        style: TextStyle(
-                            fontFamily: 'BarlowCondensed',
-                            fontSize: size * .46,
-                            fontWeight: FontWeight.w600,
-                            color: colors.onSurface))))
-            : GdImage(
-                url: url,
-                width: size,
-                height: size,
-                fallbackIcon: Icons.person_outline,
-                semanticLabel: 'Avatar de $name'),
+    return Container(
+      padding: const EdgeInsets.all(1),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(size * .25),
+        border: Border.all(color: colors.outline),
+        gradient: LinearGradient(colors: [
+          colors.surfaceContainerHighest,
+          colors.surfaceContainerLow
+        ]),
       ),
+      child: ClipRRect(
+          borderRadius: BorderRadius.circular(size * .25 - 1),
+          child: SizedBox.square(
+            dimension: size - 4,
+            child: url == null || url!.trim().isEmpty
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        colors.surfaceContainerHighest,
+                        colors.surfaceContainer
+                      ],
+                    )),
+                    child: Center(
+                        child: Text(initial,
+                            style: TextStyle(
+                                fontFamily: 'BarlowCondensed',
+                                fontSize: size * .46,
+                                fontWeight: FontWeight.w600,
+                                color: colors.onSurface))))
+                : GdImage(
+                    url: url,
+                    width: size,
+                    height: size,
+                    fallbackIcon: Icons.person_outline,
+                    semanticLabel: 'Avatar de $name'),
+          )),
     );
   }
 }
@@ -231,12 +256,8 @@ class GdSectionTitle extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 if (eyebrow != null) ...[
-                  Text(eyebrow!.toUpperCase(),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: Theme.of(context).colorScheme.primary,
-                          letterSpacing: 2,
-                          fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 6)
+                  GdEyebrow(eyebrow!),
+                  const SizedBox(height: 8)
                 ],
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
               ])),

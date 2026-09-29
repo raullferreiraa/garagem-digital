@@ -77,6 +77,9 @@ void main() {
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('Paraná'), 120,
         scrollable: find.byType(Scrollable).last);
+    await Scrollable.ensureVisible(tester.element(find.text('Paraná')),
+        alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Paraná'));
     await tester.runAsync(() async => await BrazilCities.load());
     await tester.pumpAndSettle();

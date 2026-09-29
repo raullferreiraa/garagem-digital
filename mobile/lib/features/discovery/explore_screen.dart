@@ -226,21 +226,27 @@ final class _OrderButton extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected ? colors.primary : colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(8),
+        color: selected
+            ? colors.primary.withValues(alpha: .10)
+            : colors.surfaceContainer,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+            side: BorderSide(
+                color: selected
+                    ? colors.primary.withValues(alpha: .4)
+                    : colors.outlineVariant)),
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(icon,
                     size: 16,
-                    color:
-                        selected ? colors.onPrimary : colors.onSurfaceVariant),
+                    color: selected ? colors.primary : colors.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(
@@ -248,7 +254,7 @@ final class _OrderButton extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: selected ? colors.onPrimary : colors.onSurface,
+                          color: selected ? colors.primary : colors.onSurface,
                           fontWeight: FontWeight.w800,
                         ),
                   ),

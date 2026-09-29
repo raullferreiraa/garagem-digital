@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/messages/conversation.dart';
@@ -384,38 +385,16 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     );
   }
 
-  Widget _empty() {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.outlineVariant),
-      ),
-      child: Column(children: [
-        Icon(Icons.forum_outlined, color: colors.primary, size: 44),
-        const SizedBox(height: 14),
-        Text('Sua caixa de entrada está livre.',
-            style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(
-          'Abra o perfil de alguém da comunidade para iniciar uma conversa.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: widget.onDiscover,
-          icon: const Icon(Icons.explore_outlined),
-          label: const Text('Explorar comunidade'),
-        ),
-      ]),
-    );
-  }
+  Widget _empty() => GdEmptyState(
+        icon: Icons.forum_outlined,
+        title: 'Sua caixa de entrada está livre.',
+        description:
+            'Abra o perfil de alguém da comunidade para iniciar uma conversa.',
+        action: OutlinedButton.icon(
+            onPressed: widget.onDiscover,
+            icon: const Icon(Icons.explore_outlined),
+            label: const Text('Explorar comunidade')),
+      );
 
   Widget _conversationTile(DirectConversation conversation) {
     final colors = Theme.of(context).colorScheme;

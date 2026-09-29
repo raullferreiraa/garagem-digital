@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'package:garagem_mobile/core/widgets/form_photo.dart';
 import 'package:garagem_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
 import 'package:garagem_mobile/features/auth/session_controller.dart';
@@ -227,37 +228,39 @@ final class AuthRacingHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     final typography = Theme.of(context).textTheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const GdWordmark(),
-        const SizedBox(height: 24),
-        if (!compact) ...[
-          ExcludeSemantics(
-            child: SizedBox(
-              height: 88,
-              width: double.infinity,
-              child: CustomPaint(
-                  painter: _TrackPainter(
-                      accent: colors.primary, line: colors.outlineVariant)),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-        Text(title,
-            style: typography.displaySmall
-                ?.copyWith(height: 1, fontWeight: FontWeight.w700)),
-        Text(accent,
-            style: typography.displaySmall?.copyWith(
-                height: 1.08,
-                color: colors.primary,
-                fontWeight: FontWeight.w700)),
-        const SizedBox(height: 16),
-        Text(description,
-            style: typography.bodyMedium
-                ?.copyWith(color: colors.onSurfaceVariant, height: 1.6)),
-      ],
-    );
+    return GdPanel(
+        technical: true,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const GdWordmark(),
+            const SizedBox(height: 24),
+            if (!compact) ...[
+              ExcludeSemantics(
+                child: SizedBox(
+                  height: 60,
+                  width: double.infinity,
+                  child: CustomPaint(
+                      painter: _TrackPainter(
+                          accent: colors.primary, line: colors.outlineVariant)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            Text(title,
+                style: typography.displaySmall
+                    ?.copyWith(height: 1, fontWeight: FontWeight.w700)),
+            Text(accent,
+                style: typography.displaySmall?.copyWith(
+                    height: 1.08,
+                    color: colors.primary,
+                    fontWeight: FontWeight.w700)),
+            const SizedBox(height: 16),
+            Text(description,
+                style: typography.bodyMedium
+                    ?.copyWith(color: colors.onSurfaceVariant, height: 1.6)),
+          ],
+        ));
   }
 }
 
@@ -272,7 +275,7 @@ final class _TrackPainter extends CustomPainter {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
     final guide = Paint()
-      ..color = line
+      ..color = line.withValues(alpha: .45)
       ..strokeWidth = 1;
     for (var x = 0.0; x < size.width; x += 24) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), guide);

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:garagem_mobile/core/widgets/gd_premium.dart';
 import 'package:garagem_mobile/core/network/api_client.dart';
 import 'package:garagem_mobile/core/sharing/gd_share.dart';
 import 'package:garagem_mobile/core/widgets/gd_ui.dart';
@@ -1073,7 +1074,8 @@ final class _DiarySummary extends StatelessWidget {
           Text(count == 1 ? '1 registro' : '$count registros',
               style: theme.textTheme.labelLarge),
           Text('Última atualização: $latestDate',
-              style: theme.textTheme.labelMedium),
+              style: theme.textTheme.labelMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           if (mileage != null)
             Text(mileage!, style: theme.textTheme.labelMedium),
         ],
@@ -1088,25 +1090,9 @@ final class _StoryCard extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(19),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(22),
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 3,
-          ),
-        ),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GdPanel(
+      child: Text(text,
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6)));
 }
 
 final class _SpecTile extends StatelessWidget {
@@ -1122,37 +1108,26 @@ final class _SpecTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
+    final theme = Theme.of(context);
+    return GdPanel(
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: colors.primary),
-          const SizedBox(height: 16),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            value,
+      radius: 12,
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Expanded(
+              child: Text(label.toUpperCase(),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      letterSpacing: .8))),
+          const SizedBox(width: 8),
+          Icon(icon, size: 18, color: theme.colorScheme.primary),
+        ]),
+        const SizedBox(height: 12),
+        Text(value,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
+            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22)),
+      ]),
     );
   }
 }

@@ -15,8 +15,15 @@ class FormScrollView extends StatelessWidget {
   Widget build(BuildContext context) => SingleChildScrollView(
         padding: padding,
         keyboardDismissBehavior: keyboardDismissBehavior,
-        child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch, children: children),
+        child: Align(
+          alignment: Alignment.topCenter,
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: children),
+          ),
+        ),
       );
 }
 
