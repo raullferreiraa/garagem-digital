@@ -98,6 +98,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
   }
 
   void _queueDraftSave() {
+    if (!_draftEdited) return;
     final text = _composer.text;
     unawaited(_draftStorage
         .save(widget.currentUserId, 'team', widget.team.id, text)

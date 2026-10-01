@@ -218,7 +218,7 @@ def _equipe_do_dono(db: Session, equipe_id: UUID, usuario: UsuarioAtual) -> Equi
 
 
 @router.post("/{equipe_id}/imagens/{tipo}", response_model=EquipeDetalhe)
-async def enviar_imagem_equipe(
+def enviar_imagem_equipe(
     equipe_id: UUID,
     tipo: Literal["avatar", "capa"],
     usuario: UsuarioAtual,
@@ -226,7 +226,7 @@ async def enviar_imagem_equipe(
     arquivo: Annotated[UploadFile, File()],
 ) -> EquipeDetalhe:
     equipe = _equipe_do_dono(db, equipe_id, usuario)
-    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    conteudo = arquivo.file.read(settings.media_max_upload_bytes + 1)
     try:
         nova_url = salvar_imagem_equipe(equipe_id, tipo, conteudo)
     except ArquivoMuitoGrande as error:

@@ -104,6 +104,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
   }
 
   void _queueDraftSave() {
+    if (!_draftEdited) return;
     final text = _composer.text;
     unawaited(_draftStorage
         .save(widget.currentUserId, 'direct', widget.conversation.id, text)

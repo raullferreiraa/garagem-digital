@@ -296,6 +296,8 @@ def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if not isinstance(dados["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         return datetime.fromisoformat(dados["criada_em"]), UUID(dados["id"])
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorInvalido("Cursor de paginacao invalido.") from error

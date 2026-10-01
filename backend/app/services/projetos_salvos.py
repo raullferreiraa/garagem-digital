@@ -61,6 +61,8 @@ def _codificar_cursor(salvo: ProjetoSalvo) -> str:
 def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         dados = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        if not isinstance(dados["carro_id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         return datetime.fromisoformat(dados["criado_em"]), UUID(dados["carro_id"])
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorSalvosInvalido("Cursor de paginacao invalido.") from error

@@ -7,7 +7,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import and_, desc, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.api.dependencies.auth import UsuarioAtual
 from app.core.database import get_db
@@ -37,6 +37,8 @@ def _decode_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         payload = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if not isinstance(payload["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         return datetime.fromisoformat(payload["data"]), UUID(payload["id"])
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise HTTPException(status_code=400, detail="Cursor de paginacao invalido.") from error
@@ -56,6 +58,7 @@ def _following_evolutions(
     )
     query = (
         select(EvolucaoProjeto)
+        .options(joinedload(EvolucaoProjeto.carro))
         .join(Carro, Carro.id == EvolucaoProjeto.carro_id)
         .where(Carro.proprietario_id.in_(followed))
     )

@@ -175,7 +175,7 @@ def atualizar_carro(
 
 
 @router.post("/{carro_id}/foto-principal", response_model=CarroPrivado)
-async def enviar_foto_principal(
+def enviar_foto_principal(
     carro_id: UUID,
     usuario: UsuarioAtual,
     db: DbSession,
@@ -185,7 +185,7 @@ async def enviar_foto_principal(
     if carro is None:
         raise HTTPException(status_code=404, detail="Carro nao encontrado.")
 
-    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    conteudo = arquivo.file.read(settings.media_max_upload_bytes + 1)
     try:
         nova_url = salvar_foto_principal(carro.id, conteudo)
     except ArquivoMuitoGrande as error:
