@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_list.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_list.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
 
 void main() {
   testWidgets('carrega a próxima página e permite tentar de novo após falha',
@@ -53,8 +53,8 @@ void main() {
 
     nextPages[0].completeError(Exception('offline'));
     await tester.pumpAndSettle();
-    expect(find.text('Não foi possível carregar mais projetos.'),
-        findsOneWidget);
+    expect(
+        find.text('Não foi possível carregar mais projetos.'), findsOneWidget);
 
     await tester.tap(find.text('Tentar novamente'));
     await tester.pump();

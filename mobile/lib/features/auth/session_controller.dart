@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/user.dart';
 
 enum SessionStatus { initializing, unavailable, signedOut, authenticated }
 
@@ -16,26 +16,32 @@ final class SessionController extends ChangeNotifier {
   Future<void> restore() async {
     status = SessionStatus.initializing;
     notifyListeners();
-    if (!await _repository.hasSession()) {
-      status = SessionStatus.signedOut;
-      notifyListeners();
-      return;
-    }
     try {
+      if (!await _repository.hasSession()) {
+        user = null;
+        status = SessionStatus.signedOut;
+        return;
+      }
       user = await _repository.currentUser();
       status = SessionStatus.authenticated;
     } on DioException catch (error) {
       if (error.response?.statusCode == 401 ||
           error.response?.statusCode == 403) {
-        await _repository.clearSession();
-        status = SessionStatus.signedOut;
+        try {
+          await _repository.clearSession();
+          user = null;
+          status = SessionStatus.signedOut;
+        } catch (_) {
+          status = SessionStatus.unavailable;
+        }
       } else {
         status = SessionStatus.unavailable;
       }
     } catch (_) {
       status = SessionStatus.unavailable;
+    } finally {
+      notifyListeners();
     }
-    notifyListeners();
   }
 
   Future<void> login(String identifier, String password) async {

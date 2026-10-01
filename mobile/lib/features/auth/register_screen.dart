@@ -1,10 +1,10 @@
 import 'dart:typed_data';
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
 
 final class RegisterScreen extends StatefulWidget {
   const RegisterScreen({required this.session, super.key});
@@ -84,7 +84,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const GdReveal(
+                      const GaronaReveal(
                           child: AuthRacingHeader(
                         title: 'Toda paixão',
                         accent: 'tem um começo.',
@@ -208,7 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 }
 
-/// Marca e traçado de pista compartilhados pelas telas de acesso.
+/// Entrada tipográfica compartilhada pelas telas de acesso.
 final class AuthRacingHeader extends StatelessWidget {
   const AuthRacingHeader({
     required this.title,
@@ -230,78 +230,35 @@ final class AuthRacingHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const GdWordmark(),
-        const SizedBox(height: 24),
-        if (!compact) ...[
-          ExcludeSemantics(
-            child: SizedBox(
-              height: 88,
-              width: double.infinity,
-              child: CustomPaint(
-                  painter: _TrackPainter(
-                      accent: colors.primary, line: colors.outlineVariant)),
-            ),
-          ),
-          const SizedBox(height: 24),
-        ],
-        Text(title,
-            style: typography.displaySmall
-                ?.copyWith(height: 1, fontWeight: FontWeight.w700)),
-        Text(accent,
-            style: typography.displaySmall?.copyWith(
-                height: 1.08,
-                color: colors.primary,
-                fontWeight: FontWeight.w700)),
+        const GaronaWordmark(),
+        SizedBox(height: compact ? 28 : 40),
+        Row(children: [
+          Container(width: 30, height: 2, color: colors.secondary),
+          const SizedBox(width: 10),
+          Flexible(
+              child: Text('CULTURA AUTOMOTIVA',
+                  style: typography.labelSmall
+                      ?.copyWith(color: colors.secondary, letterSpacing: 2))),
+        ]),
         const SizedBox(height: 16),
+        Text(title.toUpperCase(),
+            style: typography.displaySmall?.copyWith(
+                fontFamily: 'BarlowCondensed',
+                fontSize: compact ? 38 : 48,
+                fontWeight: FontWeight.w700,
+                letterSpacing: -.4)),
+        Text(accent.toUpperCase(),
+            style: typography.displaySmall?.copyWith(
+                color: colors.primary,
+                fontFamily: 'BarlowCondensed',
+                fontSize: compact ? 38 : 48,
+                fontWeight: FontWeight.w600,
+                letterSpacing: -.4)),
+        const SizedBox(height: 14),
         Text(description,
             style: typography.bodyMedium
                 ?.copyWith(color: colors.onSurfaceVariant, height: 1.6)),
       ],
     );
   }
-}
-
-final class _TrackPainter extends CustomPainter {
-  const _TrackPainter({required this.accent, required this.line});
-
-  final Color accent;
-  final Color line;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    canvas.save();
-    canvas.clipRect(Offset.zero & size);
-    final guide = Paint()
-      ..color = line
-      ..strokeWidth = 1;
-    for (var x = 0.0; x < size.width; x += 24) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), guide);
-    }
-    for (var y = 0.0; y < size.height; y += 22) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), guide);
-    }
-    final track = Path()
-      ..moveTo(-12, size.height * .8)
-      ..lineTo(size.width * .30, size.height * .8)
-      ..cubicTo(size.width * .47, size.height * .8, size.width * .45,
-          size.height * .23, size.width * .61, size.height * .23)
-      ..lineTo(size.width + 12, size.height * .23);
-    canvas.drawPath(
-        track,
-        Paint()
-          ..color = accent
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 14);
-    canvas.drawPath(
-        track.shift(const Offset(0, 18)),
-        Paint()
-          ..color = accent.withValues(alpha: .35)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 3);
-    canvas.restore();
-  }
-
-  @override
-  bool shouldRepaint(covariant _TrackPainter oldDelegate) =>
-      accent != oldDelegate.accent || line != oldDelegate.line;
 }

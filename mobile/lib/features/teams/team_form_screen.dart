@@ -1,10 +1,12 @@
 import 'dart:typed_data';
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/brazil_city_field.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class TeamFormScreen extends StatefulWidget {
   const TeamFormScreen({required this.repository, this.team, super.key});
@@ -98,15 +100,15 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(20),
               children: [
-                Text(
-                  widget.team == null ? 'Monte seu espaço' : 'Dados da equipe',
-                  style: Theme.of(context).textTheme.headlineMedium,
-                ),
-                const SizedBox(height: 8),
-                Text(widget.team == null
-                    ? 'Reúna pessoas e os projetos escolhidos por cada integrante.'
-                    : 'Atualize como sua equipe aparece para a comunidade.'),
-                const SizedBox(height: 24),
+                GaronaIntro(
+                    eyebrow: 'A turma ganha um nome',
+                    title: widget.team == null
+                        ? 'Uma garagem. A sua equipe.'
+                        : 'Dados da equipe',
+                    description: widget.team == null
+                        ? 'Reúna pessoas e os projetos escolhidos por cada integrante.'
+                        : 'Atualize como sua equipe aparece para a comunidade.'),
+                const SizedBox(height: 12),
                 if (widget.team == null) ...[
                   FormPhoto(
                       label: 'Foto da equipe',
@@ -142,24 +144,9 @@ class _TeamFormScreenState extends State<TeamFormScreen> {
                   decoration: const InputDecoration(labelText: 'Descrição'),
                 ),
                 const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        controller: _city,
-                        maxLength: 120,
-                        decoration: const InputDecoration(labelText: 'Cidade'),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        controller: _state,
-                        maxLength: 120,
-                        decoration: const InputDecoration(labelText: 'Estado'),
-                      ),
-                    ),
-                  ],
+                BrazilCityField(
+                  cityController: _city,
+                  stateController: _state,
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(

@@ -148,6 +148,17 @@ def test_crud_de_carro_respeita_propriedade_e_privacidade(
     assert detalhe_publico.json()["placa"] is None
     assert "placa_visivel" not in detalhe_publico.json()
 
+    detalhe_privado = client.get(
+        f"/api/v1/carros/{carro['id']}/meu", headers=auth_header(dono)
+    )
+    assert detalhe_privado.status_code == 200
+    assert detalhe_privado.json()["placa"] == "AB1234"
+    assert detalhe_privado.json()["placa_visivel"] is False
+    assert client.get(f"/api/v1/carros/{carro['id']}/meu").status_code == 401
+    assert client.get(
+        f"/api/v1/carros/{carro['id']}/meu", headers=auth_header(intruso)
+    ).status_code == 404
+
     tentativa_edicao = client.patch(
         f"/api/v1/carros/{carro['id']}",
         headers=auth_header(intruso),

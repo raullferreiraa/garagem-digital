@@ -1,12 +1,13 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/messages/conversation.dart';
-import 'package:garagem_mobile/features/messages/conversation_screen.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/messages/conversation.dart';
+import 'package:garona_mobile/features/messages/conversation_screen.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class ConversationsScreen extends StatefulWidget {
   const ConversationsScreen({
@@ -40,6 +41,7 @@ final class ConversationsScreen extends StatefulWidget {
 
 final class _ConversationsScreenState extends State<ConversationsScreen> {
   final _search = TextEditingController();
+  bool _unreadOnly = false;
   List<DirectConversation>? _items;
   Object? _error;
   bool _loading = true;
@@ -128,7 +130,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
   }
 
   Widget _body() {
-    if (_loading && _items == null) return const GdSkeleton(compact: true);
+    if (_loading && _items == null) return const GaronaSkeleton(compact: true);
     if (_error != null && _items == null) {
       return Center(
         child: Padding(
@@ -149,18 +151,22 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final items = _items ?? const <DirectConversation>[];
     final query =
         _searchKey(_search.text.trim().replaceFirst(RegExp(r'^@'), ''));
-    final visibleItems = query.isEmpty
-        ? items
-        : items.where((conversation) {
-            final user = conversation.otherUser;
-            return _searchKey(user.name).contains(query) ||
-                _searchKey(user.username).contains(query);
-          }).toList();
+    final visibleItems = items.where((conversation) {
+      if (_unreadOnly && conversation.unreadCount == 0) return false;
+      if (query.isEmpty) return true;
+      final user = conversation.otherUser;
+      return _searchKey(user.name).contains(query) ||
+          _searchKey(user.username).contains(query);
+    }).toList();
     final teamChat = widget.teamChat;
     final visibleTeamChat = teamChat != null &&
+            (!_unreadOnly || teamChat.unreadCount > 0) &&
             (query.isEmpty || _searchKey(teamChat.teamName).contains(query))
         ? teamChat
         : null;
+    final unreadConversations =
+        items.where((item) => item.unreadCount > 0).length +
+            (teamChat != null && teamChat.unreadCount > 0 ? 1 : 0);
     return RefreshIndicator(
       onRefresh: _reload,
       child: ListView(
@@ -188,6 +194,21 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
             ),
             const SizedBox(height: 22),
           ],
+          if (items.isNotEmpty || teamChat != null) ...[
+            Wrap(spacing: 8, children: [
+              ChoiceChip(
+                label: const Text('Todas'),
+                selected: !_unreadOnly,
+                onSelected: (_) => setState(() => _unreadOnly = false),
+              ),
+              ChoiceChip(
+                label: Text('Não lidas ($unreadConversations)'),
+                selected: _unreadOnly,
+                onSelected: (_) => setState(() => _unreadOnly = true),
+              ),
+            ]),
+            const SizedBox(height: 18),
+          ],
           if (_error != null) ...[
             Text(
                 'Não foi possível atualizar as conversas. O conteúdo anterior foi mantido.',
@@ -198,7 +219,7 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
                     onPressed: _reload, child: const Text('Tentar novamente'))),
           ],
           if (items.isEmpty && teamChat == null && query.isEmpty) ...[
-            const GdSectionTitle(
+            const GaronaSectionTitle(
               eyebrow: 'NA PISTA',
               title: 'Conexões reais',
             ),
@@ -211,15 +232,31 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
             ),
             const SizedBox(height: 24),
           ] else ...[
-            Text('Suas conversas',
-                style: Theme.of(context).textTheme.titleMedium),
+            Row(children: [
+              Container(
+                width: 28,
+                height: 3,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primary,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text('Suas conversas',
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Icon(Icons.forum_outlined,
+                  size: 19,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ]),
             const SizedBox(height: 16),
           ],
           if (visibleTeamChat != null) ...[
             _teamChatTile(visibleTeamChat),
             if (visibleItems.isNotEmpty) const SizedBox(height: 4),
           ],
-          if (query.isNotEmpty &&
+          if ((query.isNotEmpty || _unreadOnly) &&
               visibleItems.isEmpty &&
               visibleTeamChat == null)
             _noSearchResults()
@@ -238,11 +275,16 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
           Icon(Icons.search_off_rounded,
               size: 40, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
-          const Text('Nenhuma conversa encontrada.'),
+          Text(_unreadOnly && _search.text.isEmpty
+              ? 'Nenhuma conversa não lida.'
+              : 'Nenhuma conversa encontrada.'),
           const SizedBox(height: 8),
           TextButton(
-            onPressed: () => setState(_search.clear),
-            child: const Text('Limpar busca'),
+            onPressed: () => setState(() {
+              _search.clear();
+              _unreadOnly = false;
+            }),
+            child: const Text('Mostrar todas'),
           ),
         ]),
       );
@@ -263,29 +305,32 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final mine = last?.authorId == widget.currentUserId;
     final preview = last == null
         ? 'Converse com os integrantes da sua equipe.'
-        : '${mine ? 'Você: ' : '${last.authorName}: '}${last.content.replaceAll('\n', ' ')}';
+        : '${mine ? 'Você: ' : '${last.authorName}: '}${last.displayContent.replaceAll('\n', ' ')}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: GdReveal(
+      child: GaronaReveal(
         child: Material(
           color: unread
-              ? colors.primary.withValues(alpha: .09)
+              ? Color.alphaBlend(
+                  colors.primary.withValues(alpha: .09),
+                  colors.surfaceContainer,
+                )
               : colors.surfaceContainer,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             side: BorderSide(
               color: unread
                   ? colors.primary.withValues(alpha: .32)
-                  : colors.outlineVariant,
+                  : colors.outlineVariant.withValues(alpha: .65),
             ),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: widget.onTeamChatTap,
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Row(children: [
-                GdAvatar(
+                GaronaAvatar(
                   url: chat.teamAvatarUrl,
                   name: chat.teamName,
                   size: 52,
@@ -295,37 +340,28 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Expanded(
-                          child: Text(
-                            chat.teamName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: unread
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                        if (last != null)
-                          Text(
-                            _relativeDate(last.createdAt),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: colors.onSurfaceVariant),
-                          ),
-                      ]),
+                      _conversationHeading(
+                        name: chat.teamName,
+                        unread: unread,
+                        date: last?.createdAt,
+                      ),
                       const SizedBox(height: 3),
-                      Text(
-                        'Conversa da equipe',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: colors.primary,
-                            ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 9,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colors.primary.withValues(alpha: .1),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Conversa da equipe',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: colors.primary,
+                                  ),
+                        ),
                       ),
                       const SizedBox(height: 6),
                       Row(children: [
@@ -359,38 +395,16 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     );
   }
 
-  Widget _empty() {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: colors.outlineVariant),
-      ),
-      child: Column(children: [
-        Icon(Icons.forum_outlined, color: colors.primary, size: 44),
-        const SizedBox(height: 14),
-        Text('Sua caixa de entrada está livre.',
-            style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 8),
-        Text(
-          'Abra o perfil de alguém da comunidade para iniciar uma conversa.',
-          textAlign: TextAlign.center,
-          style: Theme.of(context)
-              .textTheme
-              .bodyMedium
-              ?.copyWith(color: colors.onSurfaceVariant),
-        ),
-        const SizedBox(height: 20),
-        OutlinedButton.icon(
-          onPressed: widget.onDiscover,
-          icon: const Icon(Icons.explore_outlined),
-          label: const Text('Explorar comunidade'),
-        ),
-      ]),
-    );
-  }
+  Widget _empty() => GaronaEmptyState(
+        icon: Icons.forum_outlined,
+        title: 'Sua caixa de entrada está livre.',
+        description:
+            'Abra o perfil de alguém da comunidade para iniciar uma conversa.',
+        action: OutlinedButton.icon(
+            onPressed: widget.onDiscover,
+            icon: const Icon(Icons.explore_outlined),
+            label: const Text('Explorar comunidade')),
+      );
 
   Widget _conversationTile(DirectConversation conversation) {
     final colors = Theme.of(context).colorScheme;
@@ -399,29 +413,32 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
     final mine = last?.senderId == widget.currentUserId;
     final preview = last == null
         ? 'Conversa iniciada. Envie a primeira mensagem.'
-        : '${mine ? 'Você: ' : ''}${last.content.replaceAll('\n', ' ')}';
+        : '${mine ? 'Você: ' : ''}${last.displayContent.replaceAll('\n', ' ')}';
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: GdReveal(
+      child: GaronaReveal(
         child: Material(
           color: unread
-              ? colors.primary.withValues(alpha: .09)
+              ? Color.alphaBlend(
+                  colors.primary.withValues(alpha: .09),
+                  colors.surfaceContainer,
+                )
               : colors.surfaceContainer,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             side: BorderSide(
               color: unread
                   ? colors.primary.withValues(alpha: .32)
-                  : colors.outlineVariant,
+                  : colors.outlineVariant.withValues(alpha: .65),
             ),
           ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => _open(conversation),
             child: Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.all(16),
               child: Row(children: [
-                GdAvatar(
+                GaronaAvatar(
                   url: conversation.otherUser.avatarUrl,
                   name: conversation.otherUser.name,
                   size: 52,
@@ -431,31 +448,11 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(children: [
-                        Expanded(
-                          child: Text(
-                            conversation.otherUser.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: unread
-                                      ? FontWeight.w800
-                                      : FontWeight.w600,
-                                ),
-                          ),
-                        ),
-                        Text(
-                          _relativeDate(
-                              last?.createdAt ?? conversation.updatedAt),
-                          style: Theme.of(context)
-                              .textTheme
-                              .labelSmall
-                              ?.copyWith(color: colors.onSurfaceVariant),
-                        ),
-                      ]),
+                      _conversationHeading(
+                        name: conversation.otherUser.name,
+                        unread: unread,
+                        date: last?.createdAt ?? conversation.updatedAt,
+                      ),
                       const SizedBox(height: 3),
                       Text('@${conversation.otherUser.username}',
                           style:
@@ -493,6 +490,52 @@ final class _ConversationsScreenState extends State<ConversationsScreen> {
       ),
     );
   }
+
+  Widget _conversationHeading({
+    required String name,
+    required bool unread,
+    DateTime? date,
+  }) =>
+      LayoutBuilder(builder: (context, constraints) {
+        final theme = Theme.of(context);
+        final stacked = constraints.maxWidth < 200 ||
+            MediaQuery.textScalerOf(context).scale(14) > 18;
+        final title = Text(
+          name,
+          maxLines: stacked ? 2 : 1,
+          overflow: TextOverflow.ellipsis,
+          style: theme.textTheme.titleMedium?.copyWith(
+            fontWeight: unread ? FontWeight.w800 : FontWeight.w600,
+          ),
+        );
+        final timestamp = date == null
+            ? null
+            : Text(
+                _relativeDate(date),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              );
+        if (stacked) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              title,
+              if (timestamp != null) ...[
+                const SizedBox(height: 3),
+                timestamp,
+              ],
+            ],
+          );
+        }
+        return Row(children: [
+          Expanded(child: title),
+          if (timestamp != null) ...[
+            const SizedBox(width: 8),
+            timestamp,
+          ],
+        ]);
+      });
 
   String _relativeDate(DateTime date) {
     final local = date.toLocal();

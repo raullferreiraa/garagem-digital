@@ -1,11 +1,12 @@
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 
 final class EvolutionFormScreen extends StatefulWidget {
   const EvolutionFormScreen({
@@ -152,20 +153,22 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  GdSectionTitle(
-                    eyebrow: 'Diário de bordo',
-                    title: widget.carModel,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _editing
-                        ? 'Atualize este registro do diário.'
-                        : 'Registre uma nova etapa na história deste projeto.',
-                  ),
+                  GaronaIntro(
+                      eyebrow: 'Diário de bordo',
+                      title: widget.carModel,
+                      description: _editing
+                          ? 'Ajuste a história desta etapa do projeto.'
+                          : 'Conte o que mudou. Você poderá voltar e adicionar mais fotos depois.'),
                   const SizedBox(height: 24),
+                  const GaronaSectionTitle(
+                    eyebrow: '01 / HISTÓRIA',
+                    title: 'O que aconteceu?',
+                  ),
+                  const SizedBox(height: 12),
                   if (!_editing)
                     FormPhoto(
                         label: 'Foto da evolução',
+                        crop: false,
                         bytes: _photo,
                         enabled: !_submitting,
                         onChanged: (value) => setState(() => _photo = value)),
@@ -197,7 +200,17 @@ class _EvolutionFormScreenState extends State<EvolutionFormScreen> {
                     validator: (value) => _requiredText(
                         value, 'Descreva o que mudou no projeto.'),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 24),
+                  const GaronaSectionTitle(
+                    eyebrow: '02 / CONTEXTO',
+                    title: 'Detalhes da etapa',
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Categoria, data e quilometragem ajudam a acompanhar a evolução ao longo do tempo.',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                  const SizedBox(height: 16),
                   DropdownButtonFormField<String>(
                     initialValue: _category,
                     decoration: const InputDecoration(

@@ -1,5 +1,5 @@
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
 
 final class NotificationsRepository {
   NotificationsRepository(this._api);
@@ -8,6 +8,20 @@ final class NotificationsRepository {
 
   Future<List<AppNotification>> all() async {
     final response = await _api.dio.get<List<Object?>>('/notificacoes');
+    return response.data!
+        .cast<Map<String, Object?>>()
+        .map(AppNotification.fromJson)
+        .toList(growable: false);
+  }
+
+  Future<List<AppNotification>> olderThan(AppNotification last) async {
+    final response = await _api.dio.get<List<Object?>>(
+      '/notificacoes',
+      queryParameters: {
+        'antes_de': last.createdAt.toUtc().toIso8601String(),
+        'ultimo_id': last.id,
+      },
+    );
     return response.data!
         .cast<Map<String, Object?>>()
         .map(AppNotification.fromJson)

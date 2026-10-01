@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/messages/conversation_screen.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/social_users_screen.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/features/cars/project_card.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/messages/conversation_screen.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/social_users_screen.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/features/teams/team_detail_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 typedef _ProfileData = ({PublicProfile profile, List<Car> cars});
 
@@ -23,6 +27,7 @@ final class PublicProfileScreen extends StatefulWidget {
     required this.carsRepository,
     required this.evolutionsRepository,
     required this.messagesRepository,
+    required this.teamsRepository,
     required this.onConversationChanged,
     super.key,
   });
@@ -33,6 +38,7 @@ final class PublicProfileScreen extends StatefulWidget {
   final CarsRepository carsRepository;
   final EvolutionsRepository evolutionsRepository;
   final MessagesRepository messagesRepository;
+  final TeamsRepository teamsRepository;
   final VoidCallback onConversationChanged;
 
   @override
@@ -90,6 +96,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       bio: profile.bio,
       city: profile.city,
       state: profile.state,
+      team: profile.team,
     );
   }
 
@@ -111,6 +118,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
         bio: profile.bio,
         city: profile.city,
         state: profile.state,
+        team: blocked ? null : profile.team,
       );
 
   Future<void> _toggleFollow(_ProfileData data) async {
@@ -178,6 +186,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: widget.onConversationChanged,
         ),
       ),
@@ -436,6 +445,22 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
     if (mounted) await _reload();
   }
 
+  Future<void> _openTeam(ProfileTeam team) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: team.id,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.currentUserId,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: widget.onConversationChanged,
+      ),
+    ));
+    if (mounted) await _reload();
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<_ProfileData>(
@@ -447,7 +472,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
             title: const Text('Perfil'),
             actions: [
               if (data != null)
-                GdShareAction(
+                GaronaShareAction(
                   payload: ShareContent.profile(data.profile),
                   tooltip: 'Compartilhar perfil',
                 ),
@@ -493,14 +518,17 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   child: _content(data),
                 )
               : snapshot.hasError
-                  ? Center(
-                      child: FilledButton.icon(
-                        onPressed: _reload,
-                        icon: const Icon(Icons.refresh),
-                        label: Text(apiErrorMessage(snapshot.error!)),
-                      ),
-                    )
-                  : const GdSkeleton(),
+                  ? SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: GaronaEmptyState(
+                          icon: Icons.cloud_off_outlined,
+                          title: 'Não foi possível abrir o perfil.',
+                          description: apiErrorMessage(snapshot.error!),
+                          action: FilledButton.icon(
+                              onPressed: _reload,
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('Tentar novamente'))))
+                  : const GaronaSkeleton(),
         );
       },
     );
@@ -519,33 +547,29 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 48),
       children: [
-        GdReveal(
+        GaronaReveal(
             child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
-              Expanded(
-                  child: Text(
-                'QUEM ESTÁ AO VOLANTE',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  letterSpacing: 2,
-                  color: colors.primary,
-                ),
-              )),
-              Icon(Icons.sports_motorsports_outlined,
-                  color: colors.primary, size: 24),
-            ]),
-            const SizedBox(height: 22),
+            const GaronaEyebrow('NA CENA'),
+            const SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                GdAvatar(name: profile.name, url: profile.avatarUrl, size: 88),
-                const SizedBox(width: 18),
+                GaronaAvatar(
+                    name: profile.name, url: profile.avatarUrl, size: 68),
+                const SizedBox(width: 14),
                 Expanded(
                     child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(profile.name, style: theme.textTheme.headlineLarge),
+                    Text(profile.name,
+                        style: theme.textTheme.headlineLarge?.copyWith(
+                          fontFamily: 'BarlowCondensed',
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          height: 1.05,
+                        )),
                     const SizedBox(height: 3),
                     Text(
                       '@${profile.username}',
@@ -553,7 +577,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
                           ?.copyWith(color: colors.primary),
                     ),
                     if (location.isNotEmpty) ...[
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       Row(children: [
                         Icon(Icons.location_on_outlined,
                             size: 14, color: colors.onSurfaceVariant),
@@ -571,27 +595,25 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
               ],
             ),
             if (profile.bio?.isNotEmpty == true) ...[
-              const SizedBox(height: 20),
+              const SizedBox(height: 14),
               Text(profile.bio!,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: colors.onSurfaceVariant,
-                    height: 1.6,
+                    height: 1.5,
                   )),
             ],
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: colors.outlineVariant),
-                  bottom: BorderSide(color: colors.outlineVariant),
-                ),
-              ),
+            const SizedBox(height: 16),
+            GaronaPanel(
+              radius: 18,
+              padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
               child: Row(children: [
-                _Stat(value: profile.projectCount, label: 'projetos'),
+                _Stat(
+                    value: profile.projectCount,
+                    label: profile.projectCount == 1 ? 'projeto' : 'projetos'),
                 _Stat(
                   value: profile.followerCount,
-                  label: 'seguidores',
+                  label:
+                      profile.followerCount == 1 ? 'seguidor' : 'seguidores',
                   onTap: () => _openConnections(profile, following: false),
                 ),
                 _Stat(
@@ -602,41 +624,30 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
               ]),
             ),
             if (!isMe && !profile.blockedByMe) ...[
-              const SizedBox(height: 18),
-              Row(children: [
-                Expanded(
-                  child: profile.followedByMe
-                      ? OutlinedButton.icon(
-                          onPressed: _changingFollow
-                              ? null
-                              : () => _toggleFollow(data),
-                          icon: const Icon(Icons.person_remove_outlined),
-                          label: const Text('Seguindo'),
-                        )
-                      : FilledButton.icon(
-                          onPressed: _changingFollow
-                              ? null
-                              : () => _toggleFollow(data),
-                          icon: const Icon(Icons.person_add_alt_1),
-                          label: const Text('Seguir'),
-                        ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
+              const SizedBox(height: 12),
+              GaronaActionPair(
+                primary: profile.followedByMe
+                    ? OutlinedButton.icon(
+                        onPressed:
+                            _changingFollow ? null : () => _toggleFollow(data),
+                        icon: const Icon(Icons.person_remove_outlined),
+                        label: const Text('Seguindo'))
+                    : FilledButton.icon(
+                        onPressed:
+                            _changingFollow ? null : () => _toggleFollow(data),
+                        icon: const Icon(Icons.person_add_alt_1),
+                        label: const Text('Seguir')),
+                secondary: OutlinedButton.icon(
                     onPressed: _openingConversation
                         ? null
                         : () => _openConversation(profile),
                     icon: _openingConversation
                         ? const SizedBox.square(
                             dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                            child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.forum_outlined),
-                    label: const Text('Mensagem'),
-                  ),
-                ),
-              ]),
+                    label: const Text('Mensagem')),
+              ),
             ],
           ],
         )),
@@ -647,7 +658,27 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
         ],
         if (!profile.blockedByMe) const SizedBox(height: 28),
         if (!profile.blockedByMe) ...[
-          GdSectionTitle(
+          if (profile.team != null) ...[
+            const GaronaSectionTitle(
+                title: 'Equipe', eyebrow: 'NA MESMA PISTA'),
+            const SizedBox(height: 12),
+            Card(
+              margin: EdgeInsets.zero,
+              child: ListTile(
+                leading: GaronaAvatar(
+                  name: profile.team!.name,
+                  url: profile.team!.avatarUrl,
+                  size: 48,
+                ),
+                title: Text(profile.team!.name),
+                subtitle: const Text('Ver equipe'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => _openTeam(profile.team!),
+              ),
+            ),
+            const SizedBox(height: 28),
+          ],
+          GaronaSectionTitle(
             title: 'Projetos',
             eyebrow: 'A GARAGEM',
             trailing: Text(
@@ -662,7 +693,7 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 color: colors.surfaceContainer,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(24),
                 border: Border.all(color: colors.outlineVariant),
               ),
               child: Column(children: [
@@ -676,53 +707,12 @@ final class _PublicProfileScreenState extends State<PublicProfileScreen> {
             for (final car in data.cars)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: GdReveal(
-                    child: Card(
-                  margin: EdgeInsets.zero,
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => _openCar(car),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        AspectRatio(
-                          aspectRatio: 16 / 9,
-                          child: GdImage(
-                              url: car.photoUrl, semanticLabel: car.model),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Row(children: [
-                            Expanded(
-                                child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (car.projectStatus != null) ...[
-                                  Text(
-                                    car.projectStatus!.toUpperCase(),
-                                    style: theme.textTheme.labelSmall?.copyWith(
-                                      color: colors.primary,
-                                      letterSpacing: 1.5,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 5),
-                                ],
-                                Text(
-                                  [car.model, car.year]
-                                      .whereType<Object>()
-                                      .join(' '),
-                                  style: theme.textTheme.titleLarge,
-                                ),
-                              ],
-                            )),
-                            const SizedBox(width: 12),
-                            Icon(Icons.north_east_rounded,
-                                color: colors.primary, size: 22),
-                          ]),
-                        ),
-                      ],
-                    ),
-                  ),
+                child: GaronaReveal(
+                    child: GaronaProjectCard(
+                  car: car,
+                  compact: true,
+                  highlighted: isMe,
+                  onTap: () => _openCar(car),
                 )),
               ),
         ],

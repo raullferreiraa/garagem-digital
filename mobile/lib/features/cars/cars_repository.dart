@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/cars/car.dart';
 
 enum CarFeedOrder {
   recent('recentes'),
@@ -25,7 +25,8 @@ final class CarsRepository {
 
   Future<List<Car>> feed({
     CarFeedOrder order = CarFeedOrder.recent,
-  }) async => (await feedPage(order: order)).items;
+  }) async =>
+      (await feedPage(order: order)).items;
 
   Future<CarPage> feedPage({
     CarFeedOrder order = CarFeedOrder.recent,
@@ -48,16 +49,32 @@ final class CarsRepository {
     );
   }
 
-  Future<List<Car>> search(String query) async {
+  Future<List<Car>> search(String query) async =>
+      (await searchPage(query)).items;
+
+  Future<CarPage> searchPage(
+    String query, {
+    String? cursor,
+    int? yearMin,
+    int? yearMax,
+  }) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/carros',
-      queryParameters: {'busca': query},
+      queryParameters: {
+        'busca': query,
+        if (cursor != null) 'cursor': cursor,
+        if (yearMin != null) 'ano_min': yearMin,
+        if (yearMax != null) 'ano_max': yearMax,
+      },
     );
     final items = response.data!['itens']! as List<Object?>;
-    return items
-        .cast<Map<String, Object?>>()
-        .map(Car.fromJson)
-        .toList(growable: false);
+    return CarPage(
+      items: items
+          .cast<Map<String, Object?>>()
+          .map(Car.fromJson)
+          .toList(growable: false),
+      nextCursor: response.data!['proximo_cursor'] as String?,
+    );
   }
 
   Future<List<Car>> mine() async {
@@ -68,9 +85,49 @@ final class CarsRepository {
         .toList(growable: false);
   }
 
+  Future<CarPage> saved({String? cursor, String? query}) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/salvos',
+      queryParameters: {
+        if (cursor != null) 'cursor': cursor,
+        if (query != null && query.trim().isNotEmpty) 'busca': query.trim(),
+      },
+    );
+    final items = response.data!['itens']! as List<Object?>;
+    return CarPage(
+      items: items
+          .cast<Map<String, Object?>>()
+          .map(Car.fromJson)
+          .toList(growable: false),
+      nextCursor: response.data!['proximo_cursor'] as String?,
+    );
+  }
+
+  Future<bool> isSaved(String carId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/salvo',
+    );
+    return response.data!['salvo']! as bool;
+  }
+
+  Future<void> setSaved(String carId, {required bool saved}) async {
+    if (saved) {
+      await _api.dio.put<void>('/carros/$carId/salvo');
+    } else {
+      await _api.dio.delete<void>('/carros/$carId/salvo');
+    }
+  }
+
   Future<Car> detail(String carId) async {
     final response = await _api.dio.get<Map<String, Object?>>(
       '/carros/$carId',
+    );
+    return Car.fromJson(response.data!);
+  }
+
+  Future<Car> myDetail(String carId) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/carros/$carId/meu',
     );
     return Car.fromJson(response.data!);
   }

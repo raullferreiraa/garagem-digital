@@ -2,24 +2,25 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_carousel.dart';
+import 'package:garona_mobile/features/evolutions/evolution_journal_card.dart';
+import 'package:garona_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution_photos_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _CarAction { edit, delete }
-
-enum _EvolutionAction { edit, delete }
 
 enum _PhotoAction { camera, gallery, remove }
 
@@ -49,35 +50,89 @@ final class CarDetailScreen extends StatefulWidget {
 
 class _CarDetailScreenState extends State<CarDetailScreen> {
   late Car _car = widget.car;
+  bool get _canManage => widget.currentUserId.isNotEmpty
+      ? _car.ownerId == widget.currentUserId
+      : widget.canManage;
+
+  Future<Car> _loadCarDetail() => _canManage && widget.currentUserId.isNotEmpty
+      ? widget.repository.myDetail(_car.id)
+      : widget.repository.detail(_car.id);
   late Future<List<Evolution>> _evolutions;
   int _carRequest = 0;
   bool _deleting = false;
   bool _updatingPhoto = false;
+  bool? _saved;
+  bool _changingSaved = false;
 
   @override
   void initState() {
     super.initState();
     _evolutions = widget.evolutionsRepository.byCar(_car.id);
     unawaited(_refreshCarSilently());
+    if (!_canManage && widget.currentUserId.isNotEmpty) {
+      unawaited(_loadSaved());
+    }
+  }
+
+  Future<void> _loadSaved() async {
+    try {
+      final saved = await widget.repository.isSaved(_car.id);
+      if (mounted) setState(() => _saved = saved);
+    } catch (_) {
+      // O projeto continua acessível mesmo se o estado de salvos falhar.
+    }
+  }
+
+  Future<void> _toggleSaved() async {
+    if (_changingSaved || _saved == null) return;
+    final next = !_saved!;
+    setState(() => _changingSaved = true);
+    try {
+      await widget.repository.setSaved(_car.id, saved: next);
+      if (!mounted) return;
+      setState(() => _saved = next);
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(next ? 'Projeto salvo.' : 'Projeto removido dos salvos.'),
+      ));
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingSaved = false);
+    }
   }
 
   Future<void> _refreshCarSilently() async {
     final request = ++_carRequest;
     try {
-      final refreshed = await widget.repository.detail(_car.id);
+      final refreshed = await _loadCarDetail();
       if (!mounted || request != _carRequest) return;
       setState(() {
-        _car =
-            widget.canManage ? refreshed.withPrivateDataFrom(_car) : refreshed;
+        _car = _canManage && widget.currentUserId.isEmpty
+            ? refreshed.withPrivateDataFrom(_car)
+            : refreshed;
       });
     } catch (_) {
       // O card recebido mantém a tela utilizável quando a atualização falha.
     }
   }
 
+  void _viewPhoto() {
+    final url = _car.photoUrl;
+    if (url == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => _ProjectPhotoViewer(url: url, title: _car.model),
+      ),
+    );
+  }
+
   Future<void> _reloadProject() async {
     final request = ++_carRequest;
-    final carRequest = widget.repository.detail(_car.id);
+    final carRequest = _loadCarDetail();
     final evolutionsRequest = widget.evolutionsRepository.byCar(_car.id);
     setState(() {
       _evolutions = evolutionsRequest;
@@ -88,7 +143,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       final refreshed = await carRequest;
       if (mounted && request == _carRequest) {
         setState(() {
-          _car = widget.canManage
+          _car = _canManage && widget.currentUserId.isEmpty
               ? refreshed.withPrivateDataFrom(_car)
               : refreshed;
         });
@@ -111,11 +166,25 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   Future<void> _edit() async {
+    Car editableCar;
+    try {
+      editableCar = _canManage && widget.currentUserId.isNotEmpty
+          ? await widget.repository.myDetail(_car.id)
+          : _car;
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(apiErrorMessage(error))),
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
     final updated = await Navigator.of(context).push<Car>(
       MaterialPageRoute(
         builder: (_) => CarFormScreen(
           repository: widget.repository,
-          car: _car,
+          car: editableCar,
         ),
       ),
     );
@@ -438,14 +507,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
   }
 
   void _selectEvolutionAction(
-    _EvolutionAction action,
+    EvolutionJournalAction action,
     Evolution evolution,
   ) {
     switch (action) {
-      case _EvolutionAction.edit:
+      case EvolutionJournalAction.edit:
         _editEvolution(evolution);
         break;
-      case _EvolutionAction.delete:
+      case EvolutionJournalAction.photos:
+        _openEvolutionPhotos(evolution);
+        break;
+      case EvolutionJournalAction.delete:
         _deleteEvolution(evolution);
         break;
     }
@@ -476,8 +548,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
     return FutureBuilder<List<Evolution>>(
       future: _evolutions,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(height: 180, child: GdSkeleton(compact: true));
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const SizedBox(
+              height: 180, child: GaronaSkeleton(compact: true));
         }
         if (snapshot.hasError) {
           return Card(
@@ -497,7 +571,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
           );
         }
 
-        final evolutions = snapshot.data ?? const <Evolution>[];
+        final evolutions = [...?snapshot.data]
+          ..sort((a, b) => b.timelineDate.compareTo(a.timelineDate));
         if (evolutions.isEmpty) {
           return const Card(
             child: Padding(
@@ -522,7 +597,6 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 candidate.timelineDate.isAfter(current.timelineDate)
                     ? candidate
                     : current);
-
         return Column(
           children: [
             _DiarySummary(
@@ -533,148 +607,11 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   : _formatMileage(latestMileageEvolution!.mileageKm!),
             ),
             const SizedBox(height: 12),
-            for (final evolution in evolutions)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border(
-                        left: BorderSide(
-                      color: Theme.of(context).colorScheme.primary,
-                      width: 2,
-                    )),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                _formatDate(evolution.timelineDate),
-                                style: Theme.of(context).textTheme.labelLarge,
-                              ),
-                            ),
-                            if (widget.canManage)
-                              PopupMenuButton<_EvolutionAction>(
-                                tooltip: 'Opções da evolução',
-                                onSelected: (action) =>
-                                    _selectEvolutionAction(action, evolution),
-                                itemBuilder: (_) => const [
-                                  PopupMenuItem(
-                                    value: _EvolutionAction.edit,
-                                    child: ListTile(
-                                      leading: Icon(Icons.edit_outlined),
-                                      title: Text('Editar'),
-                                    ),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _EvolutionAction.delete,
-                                    child: ListTile(
-                                      leading: Icon(Icons.delete_outline),
-                                      title: Text('Excluir'),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                          ],
-                        ),
-                        if (evolution.category != null) ...[
-                          const SizedBox(height: 4),
-                          Text(
-                            (evolutionCategoryLabels[evolution.category] ??
-                                    evolution.category!)
-                                .toUpperCase(),
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                  color: Theme.of(context).colorScheme.primary,
-                                  letterSpacing: 1,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                        ],
-                        Text(
-                          evolution.title,
-                          style: Theme.of(context).textTheme.headlineSmall,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(evolution.description),
-                        if (evolution.mileageKm != null) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(Icons.speed_outlined, size: 18),
-                              const SizedBox(width: 6),
-                              Text(_formatMileage(evolution.mileageKm!)),
-                            ],
-                          ),
-                        ],
-                        if (evolution.photos.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          SizedBox(
-                            height: 112,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: evolution.photos.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 8),
-                              itemBuilder: (context, index) {
-                                final photo = evolution.photos[index];
-                                return InkWell(
-                                  borderRadius: BorderRadius.circular(10),
-                                  onTap: () => Navigator.of(context).push<void>(
-                                    MaterialPageRoute(
-                                      builder: (_) => EvolutionPhotoViewer(
-                                        photos: evolution.photos,
-                                        initialIndex: index,
-                                      ),
-                                    ),
-                                  ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(10),
-                                    child: AspectRatio(
-                                      aspectRatio: 4 / 3,
-                                      child: GdImage(
-                                          url: photo.url,
-                                          semanticLabel: evolution.title),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 10),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: TextButton.icon(
-                            onPressed: () => _openEvolutionDetail(evolution),
-                            icon: const Icon(Icons.forum_outlined),
-                            label: const Text('Ver conversa'),
-                          ),
-                        ),
-                        if (widget.canManage) ...[
-                          TextButton.icon(
-                            onPressed: () => _openEvolutionPhotos(evolution),
-                            icon: const Icon(Icons.photo_library_outlined),
-                            label: Text(
-                              evolution.photos.isEmpty
-                                  ? 'Adicionar fotos'
-                                  : 'Gerenciar ${evolution.photos.length} fotos',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            EvolutionCarousel(
+              evolutions: evolutions,
+              onOpen: _openEvolutionDetail,
+              onManage: _canManage ? _selectEvolutionAction : null,
+            ),
           ],
         );
       },
@@ -704,11 +641,19 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       appBar: AppBar(
         title: const Text('Projeto'),
         actions: [
-          GdShareAction(
+          if (!_canManage && widget.currentUserId.isNotEmpty)
+            IconButton(
+              onPressed: _saved == null || _changingSaved ? null : _toggleSaved,
+              tooltip: _saved == true ? 'Remover dos salvos' : 'Salvar projeto',
+              icon: Icon(_saved == true
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded),
+            ),
+          GaronaShareAction(
             payload: ShareContent.project(_car),
             tooltip: 'Compartilhar projeto',
           ),
-          if (widget.canManage)
+          if (_canManage)
             PopupMenuButton<_CarAction>(
               enabled: !_deleting,
               onSelected: _selectAction,
@@ -741,9 +686,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 children: [
                   _ProjectCover(
                     car: _car,
-                    canManage: widget.canManage,
+                    canManage: _canManage,
                     updatingPhoto: _updatingPhoto,
                     onPhotoTap: _openPhotoActions,
+                    onViewPhoto: _viewPhoto,
                   ),
                   const SizedBox(height: 16),
                   _ProjectIdentity(
@@ -775,41 +721,52 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                       message: 'A ficha técnica ainda não foi preenchida.',
                     )
                   else
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final singleColumn = constraints.maxWidth < 300 ||
-                            MediaQuery.textScalerOf(context).scale(14) > 20;
-                        final width = singleColumn
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 10) / 2;
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            for (final spec in specs)
-                              SizedBox(
-                                width: width,
-                                child: _SpecTile(
-                                  label: spec.$1,
-                                  value: spec.$2!,
-                                  icon: spec.$3,
-                                ),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final scale = MediaQuery.textScalerOf(context).scale(1);
+                      final columns =
+                          constraints.maxWidth >= 330 && scale < 1.3 ? 2 : 1;
+                      return GaronaPanel(
+                        radius: 20,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        child: Column(children: [
+                          for (var index = 0;
+                              index < specs.length;
+                              index += columns) ...[
+                            if (index > 0) const Divider(height: 1),
+                            IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (var offset = 0;
+                                      offset < columns &&
+                                          index + offset < specs.length;
+                                      offset++) ...[
+                                    if (offset > 0) const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _SpecTile(
+                                          label: specs[index + offset].$1,
+                                          value: specs[index + offset].$2!,
+                                          icon: specs[index + offset].$3),
+                                    ),
+                                  ],
+                                ],
                               ),
+                            ),
                           ],
-                        );
-                      },
-                    ),
+                        ]),
+                      );
+                    }),
                   const SizedBox(height: 30),
                   Row(
                     children: [
                       const Expanded(
-                        child: _SectionHeading(
+                        child: GaronaSectionTitle(
                           eyebrow: 'DIÁRIO DO PROJETO',
                           title: 'Evoluções',
-                          icon: Icons.timeline_rounded,
                         ),
                       ),
-                      if (widget.canManage)
+                      if (_canManage)
                         IconButton.filled(
                           onPressed: _openEvolutionForm,
                           tooltip: 'Registrar evolução',
@@ -832,105 +789,158 @@ final class _ProjectCover extends StatelessWidget {
     required this.canManage,
     required this.updatingPhoto,
     required this.onPhotoTap,
+    required this.onViewPhoto,
   });
 
   final Car car;
   final bool canManage;
   final bool updatingPhoto;
   final VoidCallback onPhotoTap;
+  final VoidCallback onViewPhoto;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: Material(
-        borderRadius: BorderRadius.circular(20),
-        clipBehavior: Clip.antiAlias,
-        color: colors.surfaceContainerHighest,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            GdImage(url: car.photoUrl, semanticLabel: car.model),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x22000000),
-                    Color(0x00000000),
-                    Color(0xEB090C10),
-                  ],
-                  stops: [0, 0.52, 1],
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+            child: Row(
+              children: [
+                const GaronaLightSignature(width: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('GARONA / PROJETO',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        letterSpacing: 1.6,
+                        color: colors.onSurfaceVariant,
+                      )),
                 ),
-              ),
+                if (car.photoUrl != null)
+                  IconButton(
+                    onPressed: onViewPhoto,
+                    tooltip: 'Ver foto inteira',
+                    icon: const Icon(Icons.zoom_out_map_rounded, size: 20),
+                  ),
+              ],
             ),
-            Positioned(
-              top: 18,
-              left: 18,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(6),
+          ),
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(
+                  color: colors.surfaceContainerLowest,
+                  child: GaronaImage(
+                    url: car.photoUrl,
+                    semanticLabel: car.model,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-                child: Text(
-                  'PROJETO AUTOMOTIVO',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colors.onPrimary,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 18,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      [car.model, car.year]
-                          .where((value) => value != null)
-                          .join(' '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black54,
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
+                if (car.photoUrl != null)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onViewPhoto,
+                      child: const SizedBox.expand(),
                     ),
                   ),
-                  if (canManage && !updatingPhoto) ...[
-                    const SizedBox(width: 12),
-                    IconButton.filled(
-                      onPressed: onPhotoTap,
-                      tooltip: 'Alterar foto principal',
-                      icon: const Icon(Icons.add_a_photo_outlined),
-                    ),
-                  ],
-                ],
-              ),
+                if (updatingPhoto)
+                  ColoredBox(
+                    color: colors.scrim.withValues(alpha: .4),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+              ],
             ),
-            if (updatingPhoto)
-              const ColoredBox(
-                color: Color(0x66000000),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-          ],
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(car.model,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontFamily: 'BarlowCondensed',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 34,
+                      height: 1.05,
+                    )),
+                if (car.year != null || canManage) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (car.year != null)
+                        Text(
+                          '${car.year}',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            letterSpacing: 2,
+                            color: colors.secondary,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (canManage && !updatingPhoto)
+                        IconButton.filledTonal(
+                          onPressed: onPhotoTap,
+                          tooltip: 'Alterar foto principal',
+                          icon: const Icon(Icons.add_a_photo_outlined),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+final class _ProjectPhotoViewer extends StatelessWidget {
+  const _ProjectPhotoViewer({required this.url, required this.title});
+
+  final String url;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        title: Text(title),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+      ),
+      body: InteractiveViewer(
+        minScale: 1,
+        maxScale: 5,
+        child: Center(
+          child: Image.network(
+            url,
+            fit: BoxFit.contain,
+            errorBuilder: (_, __, ___) => const Icon(
+              Icons.broken_image_outlined,
+              color: Colors.white,
+              size: 64,
+            ),
+          ),
         ),
       ),
     );
@@ -949,52 +959,56 @@ final class _ProjectIdentity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: onOwnerTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                GdAvatar(
-                    url: car.ownerAvatarUrl, name: car.ownerName, size: 44),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NA GARAGEM DE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                              letterSpacing: 1.1,
-                            ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '@${car.ownerUsername}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onOwnerTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  GaronaAvatar(
+                      url: car.ownerAvatarUrl, name: car.ownerName, size: 44),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NA GARAGEM DE',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    letterSpacing: 1.1,
+                                  ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '@${car.ownerUsername}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (onOwnerTap != null)
-                  Icon(Icons.arrow_outward_rounded,
-                      size: 19, color: colors.primary),
-              ],
+                  if (onOwnerTap != null)
+                    Icon(Icons.arrow_outward_rounded,
+                        size: 19, color: colors.primary),
+                ],
+              ),
             ),
           ),
-        ),
-        if (car.projectStatus != null) ...[
-          const SizedBox(height: 10),
-          _ProjectStatus(label: car.projectStatus!),
+          if (car.projectStatus != null) ...[
+            const SizedBox(height: 10),
+            _ProjectStatus(label: car.projectStatus!),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -1011,8 +1025,8 @@ final class _ProjectStatus extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.primary.withValues(alpha: .22)),
       ),
       child: Text(
         label,
@@ -1041,7 +1055,7 @@ final class _SectionHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return GdSectionTitle(
+    return GaronaSectionTitle(
       title: title,
       eyebrow: eyebrow,
       trailing: count == null
@@ -1057,107 +1071,31 @@ final class _SectionHeading extends StatelessWidget {
 }
 
 final class _DiarySummary extends StatelessWidget {
-  const _DiarySummary({
-    required this.count,
-    required this.latestDate,
-    required this.mileage,
-  });
-
+  const _DiarySummary(
+      {required this.count, required this.latestDate, required this.mileage});
   final int count;
   final String latestDate;
   final String? mileage;
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: colors.outlineVariant),
+    final theme = Theme.of(context);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          Text(count == 1 ? '1 registro' : '$count registros',
+              style: theme.textTheme.labelLarge),
+          Text('Última atualização: $latestDate',
+              style: theme.textTheme.labelMedium
+                  ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+          if (mileage != null)
+            Text(mileage!, style: theme.textTheme.labelMedium),
+        ],
       ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final itemWidth = (constraints.maxWidth - 12) / 2;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 16,
-            children: [
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.library_books_outlined,
-                  label: 'Registros',
-                  value: count == 1 ? '1 registro' : '$count registros',
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.event_outlined,
-                  label: 'Última evolução',
-                  value: latestDate,
-                ),
-              ),
-              SizedBox(
-                width: itemWidth,
-                child: _DiaryStat(
-                  icon: Icons.speed_outlined,
-                  label: 'Quilometragem',
-                  value: mileage ?? 'Não informada',
-                ),
-              ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
-
-final class _DiaryStat extends StatelessWidget {
-  const _DiaryStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, size: 20, color: colors.primary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                value,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                    ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1168,25 +1106,11 @@ final class _StoryCard extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(19),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(22),
-        border: Border(
-          left: BorderSide(
-            color: Theme.of(context).colorScheme.primary,
-            width: 3,
-          ),
-        ),
-      ),
-      child: Text(
-        text,
-        style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.5),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => Text(text,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            height: 1.6,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ));
 }
 
 final class _SpecTile extends StatelessWidget {
@@ -1202,37 +1126,31 @@ final class _SpecTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colors.outlineVariant),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: colors.primary),
-          const SizedBox(height: 16),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Icon(icon, size: 18, color: colors.secondary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant)),
+              const SizedBox(height: 5),
+              Text(value,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ],
           ),
-          const SizedBox(height: 2),
-          Text(
-            value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w800,
-                ),
-          ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }

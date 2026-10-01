@@ -1,8 +1,8 @@
 abstract final class AppConfig {
-  // Nome temporario: alterar aqui quando a marca oficial for escolhida.
+  // Identidade oficial do produto.
   static const appName = String.fromEnvironment(
     'APP_NAME',
-    defaultValue: 'Garagem',
+    defaultValue: 'Garona',
   );
 
   // 10.0.2.2 aponta para o localhost do computador no emulador Android.

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/register_screen.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/register_screen.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
 
 final class LoginScreen extends StatefulWidget {
   const LoginScreen({required this.session, super.key});
@@ -59,7 +59,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const GdReveal(
+                    const GaronaReveal(
                       child: AuthRacingHeader(
                         title: 'Sua garagem.',
                         accent: 'Sua história.',

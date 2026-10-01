@@ -1,4 +1,4 @@
-# Backend da Garagem Digital
+# Backend da Garona
 
 API FastAPI usada pelo aplicativo Flutter.
 

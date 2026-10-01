@@ -1,15 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/login_screen.dart';
-import 'package:garagem_mobile/features/auth/register_screen.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/register_screen.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_screen.dart';
 
 final class _MemoryTokens implements TokenStorage {
   @override
@@ -93,12 +94,14 @@ void main() {
       'ator': <String, Object?>{'id': 'piloto', 'username': 'piloto'},
     };
     final requests = <String>[];
+    var unreadCount = 1;
     api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
       requests.add('${options.method} ${options.path}');
+      if (options.method == 'PATCH') unreadCount = 0;
       handler.resolve(Response(
         requestOptions: options,
         data: options.path == '/notificacoes/nao-lidas'
-            ? {'total': 0}
+            ? {'total': unreadCount}
             : options.method == 'PATCH'
                 ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
                 : [item],
@@ -116,7 +119,6 @@ void main() {
     expect(find.text('HOJE'), findsOneWidget);
     expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
     expect(requests, isNot(contains('POST /notificacoes/lidas')));
-    expect(unread.last, 0);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(
       tester
@@ -126,12 +128,116 @@ void main() {
       FontWeight.w700,
     );
     expect(tester.takeException(), isNull);
-    await tester.ensureVisible(find.text('@piloto começou a seguir você.'));
+    await tester.scrollUntilVisible(
+      find.text('@piloto começou a seguir você.'),
+      150,
+      scrollable: find.byType(Scrollable).last,
+    );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('@piloto começou a seguir você.'));
     await tester.pumpAndSettle();
+    expect(requests, contains('PATCH /notificacoes/aviso-1/lida'));
     expect(unread.last, 0);
     expect(opened, ['aviso-1']);
     expect(find.text('1 novidade nesta visita'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('atividade filtra avisos e reconhece somente os novos',
+      (tester) async {
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _MemoryTokens());
+    final items = <Map<String, Object?>>[
+      {
+        'id': 'novo',
+        'tipo': 'novo_seguidor',
+        'mensagem': 'Aviso novo.',
+        'criada_em': DateTime.now().toUtc().toIso8601String(),
+      },
+      {
+        'id': 'antigo',
+        'tipo': 'curtida_evolucao',
+        'mensagem': 'Projeto curtido.',
+        'carro_id': 'carro-1',
+        'criada_em': DateTime.now().toUtc().toIso8601String(),
+        'lida_em': DateTime.now().toUtc().toIso8601String(),
+      },
+    ];
+    final requests = <String>[];
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      requests.add('${options.method} ${options.path}');
+      handler.resolve(Response(
+        requestOptions: options,
+        data: options.path == '/notificacoes/nao-lidas'
+            ? <String, Object?>{'total': 0}
+            : options.method == 'PATCH'
+                ? <String, Object?>{
+                    ...items.first,
+                    'lida_em': DateTime.now().toUtc().toIso8601String(),
+                  }
+                : items,
+      ));
+    }));
+    await tester.pumpWidget(_app(NotificationsScreen(
+      repository: NotificationsRepository(api),
+      onUnreadChanged: (_) {},
+      onOpen: (_) async {},
+      refreshRevision: 0,
+    )));
+    await tester.pumpAndSettle();
+    expect(find.text('Aviso novo.'), findsOneWidget);
+    expect(find.text('Projeto curtido.'), findsOneWidget);
+    expect(find.text('1 novidade nesta visita'), findsOneWidget);
+    expect(requests, contains('PATCH /notificacoes/novo/lida'));
+    expect(requests, isNot(contains('PATCH /notificacoes/antigo/lida')));
+    expect(requests, isNot(contains('POST /notificacoes/lidas')));
+    await tester.tap(find.text('Projetos'));
+    await tester.pumpAndSettle();
+    expect(find.text('Projeto curtido.'), findsOneWidget);
+    expect(find.text('Aviso novo.'), findsNothing);
+    await tester.tap(find.text('Pessoas'));
+    await tester.pumpAndSettle();
+    expect(find.text('Aviso novo.'), findsOneWidget);
+    expect(find.text('Projeto curtido.'), findsNothing);
+    expect(requests, isNot(contains('POST /notificacoes/lidas')));
+  });
+
+  testWidgets('aviso de encontro usa símbolo da comunidade, não foto do ator',
+      (tester) async {
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _MemoryTokens());
+    final item = <String, Object?>{
+      'id': 'aviso-encontro',
+      'tipo': 'nova_edicao_encontro',
+      'mensagem': 'Nova edição marcada.',
+      'encontro_id': 'encontro-1',
+      'criada_em': DateTime.now().toUtc().toIso8601String(),
+      'ator': <String, Object?>{
+        'id': 'dono',
+        'username': 'dono',
+        'avatar_url': '/foto-do-dono.jpg',
+      },
+    };
+    api.dio.interceptors.add(InterceptorsWrapper(onRequest: (options, handler) {
+      handler.resolve(Response(
+        requestOptions: options,
+        data: options.path == '/notificacoes/nao-lidas'
+            ? {'total': 0}
+            : options.method == 'PATCH'
+                ? {...item, 'lida_em': DateTime.now().toUtc().toIso8601String()}
+                : [item],
+      ));
+    }));
+    await tester.pumpWidget(_app(NotificationsScreen(
+      repository: NotificationsRepository(api),
+      onUnreadChanged: (_) {},
+      onOpen: (_) async {},
+      refreshRevision: 0,
+    )));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Nova edição marcada.'), findsOneWidget);
+    expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
+    expect(find.byType(GaronaAvatar), findsNothing);
   });
 }

@@ -18,6 +18,7 @@ from app.models.equipe import (
 )
 from app.models.midia_evolucao import MidiaEvolucao
 from app.models.notificacao import Notificacao
+from app.models.projeto_salvo import ProjetoSalvo
 from app.models.seguidor import Seguidor
 from app.models.sessao_refresh import SessaoRefresh
 from app.models.usuario import Usuario
@@ -43,6 +44,7 @@ __all__ = [
     "MidiaEvolucao",
     "MensagemDireta",
     "Notificacao",
+    "ProjetoSalvo",
     "ParticipacaoEquipeEvento",
     "PresencaEvento",
     "Seguidor",

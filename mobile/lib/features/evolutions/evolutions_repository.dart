@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed_item.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_interactions.dart';
+import 'package:garona_mobile/features/evolutions/following_feed_item.dart';
 
 final class EvolutionsRepository {
   EvolutionsRepository(this._api);
@@ -15,6 +15,21 @@ final class EvolutionsRepository {
         .cast<Map<String, Object?>>()
         .map(FollowingFeedItem.fromJson)
         .toList(growable: false);
+  }
+
+  Future<FollowingFeedPage> followingFeedPage({String? cursor}) async {
+    final response = await _api.dio.get<Map<String, Object?>>(
+      '/feed/seguindo/pagina',
+      queryParameters: {if (cursor != null) 'cursor': cursor},
+    );
+    final data = response.data!;
+    return FollowingFeedPage(
+      items: (data['itens']! as List<Object?>)
+          .cast<Map<String, Object?>>()
+          .map(FollowingFeedItem.fromJson)
+          .toList(growable: false),
+      nextCursor: data['proximo_cursor'] as String?,
+    );
   }
 
   Future<List<Evolution>> byCar(String carId) async {
@@ -159,5 +174,18 @@ final class EvolutionsRepository {
     await _api.dio.delete<void>(
       '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId',
     );
+  }
+
+  Future<EvolutionComment> editComment(
+    String carId,
+    String evolutionId,
+    String commentId,
+    String content,
+  ) async {
+    final response = await _api.dio.patch<Map<String, Object?>>(
+      '/carros/$carId/evolucoes/$evolutionId/comentarios/$commentId',
+      data: {'conteudo': content.trim()},
+    );
+    return EvolutionComment.fromJson(response.data!);
   }
 }

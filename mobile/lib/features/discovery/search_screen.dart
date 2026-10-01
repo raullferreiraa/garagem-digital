@@ -1,14 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:flutter/services.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 enum SearchCategory { projects, people, teams }
 
@@ -43,6 +45,11 @@ final class _SearchScreenState extends State<SearchScreen> {
   List<Car> _cars = const [];
   List<SocialUser> _users = const [];
   List<Team> _teams = const [];
+  String? _nextCarCursor;
+  bool _loadingMore = false;
+  bool _loadMoreFailed = false;
+  int? _yearMin;
+  int? _yearMax;
   String _lastQuery = '';
   String? _resultsQuery;
   SearchCategory? _resultsFilter;
@@ -80,6 +87,9 @@ final class _SearchScreenState extends State<SearchScreen> {
         _cars = const [];
         _users = const [];
         _teams = const [];
+        _nextCarCursor = null;
+        _loadingMore = false;
+        _loadMoreFailed = false;
         _resultsQuery = null;
         _resultsFilter = null;
         _error = null;
@@ -91,6 +101,9 @@ final class _SearchScreenState extends State<SearchScreen> {
       _lastQuery = query;
       _loading = true;
       _error = null;
+      _nextCarCursor = null;
+      _loadingMore = false;
+      _loadMoreFailed = false;
     });
     _debounce = Timer(
       const Duration(milliseconds: 250),
@@ -108,7 +121,11 @@ final class _SearchScreenState extends State<SearchScreen> {
     });
     try {
       final results = await switch (filter) {
-        SearchCategory.projects => widget.carsRepository.search(query),
+        SearchCategory.projects => widget.carsRepository.searchPage(
+            query,
+            yearMin: _yearMin,
+            yearMax: _yearMax,
+          ),
         SearchCategory.people => widget.usersRepository.search(query),
         SearchCategory.teams => widget.teamsRepository.search(query),
       };
@@ -119,7 +136,9 @@ final class _SearchScreenState extends State<SearchScreen> {
       setState(() {
         switch (filter) {
           case SearchCategory.projects:
-            _cars = results as List<Car>;
+            final page = results as CarPage;
+            _cars = page.items;
+            _nextCarCursor = page.nextCursor;
             break;
           case SearchCategory.people:
             _users = results as List<SocialUser>;
@@ -131,6 +150,8 @@ final class _SearchScreenState extends State<SearchScreen> {
         _resultsQuery = query;
         _resultsFilter = filter;
         _loading = false;
+        _loadingMore = false;
+        _loadMoreFailed = false;
       });
     } catch (error) {
       if (!mounted ||
@@ -144,6 +165,70 @@ final class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
+  Future<void> _loadMoreProjects() async {
+    final cursor = _nextCarCursor;
+    final query = _controller.text.trim();
+    if (cursor == null || _loadingMore || _filter != SearchCategory.projects) {
+      return;
+    }
+    final request = _searchRequest;
+    final yearMin = _yearMin;
+    final yearMax = _yearMax;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final page = await widget.carsRepository.searchPage(
+        query,
+        cursor: cursor,
+        yearMin: yearMin,
+        yearMax: yearMax,
+      );
+      if (!mounted ||
+          request != _searchRequest ||
+          _controller.text.trim() != query ||
+          _filter != SearchCategory.projects ||
+          _yearMin != yearMin ||
+          _yearMax != yearMax) return;
+      setState(() {
+        final ids = _cars.map((car) => car.id).toSet();
+        _cars = [..._cars, ...page.items.where((car) => ids.add(car.id))];
+        _nextCarCursor = page.nextCursor;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _searchRequest) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
+  }
+
+  Future<void> _openYearFilter() async {
+    final selected = await showModalBottomSheet<({int? min, int? max})>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _YearFilterSheet(
+        initialMin: _yearMin,
+        initialMax: _yearMax,
+      ),
+    );
+    if (!mounted || selected == null) return;
+    setState(() {
+      _yearMin = selected.min;
+      _yearMax = selected.max;
+      _nextCarCursor = null;
+      _resultsQuery = null;
+      _resultsFilter = null;
+    });
+    final query = _controller.text.trim();
+    if (_filter == SearchCategory.projects && _canSearch(query)) {
+      await _search(query);
+    }
+  }
+
   void _selectFilter(SearchCategory filter) {
     if (_filter == filter) return;
     _debounce?.cancel();
@@ -153,6 +238,9 @@ final class _SearchScreenState extends State<SearchScreen> {
       _filter = filter;
       _loading = _canSearch(query);
       _error = null;
+      _resultsQuery = null;
+      _resultsFilter = null;
+      _nextCarCursor = null;
     });
     if (_canSearch(query)) _search(query);
   }
@@ -205,7 +293,7 @@ final class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(title: const Text('Buscar'), actions: const [
         Padding(
           padding: EdgeInsets.only(right: 20),
-          child: GdWordmark(compact: true),
+          child: GaronaWordmark(compact: true),
         ),
       ]),
       body: Column(
@@ -246,7 +334,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainer,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -283,6 +371,20 @@ final class _SearchScreenState extends State<SearchScreen> {
               ],
             ),
           ),
+          if (_filter == SearchCategory.projects)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: OutlinedButton.icon(
+                  onPressed: _openYearFilter,
+                  icon: const Icon(Icons.calendar_month_outlined),
+                  label: Text(_yearMin == null && _yearMax == null
+                      ? 'Filtrar por ano'
+                      : 'Ano: ${_yearMin ?? '…'}–${_yearMax ?? '…'}'),
+                ),
+              ),
+            ),
           Expanded(child: _body(query)),
         ],
       ),
@@ -307,7 +409,7 @@ final class _SearchScreenState extends State<SearchScreen> {
     if (_loading &&
         _lastQuery == query &&
         (_resultsQuery != query || _resultsFilter != _filter || !_hasResults)) {
-      return const GdSkeleton(compact: true);
+      return const GaronaSkeleton(compact: true);
     }
     if (_error != null &&
         _lastQuery == query &&
@@ -362,6 +464,23 @@ final class _SearchScreenState extends State<SearchScreen> {
                 ),
             ],
           ),
+        if (_filter == SearchCategory.projects && _nextCarCursor != null) ...[
+          if (_loadMoreFailed) ...[
+            const Text('Não foi possível carregar mais projetos.'),
+            const SizedBox(height: 8),
+          ],
+          Center(
+            child: _loadingMore
+                ? const CircularProgressIndicator()
+                : OutlinedButton(
+                    onPressed: _loadMoreProjects,
+                    child: Text(_loadMoreFailed
+                        ? 'Tentar novamente'
+                        : 'Carregar mais projetos'),
+                  ),
+          ),
+          const SizedBox(height: 12),
+        ],
         if (_filter == SearchCategory.people && _users.isNotEmpty)
           _ResultSection(
             title: 'Pessoas',
@@ -391,6 +510,108 @@ final class _SearchScreenState extends State<SearchScreen> {
   }
 }
 
+final class _YearFilterSheet extends StatefulWidget {
+  const _YearFilterSheet({this.initialMin, this.initialMax});
+
+  final int? initialMin;
+  final int? initialMax;
+
+  @override
+  State<_YearFilterSheet> createState() => _YearFilterSheetState();
+}
+
+final class _YearFilterSheetState extends State<_YearFilterSheet> {
+  late final TextEditingController _minController;
+  late final TextEditingController _maxController;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _minController = TextEditingController(text: widget.initialMin?.toString());
+    _maxController = TextEditingController(text: widget.initialMax?.toString());
+  }
+
+  @override
+  void dispose() {
+    _minController.dispose();
+    _maxController.dispose();
+    super.dispose();
+  }
+
+  void _apply() {
+    final minText = _minController.text.trim();
+    final maxText = _maxController.text.trim();
+    final min = int.tryParse(minText);
+    final max = int.tryParse(maxText);
+    if ((minText.isNotEmpty && (min == null || min < 1886 || min > 2200)) ||
+        (maxText.isNotEmpty && (max == null || max < 1886 || max > 2200)) ||
+        (min != null && max != null && min > max)) {
+      setState(() => _error =
+          'Use anos entre 1886 e 2200, com “De” menor ou igual a “Até”.');
+      return;
+    }
+    Navigator.of(context).pop((min: min, max: max));
+  }
+
+  @override
+  Widget build(BuildContext context) => SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            20,
+            20,
+            20 + MediaQuery.viewInsetsOf(context).bottom,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text('Filtrar por ano',
+                    style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                const Text('Encontre projetos de uma época específica.'),
+                const SizedBox(height: 20),
+                Row(children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _minController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 4,
+                      decoration: const InputDecoration(labelText: 'De'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _maxController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      maxLength: 4,
+                      decoration: const InputDecoration(labelText: 'Até'),
+                    ),
+                  ),
+                ]),
+                if (_error != null) Text(_error!),
+                const SizedBox(height: 12),
+                FilledButton(
+                  onPressed: _apply,
+                  child: const Text('Aplicar filtro'),
+                ),
+                TextButton(
+                  onPressed: () =>
+                      Navigator.of(context).pop((min: null, max: null)),
+                  child: const Text('Limpar filtro de ano'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+}
+
 final class _FilterChip extends StatelessWidget {
   const _FilterChip({
     required this.label,
@@ -412,17 +633,16 @@ final class _FilterChip extends StatelessWidget {
     return ChoiceChip(
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: colors.primary,
+      selectedColor: colors.primary.withValues(alpha: .14),
       backgroundColor: colors.surfaceContainer,
       side:
           BorderSide(color: selected ? colors.primary : colors.outlineVariant),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: selected ? colors.onPrimary : colors.onSurfaceVariant,
+            color: selected ? colors.primary : colors.onSurfaceVariant,
           ),
       avatar: Icon(icon,
-          size: 18,
-          color: selected ? colors.onPrimary : colors.onSurfaceVariant),
+          size: 18, color: selected ? colors.primary : colors.onSurfaceVariant),
       showCheckmark: false,
       label: Text(count == null ? label : '$label  $count'),
     );
@@ -447,7 +667,7 @@ final class _ResultSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GdSectionTitle(
+          GaronaSectionTitle(
             title: title,
             eyebrow: 'RESULTADOS',
             trailing: Text('$count',
@@ -506,8 +726,8 @@ final class _CarResult extends StatelessWidget {
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: GdImage(
+              borderRadius: BorderRadius.circular(20),
+              child: GaronaImage(
                   url: car.photoUrl,
                   width: 92,
                   height: 92,
@@ -593,7 +813,7 @@ final class _UserResult extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      leading: GdAvatar(url: user.avatarUrl, name: user.name, size: 48),
+      leading: GaronaAvatar(url: user.avatarUrl, name: user.name, size: 48),
       title: Text(
         '@${user.username}',
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -619,7 +839,7 @@ final class _TeamResult extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      leading: GdAvatar(url: team.avatarUrl, name: team.name, size: 48),
+      leading: GaronaAvatar(url: team.avatarUrl, name: team.name, size: 48),
       title: Text(
         team.name,
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -646,46 +866,16 @@ final class _SearchMessage extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(28, 32, 28, 32),
-      child: GdReveal(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                color: colors.primary,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, size: 28, color: colors.onPrimary),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              message,
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            if (onAction != null) ...[
-              const SizedBox(height: 20),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: GaronaReveal(
+            child: GaronaEmptyState(
+                icon: icon,
+                title: title,
+                description: message,
+                action: onAction == null
+                    ? null
+                    : FilledButton(
+                        onPressed: onAction, child: Text(actionLabel!)))),
+      );
 }

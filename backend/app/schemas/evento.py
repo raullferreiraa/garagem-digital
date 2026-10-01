@@ -4,6 +4,8 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
+from app.schemas.usuario import UsuarioResumo
+
 
 class EdicaoCriacao(BaseModel):
     inicio: datetime
@@ -110,6 +112,31 @@ class EdicaoResposta(BaseModel):
     estado: str | None
     status: Literal["agendada", "cancelada"]
     total_confirmados: int
+    total_equipes: int
+
+
+class ProjetoConfirmadoResposta(BaseModel):
+    id: UUID
+    modelo: str
+    ano: int | None
+    foto_principal_url: str | None
+
+
+class ParticipanteEdicaoResposta(BaseModel):
+    usuario: UsuarioResumo
+    carro: ProjetoConfirmadoResposta | None
+
+
+class EquipeEdicaoResposta(BaseModel):
+    id: UUID
+    nome: str
+    avatar_url: str | None
+
+
+class ParticipantesEdicaoResposta(BaseModel):
+    pessoas: list[ParticipanteEdicaoResposta]
+    equipes: list[EquipeEdicaoResposta]
+    total_pessoas: int
     total_equipes: int
 
 

@@ -1,10 +1,35 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+
+enum _ActivityFilter { all, projects, people, teams, events }
+
+extension on _ActivityFilter {
+  String get label => switch (this) {
+        _ActivityFilter.all => 'Tudo',
+        _ActivityFilter.projects => 'Projetos',
+        _ActivityFilter.people => 'Pessoas',
+        _ActivityFilter.teams => 'Equipes',
+        _ActivityFilter.events => 'Encontros',
+      };
+
+  bool includes(AppNotification item) => switch (this) {
+        _ActivityFilter.all => true,
+        _ActivityFilter.projects => item.carId != null ||
+            item.evolutionId != null ||
+            item.commentId != null,
+        _ActivityFilter.people => item.type == 'novo_seguidor',
+        _ActivityFilter.teams => item.teamId != null ||
+            item.type.contains('equipe') ||
+            item.type.startsWith('convite_'),
+        _ActivityFilter.events =>
+          item.eventId != null || item.type.contains('encontro'),
+      };
+}
 
 final class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({
@@ -30,8 +55,12 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
   int _fetchRequest = 0;
   final Set<String> _changing = {};
   final Set<String> _newThisVisit = {};
+  _ActivityFilter _filter = _ActivityFilter.all;
   bool _opening = false;
   bool _acknowledging = false;
+  bool _hasMore = false;
+  bool _loadingMore = false;
+  bool _loadMoreFailed = false;
 
   @override
   void initState() {
@@ -51,6 +80,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     if (mounted && request == _fetchRequest) {
       setState(() {
         _items = items;
+        _hasMore = items.length == 100;
+        _loadingMore = false;
+        _loadMoreFailed = false;
         _newThisVisit.addAll(
           items.where((item) => !item.isRead).map((item) => item.id),
         );
@@ -64,6 +96,60 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
     }
     return items;
   }
+
+  Future<void> _loadMore() async {
+    final items = _items;
+    if (_loadingMore || !_hasMore || items == null || items.isEmpty) return;
+    final request = _fetchRequest;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final older = await widget.repository.olderThan(items.last);
+      if (!mounted || request != _fetchRequest) return;
+      setState(() {
+        final knownIds = _items!.map((item) => item.id).toSet();
+        _items = [
+          ..._items!,
+          ...older.where((item) => knownIds.add(item.id)),
+        ];
+        _hasMore = older.length == 100;
+        _loadingMore = false;
+        _newThisVisit.addAll(
+          older.where((item) => !item.isRead).map((item) => item.id),
+        );
+      });
+      await _acknowledgeVisible();
+    } catch (_) {
+      if (!mounted || request != _fetchRequest) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
+  }
+
+  Widget _moreButton() => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          children: [
+            if (_loadMoreFailed) ...[
+              const Text('Não foi possível carregar avisos antigos.'),
+              const SizedBox(height: 8),
+            ],
+            if (_loadingMore)
+              const CircularProgressIndicator()
+            else
+              OutlinedButton(
+                onPressed: _loadMore,
+                child: Text(_loadMoreFailed
+                    ? 'Tentar novamente'
+                    : 'Carregar avisos antigos'),
+              ),
+          ],
+        ),
+      );
 
   Future<void> _acknowledgeVisible() async {
     if (_acknowledging) return;
@@ -79,18 +165,16 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       if (!mounted) return;
       final now = DateTime.now();
       setState(() {
+        _fetchRequest++;
         _items = [
           for (final item in _items!)
-            if (!readIds.contains(item.id))
-              item
-            else
-              item.copyWith(readAt: now),
+            readIds.contains(item.id) ? item.copyWith(readAt: now) : item,
         ];
       });
       final unread = await widget.repository.unreadCount();
       if (mounted) widget.onUnreadChanged(unread);
     } catch (_) {
-      // Mantém o estado pendente; um novo acesso ou refresh tenta novamente.
+      // Um novo acesso ou refresh tenta confirmar os avisos restantes.
     } finally {
       _acknowledging = false;
     }
@@ -167,6 +251,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       'convite_equipe' => Icons.mail_outline_rounded,
       'convite_equipe_aceito' => Icons.group_add_outlined,
       'convite_equipe_recusado' => Icons.person_remove_outlined,
+      'nova_edicao_encontro' => Icons.event_available_outlined,
+      'edicao_encontro_alterada' => Icons.edit_calendar_outlined,
+      'edicao_encontro_cancelada' => Icons.event_busy_outlined,
       _ => Icons.notifications_outlined,
     };
   }
@@ -191,12 +278,12 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
       body: FutureBuilder<List<AppNotification>>(
         future: _future,
         builder: (context, snapshot) {
-          final items = _items ?? snapshot.data;
-          if (items == null &&
+          final allItems = _items ?? snapshot.data;
+          if (allItems == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const GdSkeleton(compact: true);
+            return const GaronaSkeleton(compact: true);
           }
-          if (items == null) {
+          if (allItems == null) {
             return Center(
               child: FilledButton.icon(
                 onPressed: _reload,
@@ -205,6 +292,9 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
               ),
             );
           }
+          final items = allItems.where(_filter.includes).toList();
+          final newThisVisit =
+              allItems.where((item) => _newThisVisit.contains(item.id)).length;
           return Column(
             children: [
               if (snapshot.hasError)
@@ -216,6 +306,62 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                       onPressed: _reload,
                       child: const Text('Tentar novamente'),
                     ),
+                  ),
+                ),
+              if (allItems.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color.alphaBlend(
+                            colors.primary.withValues(alpha: .09),
+                            colors.surfaceContainerHigh,
+                          ),
+                          colors.surfaceContainer,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: .18),
+                      ),
+                    ),
+                    child: GaronaSectionTitle(
+                      title: newThisVisit == 0
+                          ? 'Você está em dia.'
+                          : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
+                      eyebrow: 'NA SUA COMUNIDADE',
+                      trailing: Icon(
+                        newThisVisit == 0
+                            ? Icons.done_all_rounded
+                            : Icons.bolt_rounded,
+                        color: colors.primary,
+                      ),
+                    ),
+                  ),
+                ),
+              if (allItems.isNotEmpty)
+                SizedBox(
+                  height: 52 +
+                      (MediaQuery.textScalerOf(context).scale(14) - 14)
+                          .clamp(0.0, 24.0),
+                  child: ListView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    children: [
+                      for (final filter in _ActivityFilter.values) ...[
+                        ChoiceChip(
+                          label: Text(filter.label),
+                          selected: _filter == filter,
+                          onSelected: (_) => setState(() => _filter = filter),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ],
                   ),
                 ),
               Expanded(
@@ -232,60 +378,51 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(18),
                                 decoration: BoxDecoration(
-                                  color: colors.primary,
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: colors.primary.withValues(alpha: .12),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: colors.primary.withValues(alpha: .3),
+                                  ),
                                 ),
                                 child: Icon(Icons.notifications_none_rounded,
-                                    size: 32, color: colors.onPrimary),
+                                    size: 32, color: colors.primary),
                               ),
                             ),
                             const SizedBox(height: 28),
-                            Text('A conversa começa aqui.',
+                            Text(
+                                allItems.isEmpty
+                                    ? 'A conversa começa aqui.'
+                                    : 'Nada em ${_filter.label.toLowerCase()} por aqui.',
                                 style:
                                     Theme.of(context).textTheme.headlineMedium),
                             const SizedBox(height: 12),
-                            Text('Suas novidades aparecerão aqui.',
+                            Text(
+                                allItems.isEmpty
+                                    ? 'Suas novidades aparecerão aqui.'
+                                    : 'Escolha outro filtro para ver suas atividades.',
                                 style: Theme.of(context).textTheme.bodyLarge),
                             const SizedBox(height: 8),
-                            Text(
-                                'Seguidores, equipes e interações com seus projetos, '
-                                'tudo no mesmo lugar.',
-                                style:
-                                    TextStyle(color: colors.onSurfaceVariant)),
+                            if (allItems.isEmpty)
+                              Text(
+                                  'Seguidores, equipes e interações com seus projetos, '
+                                  'tudo no mesmo lugar.',
+                                  style: TextStyle(
+                                      color: colors.onSurfaceVariant)),
+                            if (_hasMore) _moreButton(),
                           ],
                         )
                       : ListView.builder(
                           physics: const AlwaysScrollableScrollPhysics(),
                           padding: const EdgeInsets.fromLTRB(20, 10, 20, 32),
-                          itemCount: items.length + 1,
+                          itemCount: items.length + (_hasMore ? 1 : 0),
                           itemBuilder: (context, index) {
-                            if (index == 0) {
-                              final newThisVisit = items
-                                  .where(
-                                      (item) => _newThisVisit.contains(item.id))
-                                  .length;
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 24),
-                                child: GdSectionTitle(
-                                  title: newThisVisit == 0
-                                      ? 'Você está em dia.'
-                                      : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
-                                  eyebrow: 'NA SUA COMUNIDADE',
-                                  trailing: Icon(
-                                    newThisVisit == 0
-                                        ? Icons.done_all_rounded
-                                        : Icons.bolt_rounded,
-                                    color: colors.primary,
-                                  ),
-                                ),
-                              );
-                            }
-                            final item = items[index - 1];
+                            if (index == items.length) return _moreButton();
+                            final item = items[index];
                             final isNewThisVisit =
                                 _newThisVisit.contains(item.id);
                             final dayLabel = _dayLabel(item.createdAt);
-                            final showDay = index == 1 ||
-                                _dayLabel(items[index - 2].createdAt) !=
+                            final showDay = index == 0 ||
+                                _dayLabel(items[index - 1].createdAt) !=
                                     dayLabel;
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -308,19 +445,24 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                     ]),
                                   ),
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.only(bottom: 10),
                                   child: Material(
                                     key: ValueKey('notification-${item.id}'),
                                     color: isNewThisVisit
-                                        ? colors.primary.withValues(alpha: 0.10)
-                                        : colors.surface,
+                                        ? Color.alphaBlend(
+                                            colors.primary
+                                                .withValues(alpha: .08),
+                                            colors.surfaceContainer,
+                                          )
+                                        : colors.surfaceContainer,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(24),
                                       side: BorderSide(
                                         color: isNewThisVisit
                                             ? colors.primary
                                                 .withValues(alpha: 0.28)
-                                            : Colors.transparent,
+                                            : colors.outlineVariant
+                                                .withValues(alpha: .55),
                                       ),
                                     ),
                                     clipBehavior: Clip.antiAlias,
@@ -328,46 +470,66 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                       onTap: () => _open(item),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 16),
+                                            horizontal: 14, vertical: 18),
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Stack(
-                                              clipBehavior: Clip.none,
-                                              children: [
-                                                GdAvatar(
-                                                    url: item.actorAvatarUrl,
-                                                    name: item.actorUsername ??
-                                                        'GD',
-                                                    size: 44),
-                                                Positioned(
-                                                  right: -3,
-                                                  bottom: -3,
-                                                  child: Container(
-                                                    padding:
-                                                        const EdgeInsets.all(4),
-                                                    decoration: BoxDecoration(
-                                                      color: !isNewThisVisit
-                                                          ? colors
-                                                              .surfaceContainerHighest
-                                                          : colors.primary,
-                                                      shape: BoxShape.circle,
-                                                      border: Border.all(
-                                                          color: colors.surface,
-                                                          width: 2),
-                                                    ),
-                                                    child: Icon(
-                                                        _icon(item.type),
-                                                        size: 12,
+                                            if (item.eventId != null)
+                                              Container(
+                                                width: 44,
+                                                height: 44,
+                                                decoration: BoxDecoration(
+                                                  color: colors.primary
+                                                      .withValues(alpha: 0.14),
+                                                  borderRadius:
+                                                      BorderRadius.circular(17),
+                                                ),
+                                                child: Icon(
+                                                  _icon(item.type),
+                                                  color: colors.primary,
+                                                ),
+                                              )
+                                            else
+                                              Stack(
+                                                clipBehavior: Clip.none,
+                                                children: [
+                                                  GaronaAvatar(
+                                                      url: item.actorAvatarUrl,
+                                                      name:
+                                                          item.actorUsername ??
+                                                              'G',
+                                                      size: 44),
+                                                  Positioned(
+                                                    right: -3,
+                                                    bottom: -3,
+                                                    child: Container(
+                                                      padding:
+                                                          const EdgeInsets.all(
+                                                              4),
+                                                      decoration: BoxDecoration(
                                                         color: !isNewThisVisit
                                                             ? colors
-                                                                .onSurfaceVariant
-                                                            : colors.onPrimary),
+                                                                .surfaceContainerHighest
+                                                            : colors.primary,
+                                                        shape: BoxShape.circle,
+                                                        border: Border.all(
+                                                            color:
+                                                                colors.surface,
+                                                            width: 2),
+                                                      ),
+                                                      child: Icon(
+                                                          _icon(item.type),
+                                                          size: 12,
+                                                          color: !isNewThisVisit
+                                                              ? colors
+                                                                  .onSurfaceVariant
+                                                              : colors
+                                                                  .onPrimary),
+                                                    ),
                                                   ),
-                                                ),
-                                              ],
-                                            ),
+                                                ],
+                                              ),
                                             const SizedBox(width: 13),
                                             Expanded(
                                               child: Column(

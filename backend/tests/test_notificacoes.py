@@ -103,6 +103,28 @@ def test_central_de_notificacoes(client: TestClient) -> None:
     assert aviso_comentario["carro_id"] == carro["id"]
     assert aviso_comentario["evolucao_id"] == evolucao["id"]
 
+    primeira_pagina = client.get(
+        "/api/v1/notificacoes?limite=1", headers=auth_header(dono)
+    )
+    assert primeira_pagina.status_code == 200
+    assert [item["id"] for item in primeira_pagina.json()] == [aviso_comentario["id"]]
+    proxima_pagina = client.get(
+        "/api/v1/notificacoes",
+        params={
+            "limite": 1,
+            "antes_de": aviso_comentario["criada_em"],
+            "ultimo_id": aviso_comentario["id"],
+        },
+        headers=auth_header(dono),
+    )
+    assert proxima_pagina.status_code == 200
+    assert [item["id"] for item in proxima_pagina.json()] == [novo_seguidor["id"]]
+    assert client.get(
+        "/api/v1/notificacoes",
+        params={"antes_de": aviso_comentario["criada_em"]},
+        headers=auth_header(dono),
+    ).status_code == 400
+
     resposta = client.post(
         f"{base}/comentarios/{comentario['id']}/respostas",
         headers=auth_header(dono),

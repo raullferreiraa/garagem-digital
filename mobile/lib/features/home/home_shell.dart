@@ -2,34 +2,34 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
-import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
-import 'package:garagem_mobile/features/discovery/explore_screen.dart';
-import 'package:garagem_mobile/features/discovery/search_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/events/events_screen.dart';
-import 'package:garagem_mobile/features/messages/conversations_screen.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
-import 'package:garagem_mobile/features/profile/profile_screen.dart';
-import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
-import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_navigation.dart';
+import 'package:garona_mobile/core/widgets/garona_activity_action.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garona_mobile/features/discovery/explore_screen.dart';
+import 'package:garona_mobile/features/discovery/search_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/events/events_screen.dart';
+import 'package:garona_mobile/features/messages/conversations_screen.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_screen.dart';
+import 'package:garona_mobile/features/profile/profile_screen.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/team_chat_screen.dart';
+import 'package:garona_mobile/features/teams/team_detail_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/features/teams/teams_screen.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -62,6 +62,7 @@ final class _HomeShellState extends State<HomeShell>
   int _index = 0;
   int _feedRevision = 0;
   int _eventsRevision = 0;
+  int _teamEventsFilterRequest = 0;
   int _teamsRevision = 0;
   int _messagesRevision = 0;
   int _profileRevision = 0;
@@ -159,7 +160,10 @@ final class _HomeShellState extends State<HomeShell>
           current?.teamName == summary?.teamName &&
           current?.teamAvatarUrl == summary?.teamAvatarUrl &&
           current?.unreadCount == summary?.unreadCount &&
-          current?.lastMessage?.id == summary?.lastMessage?.id) {
+          current?.lastMessage?.id == summary?.lastMessage?.id &&
+          current?.lastMessage?.content == summary?.lastMessage?.content &&
+          current?.lastMessage?.editedAt == summary?.lastMessage?.editedAt &&
+          current?.lastMessage?.deletedAt == summary?.lastMessage?.deletedAt) {
         return;
       }
       setState(() => _teamChatSummary = summary);
@@ -249,6 +253,7 @@ final class _HomeShellState extends State<HomeShell>
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: _refreshUnreadMessages,
         ),
       ),
@@ -284,6 +289,25 @@ final class _HomeShellState extends State<HomeShell>
               usersRepository: widget.usersRepository,
               messagesRepository: widget.messagesRepository,
               onConversationChanged: _refreshUnreadMessages,
+            ),
+          ),
+        );
+        return;
+      }
+
+      if (notification.eventId != null) {
+        final event =
+            await widget.eventsRepository.detail(notification.eventId!);
+        if (!mounted ||
+            !activityContext.mounted ||
+            ModalRoute.of(activityContext)?.isCurrent != true) return;
+        await Navigator.of(context).push<void>(
+          MaterialPageRoute(
+            builder: (_) => EventCommunityScreen(
+              event: event,
+              repository: widget.eventsRepository,
+              onPersonTap: _openPublicProfile,
+              onTeamTap: _openTeamById,
             ),
           ),
         );
@@ -338,6 +362,9 @@ final class _HomeShellState extends State<HomeShell>
     if (notification.teamId != null) {
       return 'Esta equipe não está mais disponível.';
     }
+    if (notification.eventId != null) {
+      return 'Este encontro não está mais disponível.';
+    }
     return 'Este conteúdo não está mais disponível.';
   }
 
@@ -370,6 +397,29 @@ final class _HomeShellState extends State<HomeShell>
         ),
       ),
     );
+  }
+
+  Future<void> _openTeamById(String teamId) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: teamId,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: _refreshUnreadMessages,
+      ),
+    ));
+  }
+
+  void _openTeamEvents() {
+    setState(() {
+      _index = 1;
+      _eventsRevision++;
+      _teamEventsFilterRequest++;
+    });
   }
 
   Future<void> _openSearch({
@@ -419,19 +469,27 @@ final class _HomeShellState extends State<HomeShell>
         refreshRevision: _feedRevision,
         carsRepository: widget.carsRepository,
         evolutionsRepository: widget.evolutionsRepository,
-        onCarTap: (car) => _openCar(car, canManage: false),
+        onCarTap: (car) => _openCar(
+          car,
+          canManage: car.ownerId == widget.session.user!.id,
+        ),
         onEvolutionTap: _openEvolution,
         onProfileTap: _openPublicProfile,
         onSearch: () => _openSearch(),
+        onFindPeople: () => _openSearch(initialCategory: SearchCategory.people),
         onCreateProject: _createCar,
       ),
       EventsScreen(
         refreshRevision: _eventsRevision,
+        teamFilterRequest: _teamEventsFilterRequest,
         repository: widget.eventsRepository,
         teamsRepository: widget.teamsRepository,
+        onPersonTap: _openPublicProfile,
+        onTeamTap: _openTeamById,
       ),
       TeamsScreen(
         refreshRevision: _teamsRevision,
+        onTeamEventsTap: _openTeamEvents,
         onSearch: () => _openSearch(initialCategory: SearchCategory.teams),
         repository: widget.teamsRepository,
         carsRepository: widget.carsRepository,
@@ -462,19 +520,20 @@ final class _HomeShellState extends State<HomeShell>
         evolutionsRepository: widget.evolutionsRepository,
         usersRepository: widget.usersRepository,
         messagesRepository: widget.messagesRepository,
+        teamsRepository: widget.teamsRepository,
         onConversationChanged: _refreshUnreadMessages,
       ),
     ];
 
     return Scaffold(
-      body: GdActivityScope(
+      body: GaronaActivityScope(
           unreadCount: _unreadNotifications,
           onOpen: _openActivity,
           child: IndexedStack(index: _index, children: [
             for (var i = 0; i < pages.length; i++)
               TickerMode(enabled: i == _index, child: pages[i]),
           ])),
-      bottomNavigationBar: GdNavigation(
+      bottomNavigationBar: GaronaNavigation(
         selectedIndex: _index,
         unreadMessages: _unreadMessages,
         unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,

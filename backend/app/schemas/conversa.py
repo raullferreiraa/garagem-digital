@@ -13,6 +13,7 @@ class CriarConversaDireta(BaseModel):
 
 class EnviarMensagem(BaseModel):
     conteudo: Annotated[str, Field(min_length=1, max_length=2000)]
+    resposta_a_id: UUID | None = None
 
     @field_validator("conteudo")
     @classmethod
@@ -23,6 +24,15 @@ class EnviarMensagem(BaseModel):
         return value
 
 
+class MensagemCitada(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    remetente_id: UUID
+    conteudo: str
+    excluida_em: datetime | None = None
+
+
 class MensagemResposta(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -31,6 +41,9 @@ class MensagemResposta(BaseModel):
     remetente_id: UUID
     conteudo: str
     criada_em: datetime
+    editada_em: datetime | None = None
+    excluida_em: datetime | None = None
+    resposta_a: MensagemCitada | None = None
 
 
 class ConversaResumo(BaseModel):

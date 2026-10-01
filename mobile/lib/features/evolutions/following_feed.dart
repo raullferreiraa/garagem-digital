@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed_item.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/following_feed_item.dart';
 
 final class FollowingFeed extends StatefulWidget {
   const FollowingFeed({
     required this.repository,
     required this.onEvolutionTap,
     required this.onProfileTap,
+    this.onFindPeople,
     this.refreshRevision = 0,
     super.key,
   });
@@ -17,6 +19,7 @@ final class FollowingFeed extends StatefulWidget {
   final EvolutionsRepository repository;
   final Future<void> Function(Evolution) onEvolutionTap;
   final Future<void> Function(String) onProfileTap;
+  final Future<void> Function()? onFindPeople;
   final int refreshRevision;
 
   @override
@@ -27,12 +30,50 @@ final class _FollowingFeedState extends State<FollowingFeed> {
   late Future<List<FollowingFeedItem>> _items;
   List<FollowingFeedItem>? _lastItems;
   int _loadRequest = 0;
+  String? _nextCursor;
+  bool _loadingMore = false;
+  bool _loadMoreFailed = false;
 
   Future<List<FollowingFeedItem>> _load() async {
     final request = ++_loadRequest;
-    final items = await widget.repository.followingFeed();
-    if (request == _loadRequest) _lastItems = items;
-    return items;
+    final page = await widget.repository.followingFeedPage();
+    if (request == _loadRequest) {
+      _lastItems = page.items;
+      _nextCursor = page.nextCursor;
+      _loadingMore = false;
+      _loadMoreFailed = false;
+    }
+    return page.items;
+  }
+
+  Future<void> _loadMore() async {
+    final cursor = _nextCursor;
+    if (cursor == null || _loadingMore) return;
+    final request = _loadRequest;
+    setState(() {
+      _loadingMore = true;
+      _loadMoreFailed = false;
+    });
+    try {
+      final page = await widget.repository.followingFeedPage(cursor: cursor);
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        final existing = _lastItems ?? const <FollowingFeedItem>[];
+        final ids = existing.map((item) => item.evolution.id).toSet();
+        _lastItems = [
+          ...existing,
+          ...page.items.where((item) => ids.add(item.evolution.id)),
+        ];
+        _nextCursor = page.nextCursor;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted || request != _loadRequest) return;
+      setState(() {
+        _loadingMore = false;
+        _loadMoreFailed = true;
+      });
+    }
   }
 
   @override
@@ -51,12 +92,19 @@ final class _FollowingFeedState extends State<FollowingFeed> {
     final future = _load();
     setState(() {
       _items = future;
+      _loadingMore = false;
+      _loadMoreFailed = false;
     });
     try {
       await future;
     } catch (_) {
       // O feed anterior continua visível e a tela oferece nova tentativa.
     }
+  }
+
+  Future<void> _findPeople() async {
+    await widget.onFindPeople?.call();
+    if (mounted) await _reload();
   }
 
   @override
@@ -66,7 +114,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             _lastItems == null) {
-          return const GdSkeleton();
+          return const GaronaSkeleton();
         }
         if (snapshot.hasError && _lastItems == null) {
           return _FeedMessage(
@@ -78,7 +126,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
           );
         }
         final items =
-            snapshot.data ?? _lastItems ?? const <FollowingFeedItem>[];
+            _lastItems ?? snapshot.data ?? const <FollowingFeedItem>[];
         return RefreshIndicator(
           onRefresh: _reload,
           child: ListView(
@@ -99,14 +147,17 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                 const SizedBox(height: 12),
               ],
               if (items.isEmpty)
-                const _FeedMessage(
+                _FeedMessage(
                   icon: Icons.person_add_alt_1_rounded,
                   title: 'Acompanhe novas histórias',
                   message:
                       'Siga pessoas e as evoluções recentes dos projetos delas aparecerão aqui.',
+                  actionLabel:
+                      widget.onFindPeople == null ? null : 'Encontrar pessoas',
+                  onAction: widget.onFindPeople == null ? null : _findPeople,
                 )
               else ...[
-                GdSectionTitle(
+                GaronaSectionTitle(
                   title: 'Atualizações recentes',
                   eyebrow: 'DA SUA COMUNIDADE',
                   trailing: Text(
@@ -116,7 +167,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                 ),
                 const SizedBox(height: 20),
                 for (var index = 0; index < items.length; index++) ...[
-                  GdReveal(
+                  GaronaReveal(
                     key: ValueKey(items[index].evolution.id),
                     child: _EvolutionFeedCard(
                       item: items[index],
@@ -127,6 +178,26 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                     ),
                   ),
                   if (index != items.length - 1) const SizedBox(height: 24),
+                ],
+                if (_nextCursor != null) ...[
+                  const SizedBox(height: 24),
+                  if (_loadMoreFailed)
+                    const Center(
+                      child:
+                          Text('Não foi possível carregar mais atualizações.'),
+                    ),
+                  if (_loadMoreFailed) const SizedBox(height: 8),
+                  Center(
+                    child: _loadingMore ||
+                            snapshot.connectionState == ConnectionState.waiting
+                        ? const CircularProgressIndicator()
+                        : OutlinedButton(
+                            onPressed: _loadMore,
+                            child: Text(_loadMoreFailed
+                                ? 'Tentar novamente'
+                                : 'Carregar mais atualizações'),
+                          ),
+                  ),
                 ],
               ],
             ],
@@ -165,13 +236,13 @@ final class _EvolutionFeedCard extends StatelessWidget {
 
     return Material(
       color: colors.surfaceContainer,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(16),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: colors.outlineVariant),
           ),
           child: Column(
@@ -184,7 +255,7 @@ final class _EvolutionFeedCard extends StatelessWidget {
                     InkWell(
                       onTap: onProfileTap,
                       customBorder: const CircleBorder(),
-                      child: GdAvatar(
+                      child: GaronaAvatar(
                         size: 38,
                         url: car.ownerAvatarUrl,
                         name: car.ownerName,
@@ -228,13 +299,10 @@ final class _EvolutionFeedCard extends StatelessWidget {
                 ),
               ),
               if (imageUrl != null)
-                AspectRatio(
-                  aspectRatio: 16 / 10,
-                  child: GdImage(
-                    url: imageUrl,
-                    semanticLabel: evolution.title,
-                  ),
-                ),
+                EvolutionPhotoFrame(
+                    image: NetworkImage(imageUrl),
+                    label: evolution.title,
+                    maxHeight: 260),
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 17, 18, 16),
                 child: Column(

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
 
 final class ApiClient {
   ApiClient({

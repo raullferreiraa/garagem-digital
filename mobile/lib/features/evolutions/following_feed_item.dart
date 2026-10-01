@@ -1,5 +1,12 @@
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+
+final class FollowingFeedPage {
+  const FollowingFeedPage({required this.items, this.nextCursor});
+
+  final List<FollowingFeedItem> items;
+  final String? nextCursor;
+}
 
 final class FollowingFeedItem {
   const FollowingFeedItem({

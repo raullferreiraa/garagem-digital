@@ -39,6 +39,14 @@ from app.services.media import (
     remover_midias_do_carro,
     salvar_foto_principal,
 )
+from app.services.projetos_salvos import (
+    CursorSalvosInvalido,
+    carro_acessivel,
+    esta_salvo,
+    listar_salvos,
+    remover,
+    salvar,
+)
 
 
 router = APIRouter()
@@ -62,7 +70,11 @@ def feed_carros(
     cursor: str | None = None,
     busca: Annotated[str | None, Query(min_length=2, max_length=100)] = None,
     ordem: Annotated[Literal["recentes", "em_alta"], Query()] = "recentes",
+    ano_min: Annotated[int | None, Query(ge=1886, le=2200)] = None,
+    ano_max: Annotated[int | None, Query(ge=1886, le=2200)] = None,
 ) -> PaginaCarros:
+    if ano_min is not None and ano_max is not None and ano_min > ano_max:
+        raise HTTPException(status_code=422, detail="A faixa de anos é inválida.")
     try:
         return listar_feed(
             db,
@@ -71,6 +83,8 @@ def feed_carros(
             busca=busca,
             ordem=ordem,
             usuario_id=usuario.id if usuario is not None else None,
+            ano_min=ano_min,
+            ano_max=ano_max,
         )
     except CursorInvalido as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
@@ -84,12 +98,61 @@ def meus_carros(usuario: UsuarioAtual, db: DbSession) -> list[CarroPrivado]:
     ]
 
 
+@router.get("/salvos", response_model=PaginaCarros)
+def projetos_salvos(
+    usuario: UsuarioAtual,
+    db: DbSession,
+    limite: Annotated[int, Query(ge=1, le=50)] = 20,
+    cursor: str | None = None,
+    busca: Annotated[str | None, Query(max_length=100)] = None,
+) -> PaginaCarros:
+    try:
+        return listar_salvos(db, usuario.id, limite=limite, cursor=cursor, busca=busca)
+    except CursorSalvosInvalido as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+
+@router.get("/{carro_id}/salvo", response_model=dict[str, bool])
+def status_projeto_salvo(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> dict[str, bool]:
+    if carro_acessivel(db, carro_id, usuario.id) is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    return {"salvo": esta_salvo(db, usuario.id, carro_id)}
+
+
+@router.put("/{carro_id}/salvo", status_code=status.HTTP_204_NO_CONTENT)
+def salvar_projeto(carro_id: UUID, usuario: UsuarioAtual, db: DbSession) -> Response:
+    if carro_acessivel(db, carro_id, usuario.id) is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    salvar(db, usuario.id, carro_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.delete("/{carro_id}/salvo", status_code=status.HTTP_204_NO_CONTENT)
+def remover_projeto_salvo(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> Response:
+    remover(db, usuario.id, carro_id)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.get("/{carro_id}", response_model=CarroPublico)
 def detalhe_carro(carro_id: UUID, db: DbSession) -> CarroPublico:
     carro = obter_carro(db, carro_id)
     if carro is None:
         raise HTTPException(status_code=404, detail="Carro nao encontrado.")
     return CarroPublico.model_validate(carro)
+
+
+@router.get("/{carro_id}/meu", response_model=CarroPrivado)
+def detalhe_meu_carro(
+    carro_id: UUID, usuario: UsuarioAtual, db: DbSession
+) -> CarroPrivado:
+    carro = obter_carro_do_proprietario(db, carro_id, usuario.id)
+    if carro is None:
+        raise HTTPException(status_code=404, detail="Carro nao encontrado.")
+    return CarroPrivado.model_validate(carro)
 
 
 @router.patch("/{carro_id}", response_model=CarroPrivado)

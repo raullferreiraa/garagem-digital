@@ -3,7 +3,7 @@ from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, Text, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PostgresUUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
@@ -192,3 +192,15 @@ class MensagemEquipe(Base):
     criada_em: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=agora_utc, server_default=func.now()
     )
+    editada_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    excluida_em: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resposta_a_id: Mapped[UUID | None] = mapped_column(
+        PostgresUUID(as_uuid=True),
+        ForeignKey("mensagens_equipe.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    resposta_a: Mapped["MensagemEquipe | None"] = relationship(
+        "MensagemEquipe", remote_side=[id], foreign_keys=[resposta_a_id],
+        lazy="joined", join_depth=1,
+    )
+    autor = relationship("Usuario", foreign_keys=[autor_id], lazy="joined")

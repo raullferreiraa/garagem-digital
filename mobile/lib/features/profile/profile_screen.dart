@@ -1,25 +1,30 @@
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/config/app_config.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/profile/edit_profile_screen.dart';
-import 'package:garagem_mobile/features/profile/blocked_users_screen.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
-import 'package:garagem_mobile/features/profile/security_screen.dart';
-import 'package:garagem_mobile/features/profile/social_users_screen.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/project_card.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/cars/saved_projects_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/profile/edit_profile_screen.dart';
+import 'package:garona_mobile/features/profile/blocked_users_screen.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/profile/security_screen.dart';
+import 'package:garona_mobile/features/profile/social_users_screen.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/features/teams/team_detail_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class ProfileScreen extends StatefulWidget {
   const ProfileScreen({
@@ -28,6 +33,7 @@ final class ProfileScreen extends StatefulWidget {
     required this.evolutionsRepository,
     required this.usersRepository,
     required this.messagesRepository,
+    required this.teamsRepository,
     required this.onConversationChanged,
     super.key,
   });
@@ -37,6 +43,7 @@ final class ProfileScreen extends StatefulWidget {
   final EvolutionsRepository evolutionsRepository;
   final UsersRepository usersRepository;
   final MessagesRepository messagesRepository;
+  final TeamsRepository teamsRepository;
   final VoidCallback onConversationChanged;
 
   @override
@@ -104,6 +111,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
           carsRepository: widget.carsRepository,
           evolutionsRepository: widget.evolutionsRepository,
           messagesRepository: widget.messagesRepository,
+          teamsRepository: widget.teamsRepository,
           onConversationChanged: widget.onConversationChanged,
         ),
       ),
@@ -156,6 +164,22 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
     if (mounted) await _reload();
+  }
+
+  Future<void> _openTeam(ProfileTeam team) async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => TeamDetailScreen(
+        teamId: team.id,
+        repository: widget.teamsRepository,
+        carsRepository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        usersRepository: widget.usersRepository,
+        messagesRepository: widget.messagesRepository,
+        onConversationChanged: widget.onConversationChanged,
+      ),
+    ));
+    if (mounted) await _loadSocialProfile();
   }
 
   Future<void> _createCar() async {
@@ -212,6 +236,17 @@ final class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _openSavedProjects() async {
+    await Navigator.of(context).push<void>(MaterialPageRoute(
+      builder: (_) => SavedProjectsScreen(
+        repository: widget.carsRepository,
+        evolutionsRepository: widget.evolutionsRepository,
+        currentUserId: widget.session.user!.id,
+        onProfileTap: _openPublicProfile,
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = widget.session.user!;
@@ -219,7 +254,12 @@ final class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         title: const Text('Perfil'),
         actions: [
-          GdShareAction(
+          IconButton(
+            onPressed: _openSavedProjects,
+            tooltip: 'Projetos salvos',
+            icon: const Icon(Icons.bookmark_border_rounded),
+          ),
+          GaronaShareAction(
             payload: ShareContent.profileValues(
               name: user.name,
               username: user.username,
@@ -244,7 +284,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 112),
               children: [
-                GdReveal(
+                GaronaReveal(
                     child: _ProfileHero(
                   name: user.name,
                   username: user.username,
@@ -257,12 +297,28 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   followingCount: _socialProfile?.followingCount ?? 0,
                   onFollowers: () => _openConnections(following: false),
                   onFollowing: () => _openConnections(following: true),
-                  onEdit: _editProfile,
                 )),
+                if (_socialProfile?.team case final team?) ...[
+                  const SizedBox(height: 24),
+                  const GaronaSectionTitle(
+                      title: 'Minha equipe', eyebrow: 'NA MESMA PISTA'),
+                  const SizedBox(height: 12),
+                  Card(
+                    margin: EdgeInsets.zero,
+                    child: ListTile(
+                      leading: GaronaAvatar(
+                          name: team.name, url: team.avatarUrl, size: 48),
+                      title: Text(team.name),
+                      subtitle: const Text('Ver equipe'),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () => _openTeam(team),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 28),
-                GdSectionTitle(
-                  title: 'Minha coleção',
-                  eyebrow: 'FEITO DO SEU JEITO',
+                GaronaSectionTitle(
+                  title: 'Minha garagem',
+                  eyebrow: 'CARROS COM HISTÓRIA',
                   trailing: snapshot.connectionState == ConnectionState.waiting
                       ? const SizedBox.square(
                           dimension: 22,
@@ -273,7 +329,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
-                  child: FilledButton.icon(
+                  child: OutlinedButton.icon(
                     onPressed: _createCar,
                     icon: const Icon(Icons.add),
                     label: const Text('Adicionar projeto'),
@@ -291,7 +347,7 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                     cars.isEmpty)
                   const SizedBox(
                     height: 260,
-                    child: GdSkeleton(compact: true),
+                    child: GaronaSkeleton(compact: true),
                   )
                 else if (snapshot.connectionState != ConnectionState.waiting &&
                     cars.isEmpty)
@@ -305,7 +361,9 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                   ...cars.map(
                     (car) => Padding(
                       padding: const EdgeInsets.only(bottom: 14),
-                      child: _ProjectCard(
+                      child: GaronaProjectCard(
+                        compact: true,
+                        highlighted: true,
                         car: car,
                         onTap: () => _openCar(car),
                       ),
@@ -314,7 +372,8 @@ final class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 18),
                 const Divider(),
                 const SizedBox(height: 20),
-                const GdSectionTitle(title: 'Sua conta', eyebrow: 'SÓ VOCÊ VÊ'),
+                const GaronaSectionTitle(
+                    title: 'Sua conta', eyebrow: 'SÓ VOCÊ VÊ'),
                 const SizedBox(height: 12),
                 ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 4),
@@ -378,7 +437,6 @@ final class _ProfileHero extends StatelessWidget {
     required this.followingCount,
     required this.onFollowers,
     required this.onFollowing,
-    required this.onEdit,
   });
 
   final String name;
@@ -392,7 +450,6 @@ final class _ProfileHero extends StatelessWidget {
   final int followingCount;
   final VoidCallback onFollowers;
   final VoidCallback onFollowing;
-  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -401,94 +458,55 @@ final class _ProfileHero extends StatelessWidget {
     final location = [city, state]
         .where((value) => value != null && value.isNotEmpty)
         .join(' · ');
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-                child: Text(
-              'QUEM ESTÁ AO VOLANTE',
-              style: theme.textTheme.labelSmall?.copyWith(
-                letterSpacing: 2,
-                color: colors.primary,
-              ),
-            )),
-            Icon(Icons.sports_motorsports_outlined,
-                color: colors.primary, size: 24),
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const GaronaEyebrow('GARONA / GARAGEM'),
+      const SizedBox(height: 16),
+      Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+        GaronaAvatar(name: name, url: avatarUrl, size: 68),
+        const SizedBox(width: 14),
+        Expanded(
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(name,
+              style: theme.textTheme.headlineLarge?.copyWith(
+                  fontFamily: 'BarlowCondensed',
+                  fontSize: 32,
+                  height: 1.05,
+                  fontWeight: FontWeight.w700)),
+          const SizedBox(height: 4),
+          Text('@$username',
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: colors.primary)),
+          if (location.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(location,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: colors.onSurfaceVariant)),
           ],
-        ),
-        const SizedBox(height: 22),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            GdAvatar(name: name, url: avatarUrl, size: 88),
-            const SizedBox(width: 18),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name, style: theme.textTheme.headlineLarge),
-                  const SizedBox(height: 3),
-                  Text('@$username',
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colors.primary,
-                      )),
-                  if (location.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Row(children: [
-                      Icon(Icons.location_on_outlined,
-                          size: 14, color: colors.onSurfaceVariant),
-                      const SizedBox(width: 4),
-                      Expanded(
-                          child: Text(
-                        location,
-                        style: theme.textTheme.labelMedium
-                            ?.copyWith(color: colors.onSurfaceVariant),
-                      )),
-                    ]),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 20),
-        Text(
-          bio?.isNotEmpty == true
-              ? bio!
-              : 'Sua história também faz parte do projeto. Adicione uma bio.',
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: colors.onSurfaceVariant, height: 1.6),
-        ),
-        const SizedBox(height: 20),
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            border: Border(
-              top: BorderSide(color: colors.outlineVariant),
-              bottom: BorderSide(color: colors.outlineVariant),
-            ),
-          ),
+        ])),
+      ]),
+      if (bio?.isNotEmpty == true) ...[
+        const SizedBox(height: 14),
+        Text(bio!,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: colors.onSurfaceVariant, height: 1.5)),
+      ],
+      const SizedBox(height: 16),
+      GaronaPanel(
+          radius: 18,
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
           child: Row(children: [
-            _ProfileSocialStat(value: projectsCount, label: 'projetos'),
             _ProfileSocialStat(
-                value: followersCount, label: 'seguidores', onTap: onFollowers),
+                value: projectsCount,
+                label: projectsCount == 1 ? 'projeto' : 'projetos'),
+            _ProfileSocialStat(
+                value: followersCount,
+                label: followersCount == 1 ? 'seguidor' : 'seguidores',
+                onTap: onFollowers),
             _ProfileSocialStat(
                 value: followingCount, label: 'seguindo', onTap: onFollowing),
-          ]),
-        ),
-        const SizedBox(height: 18),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: onEdit,
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('Editar perfil'),
-          ),
-        ),
-      ],
-    );
+          ])),
+    ]);
   }
 }
 
@@ -522,63 +540,6 @@ final class _ProfileSocialStat extends StatelessWidget {
   }
 }
 
-final class _ProjectCard extends StatelessWidget {
-  const _ProjectCard({required this.car, required this.onTap});
-
-  final Car car;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final title =
-        [car.model, car.year].where((value) => value != null).join(' ');
-    return GdReveal(
-      child: Card(
-        margin: EdgeInsets.zero,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AspectRatio(
-                aspectRatio: 16 / 9,
-                child: GdImage(url: car.photoUrl, semanticLabel: title),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(children: [
-                  Expanded(
-                      child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (car.projectStatus != null) ...[
-                        Text(
-                          car.projectStatus!.toUpperCase(),
-                          style: theme.textTheme.labelSmall?.copyWith(
-                            color: theme.colorScheme.primary,
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                        const SizedBox(height: 5),
-                      ],
-                      Text(title, style: theme.textTheme.titleLarge),
-                    ],
-                  )),
-                  const SizedBox(width: 12),
-                  Icon(Icons.north_east_rounded,
-                      color: theme.colorScheme.primary, size: 22),
-                ]),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 final class _CountBadge extends StatelessWidget {
   const _CountBadge({required this.count});
 
@@ -590,7 +551,7 @@ final class _CountBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         count.toString(),
@@ -614,25 +575,10 @@ final class _ProfileMessage extends StatelessWidget {
   final VoidCallback? onAction;
 
   @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(icon, size: 44),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            if (onAction != null) ...[
-              const SizedBox(height: 16),
-              FilledButton(
-                onPressed: onAction,
-                child: Text(actionLabel!),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GaronaEmptyState(
+      icon: icon,
+      title: message,
+      action: onAction == null
+          ? null
+          : FilledButton(onPressed: onAction, child: Text(actionLabel!)));
 }

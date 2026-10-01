@@ -1,11 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class TeamInviteSheet extends StatefulWidget {
   const TeamInviteSheet({
@@ -161,15 +162,11 @@ final class _TeamInviteSheetState extends State<TeamInviteSheet> {
       separatorBuilder: (_, __) => const Divider(height: 1),
       itemBuilder: (context, index) {
         final user = _results[index];
-        final initial = user.name.isEmpty ? '?' : user.name[0].toUpperCase();
         final inviting = _invitingUserId == user.id;
         return ListTile(
-          contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-          leading: CircleAvatar(
-            backgroundImage:
-                user.avatarUrl == null ? null : NetworkImage(user.avatarUrl!),
-            child: user.avatarUrl == null ? Text(initial) : null,
-          ),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+          leading: GaronaAvatar(name: user.name, url: user.avatarUrl),
           title: Text(
             '@${user.username}',
             style: const TextStyle(fontWeight: FontWeight.w800),

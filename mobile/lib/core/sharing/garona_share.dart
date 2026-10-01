@@ -1,47 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-final class GdSharePayload {
-  const GdSharePayload({required this.title, required this.text});
+final class GaronaSharePayload {
+  const GaronaSharePayload({required this.title, required this.text});
 
   final String title;
   final String text;
 }
 
-abstract final class GdShare {
+abstract final class GaronaShare {
   static const _channel = MethodChannel(
     'br.com.garagem.garagem_mobile/share',
   );
 
-  static Future<void> open(GdSharePayload payload) =>
+  static Future<void> open(GaronaSharePayload payload) =>
       _channel.invokeMethod<void>('shareText', {
         'title': payload.title,
         'text': payload.text,
       });
 }
 
-final class GdShareAction extends StatefulWidget {
-  const GdShareAction({
+final class GaronaShareAction extends StatefulWidget {
+  const GaronaShareAction({
     required this.payload,
     required this.tooltip,
     super.key,
   });
 
-  final GdSharePayload payload;
+  final GaronaSharePayload payload;
   final String tooltip;
 
   @override
-  State<GdShareAction> createState() => _GdShareActionState();
+  State<GaronaShareAction> createState() => _GaronaShareActionState();
 }
 
-final class _GdShareActionState extends State<GdShareAction> {
+final class _GaronaShareActionState extends State<GaronaShareAction> {
   bool _opening = false;
 
   Future<void> _share() async {
     if (_opening) return;
     setState(() => _opening = true);
     try {
-      await GdShare.open(widget.payload);
+      await GaronaShare.open(widget.payload);
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

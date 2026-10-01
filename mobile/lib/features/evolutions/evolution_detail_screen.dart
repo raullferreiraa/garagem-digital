@@ -1,12 +1,16 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_comment_draft.dart';
+import 'package:garona_mobile/features/evolutions/evolution_interactions.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
 
 final class EvolutionDetailScreen extends StatefulWidget {
   const EvolutionDetailScreen({
@@ -30,6 +34,12 @@ final class EvolutionDetailScreen extends StatefulWidget {
 
 final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   final _commentController = TextEditingController();
+  final _draftStorage = const EvolutionCommentDraftStorage();
+  Timer? _draftTimer;
+  bool _draftEdited = false;
+  bool _draftLoaded = false;
+  String? _draftReplyId;
+  bool _draftReplyMissing = false;
   final _commentFocusNode = FocusNode();
   final _scrollController = ScrollController();
   final Map<String, GlobalKey> _commentKeys = {};
@@ -45,15 +55,63 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _commentController.addListener(_onDraftChanged);
+    _restoreDraft();
     _future = _fetchInteractions();
   }
 
   @override
   void dispose() {
+    _draftTimer?.cancel();
+    if (_draftLoaded || _draftEdited) _saveDraft();
     _commentController.dispose();
     _commentFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _restoreDraft() async {
+    try {
+      final draft =
+          await _draftStorage.read(widget.currentUserId, widget.evolution.id);
+      if (!mounted) return;
+      _draftLoaded = true;
+      if (_draftEdited || draft == null) return;
+      _draftReplyId = draft.replyToId;
+      _commentController.text = draft.text;
+      _applyDraftReply();
+    } catch (_) {
+      _draftLoaded = true;
+    }
+  }
+
+  void _onDraftChanged() {
+    _draftEdited = true;
+    _draftTimer?.cancel();
+    _draftTimer = Timer(const Duration(milliseconds: 350), _saveDraft);
+  }
+
+  void _saveDraft() {
+    final draft = EvolutionCommentDraft(
+      _commentController.text,
+      _replyingTo?.id ?? _draftReplyId,
+    );
+    unawaited(_draftStorage
+        .save(widget.currentUserId, widget.evolution.id, draft)
+        .catchError((Object _) {}));
+  }
+
+  void _applyDraftReply() {
+    final interactions = _interactions;
+    final replyId = _draftReplyId;
+    if (interactions == null || replyId == null || !mounted) return;
+    final target =
+        interactions.comments.where((item) => item.id == replyId).firstOrNull;
+    setState(() {
+      _replyingTo = target;
+      _draftReplyMissing = target == null;
+    });
+    _draftReplyId = null;
   }
 
   Future<EvolutionInteractions> _fetchInteractions() async {
@@ -63,6 +121,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     );
     if (mounted) {
       setState(() => _interactions = interactions);
+      _applyDraftReply();
       _scheduleHighlightedComment();
     } else {
       _interactions = interactions;
@@ -272,12 +331,23 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 
   void _startReply(EvolutionComment comment) {
-    setState(() => _replyingTo = comment);
+    setState(() {
+      _replyingTo = comment;
+      _draftReplyMissing = false;
+    });
+    _draftEdited = true;
+    _draftReplyId = null;
+    _saveDraft();
     _commentFocusNode.requestFocus();
   }
 
   void _cancelReply() {
-    setState(() => _replyingTo = null);
+    setState(() {
+      _replyingTo = null;
+      _draftReplyMissing = false;
+    });
+    _draftReplyId = null;
+    _saveDraft();
   }
 
   Future<void> _sendComment() async {
@@ -316,8 +386,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                 ],
         );
         _replyingTo = null;
+        _draftReplyMissing = false;
         _sendingComment = false;
       });
+      _draftReplyId = null;
+      _draftTimer?.cancel();
+      _saveDraft();
     } catch (error) {
       if (!mounted) return;
       setState(() => _sendingComment = false);
@@ -350,6 +424,33 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     if (confirmed == true && mounted) {
       await _deleteComment(comment);
     }
+  }
+
+  Future<void> _editComment(EvolutionComment comment) async {
+    final edited = await showDialog<EvolutionComment>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _EditCommentDialog(
+        comment: comment,
+        onSave: (content) => widget.repository.editComment(
+          widget.evolution.carId,
+          widget.evolution.id,
+          comment.id,
+          content,
+        ),
+      ),
+    );
+    if (!mounted || edited == null || _interactions == null) return;
+    setState(() {
+      final current = _interactions!;
+      _interactions = current.copyWith(
+        comments: _replaceCommentIn(
+          current.comments,
+          (_findComment(current.comments, comment.id) ?? comment)
+              .copyWith(content: edited.content, editedAt: edited.editedAt),
+        ),
+      );
+    });
   }
 
   Future<void> _deleteComment(EvolutionComment comment) async {
@@ -387,6 +488,9 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     }
   }
 
+  String _formatMileage(int value) => value.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'), (match) => '${match[1]}.');
+
   String _formatDate(DateTime date) {
     final local = date.toLocal();
     final day = local.day.toString().padLeft(2, '0');
@@ -397,7 +501,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 
   Widget _avatar(EvolutionComment comment) {
-    return GdAvatar(
+    return GaronaAvatar(
       url: comment.authorAvatarUrl,
       name: comment.authorName,
     );
@@ -419,6 +523,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       onLike: () => _toggleCommentLike(comment),
       onReply: isReply ? null : () => _startReply(comment),
       onDelete: () => _confirmDeleteComment(comment),
+      onEdit: () => _editComment(comment),
     );
   }
 
@@ -453,7 +558,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       appBar: AppBar(
         title: const Text('Evolução do projeto'),
         actions: [
-          GdShareAction(
+          GaronaShareAction(
             payload: ShareContent.evolution(evolution),
             tooltip: 'Compartilhar evolução',
           ),
@@ -465,7 +570,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           final interactions = _interactions ?? snapshot.data;
           if (interactions == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const GdSkeleton();
+            return const GaronaSkeleton();
           }
           if (interactions == null) {
             return Center(
@@ -492,8 +597,8 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
-                GdSectionTitle(
-                  eyebrow: 'Diário de bordo',
+                GaronaSectionTitle(
+                  eyebrow: 'DIÁRIO DE BORDO',
                   title: evolution.title,
                 ),
                 const SizedBox(height: 6),
@@ -502,69 +607,32 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    Chip(
-                      avatar:
-                          const Icon(Icons.calendar_today_outlined, size: 17),
-                      label: Text(_formatDate(evolution.timelineDate)),
-                    ),
-                    if (evolution.category != null)
-                      Chip(
-                        label: Text(
-                          evolutionCategoryLabels[evolution.category] ??
-                              evolution.category!,
-                        ),
-                      ),
-                    if (evolution.mileageKm != null)
-                      Chip(
-                        avatar: const Icon(Icons.speed_outlined, size: 18),
-                        label: Text('${evolution.mileageKm} km'),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 18),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  GaronaBadge(
+                      label: _formatDate(evolution.timelineDate),
+                      icon: Icons.schedule_rounded),
+                  if (evolution.category != null)
+                    GaronaBadge(
+                        label: evolutionCategoryLabels[evolution.category] ??
+                            evolution.category!,
+                        icon: Icons.build_outlined,
+                        accent: true),
+                  if (evolution.mileageKm != null)
+                    GaronaBadge(
+                        label: '${_formatMileage(evolution.mileageKm!)} km',
+                        icon: Icons.speed_outlined),
+                ]),
+                const SizedBox(height: 20),
                 Text(
                   evolution.description,
-                  style: Theme.of(context).textTheme.bodyLarge,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyLarge
+                      ?.copyWith(height: 1.55),
                 ),
                 if (evolution.photos.isNotEmpty) ...[
-                  const SizedBox(height: 20),
-                  SizedBox(
-                    height: 190,
-                    child: ListView.separated(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: evolution.photos.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 10),
-                      itemBuilder: (context, index) {
-                        final photo = evolution.photos[index];
-                        return InkWell(
-                          borderRadius: BorderRadius.circular(14),
-                          onTap: () => Navigator.of(context).push<void>(
-                            MaterialPageRoute(
-                              builder: (_) => EvolutionPhotoViewer(
-                                photos: evolution.photos,
-                                initialIndex: index,
-                              ),
-                            ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(14),
-                            child: AspectRatio(
-                              aspectRatio: 4 / 3,
-                              child: GdImage(
-                                url: photo.url,
-                                semanticLabel:
-                                    'Foto da evolução ${evolution.title}',
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                  const SizedBox(height: 24),
+                  EvolutionGallery(evolution: evolution),
                 ],
                 const SizedBox(height: 22),
                 const Divider(),
@@ -622,20 +690,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                     ),
                   )
                 else
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        for (var index = 0;
-                            index < interactions.comments.length;
-                            index++) ...[
-                          _buildCommentThread(interactions.comments[index]),
-                          if (index < interactions.comments.length - 1)
-                            const Divider(height: 1),
-                        ],
-                      ],
-                    ),
-                  ),
+                  for (final comment in interactions.comments)
+                    Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: _buildCommentThread(comment))),
               ],
             ),
           );
@@ -645,9 +705,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           ? null
           : SafeArea(
               top: false,
-              child: Material(
-                elevation: 12,
-                color: Theme.of(context).colorScheme.surface,
+              child: GaronaComposerSurface(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     12,
@@ -658,6 +716,15 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      if (_draftReplyMissing)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Text(
+                            'O comentário original não está mais disponível. Seu texto foi mantido como comentário.',
+                            style: TextStyle(
+                                color: Theme.of(context).colorScheme.error),
+                          ),
+                        ),
                       if (_replyingTo != null)
                         Row(
                           children: [
@@ -724,6 +791,83 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 }
 
+final class _EditCommentDialog extends StatefulWidget {
+  const _EditCommentDialog({required this.comment, required this.onSave});
+
+  final EvolutionComment comment;
+  final Future<EvolutionComment> Function(String content) onSave;
+
+  @override
+  State<_EditCommentDialog> createState() => _EditCommentDialogState();
+}
+
+final class _EditCommentDialogState extends State<_EditCommentDialog> {
+  late final _controller = TextEditingController(text: widget.comment.content);
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving || _controller.text.trim().isEmpty) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    try {
+      final edited = await widget.onSave(_controller.text);
+      if (mounted) Navigator.pop(context, edited);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _saving = false;
+          _error = apiErrorMessage(error);
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+        title: const Text('Editar comentário'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(
+            controller: _controller,
+            onChanged: (_) => setState(() {}),
+            maxLength: 1000,
+            minLines: 2,
+            maxLines: 5,
+            autofocus: true,
+            decoration: const InputDecoration(labelText: 'Comentário'),
+          ),
+          if (_error != null)
+            Text(_error!,
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+        ]),
+        actions: [
+          TextButton(
+            onPressed: _saving ? null : () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed:
+                _saving || _controller.text.trim().isEmpty ? null : _save,
+            child: const Text('Salvar'),
+          ),
+        ],
+      );
+}
+
+String _formatEditedAt(DateTime date) {
+  final local = date.toLocal();
+  String two(int value) => value.toString().padLeft(2, '0');
+  return '${two(local.day)}/${two(local.month)}/${local.year} às ${two(local.hour)}:${two(local.minute)}';
+}
+
 final class _CommentTile extends StatelessWidget {
   const _CommentTile({
     required this.comment,
@@ -735,6 +879,7 @@ final class _CommentTile extends StatelessWidget {
     required this.highlighted,
     required this.onLike,
     required this.onDelete,
+    required this.onEdit,
     this.onReply,
     this.onAuthorTap,
     super.key,
@@ -749,6 +894,7 @@ final class _CommentTile extends StatelessWidget {
   final bool highlighted;
   final VoidCallback onLike;
   final VoidCallback onDelete;
+  final VoidCallback onEdit;
   final VoidCallback? onReply;
   final VoidCallback? onAuthorTap;
 
@@ -798,9 +944,28 @@ final class _CommentTile extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    date,
-                    style: Theme.of(context).textTheme.labelSmall,
+                  Wrap(
+                    spacing: 7,
+                    runSpacing: 3,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(date, style: Theme.of(context).textTheme.labelSmall),
+                      if (comment.editedAt != null)
+                        Tooltip(
+                          message:
+                              'Editado em ${_formatEditedAt(comment.editedAt!)}',
+                          child: Text(
+                            '· Editado',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                  color: Theme.of(context).colorScheme.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(comment.content),
@@ -839,15 +1004,17 @@ final class _CommentTile extends StatelessWidget {
               ),
             ),
             if (canDelete)
-              IconButton(
-                onPressed: deleting ? null : onDelete,
-                tooltip: 'Excluir comentário',
-                icon: deleting
-                    ? const SizedBox.square(
-                        dimension: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.delete_outline),
+              PopupMenuButton<String>(
+                enabled: !deleting,
+                tooltip: 'Opções do comentário',
+                onSelected: (action) {
+                  if (action == 'edit') onEdit();
+                  if (action == 'delete') onDelete();
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(value: 'edit', child: Text('Editar')),
+                  PopupMenuItem(value: 'delete', child: Text('Excluir')),
+                ],
               ),
           ],
         ),

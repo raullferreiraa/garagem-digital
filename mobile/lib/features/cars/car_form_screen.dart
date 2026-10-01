@@ -1,11 +1,11 @@
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:flutter/services.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
 
 const _fuelOptions = [
   'Gasolina',
@@ -263,17 +263,14 @@ class _CarFormScreenState extends State<CarFormScreen> {
                     ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                 children: [
-                  GdSectionTitle(
-                    eyebrow: 'Sua garagem / Identidade',
-                    title:
-                        _editing ? 'Dados do projeto' : 'Comece pelo essencial',
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _editing
-                        ? 'Mantenha a história e a ficha do carro atualizadas.'
-                        : 'Você poderá completar e atualizar o projeto a qualquer momento.',
-                  ),
+                  GaronaIntro(
+                      eyebrow: 'Sua garagem / Identidade',
+                      title: _editing
+                          ? 'Dados do projeto'
+                          : 'Comece pelo essencial',
+                      description: _editing
+                          ? 'Mantenha a história e a ficha do carro atualizadas.'
+                          : 'Você poderá completar e atualizar o projeto a qualquer momento.'),
                   const SizedBox(height: 24),
                   if (!_editing)
                     FormPhoto(

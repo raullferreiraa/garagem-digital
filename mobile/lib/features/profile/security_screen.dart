@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
 
 final class SecurityScreen extends StatefulWidget {
   const SecurityScreen({required this.session, super.key});
@@ -69,7 +69,7 @@ final class _SecurityScreenState extends State<SecurityScreen> {
           keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
           children: [
-            GdReveal(
+            GaronaReveal(
               child: Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
@@ -105,7 +105,7 @@ final class _SecurityScreenState extends State<SecurityScreen> {
               ),
             ),
             const SizedBox(height: 28),
-            const GdSectionTitle(
+            const GaronaSectionTitle(
               title: 'Alterar senha',
               eyebrow: 'PROTEÇÃO DA CONTA',
             ),

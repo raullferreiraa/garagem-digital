@@ -3,25 +3,33 @@ import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:garona_mobile/core/widgets/garona_mark.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/home/home_shell.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/core/widgets/garona_navigation.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/auth/user.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/register_screen.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garona_mobile/features/events/event_form_screen.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/home/home_shell.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/features/teams/team_form_screen.dart';
 
 class _Tokens implements TokenStorage {
   @override
@@ -60,10 +68,13 @@ const _car = <String, Object?>{
 // Public endpoints redact private plates; /carros/meus returns the owner's data.
 final _publicCar = <String, Object?>{
   ..._car,
+  'id': 'visitor-car',
+  'proprietario': {..._owner, 'id': 'other-driver'},
   'placa': null,
 }..remove('placa_visivel');
 
-Widget _app(double scale) {
+Widget _app(double scale,
+    {Widget Function(SessionController, ApiClient)? page}) {
   final tokens = _Tokens();
   final api =
       ApiClient(baseUrl: 'http://localhost/api/v1', tokenStorage: tokens);
@@ -74,9 +85,51 @@ Widget _app(double scale) {
           'proximo_cursor': null
         },
       '/carros/meus' => [_car],
-      '/carros/fusca' => _publicCar,
-      '/usuarios/driver' => {
+      '/carros/visitor-car' => _publicCar,
+      '/carros/fusca/meu' => _car,
+      '/equipes/club' => {
+          'id': 'club',
+          'nome': 'Clube dos Clássicos',
+          'slug': 'classicos',
+          'visibilidade': 'publica',
+          'total_membros': 32,
+          'meu_papel': 'membro',
+          'cidade': 'São Paulo',
+          'estado': 'SP',
+          'descricao': 'Preservando histórias sobre quatro rodas.',
+          'dono_id': 'another-driver',
+          'membros': [
+            {'usuario': _owner, 'papel': 'membro'},
+          ],
+          'carros': [_publicCar],
+          'solicitacoes_pendentes': <Object?>[],
+        },
+      '/eventos' => [
+          {
+            'id': 'meet',
+            'edicao_id': 'edition',
+            'nome': 'Clássicos na estrada',
+            'descricao':
+                'Um domingo para compartilhar projetos e boas histórias.',
+            'inicio':
+                DateTime.now().add(const Duration(days: 7)).toIso8601String(),
+            'visibilidade': 'publico',
+            'organizador_tipo': 'usuario',
+            'organizador_nome': 'Rafael Oliveira',
+            'organizador_id': 'driver',
+            'total_confirmados': 28,
+            'total_equipes': 3,
+            'posso_gerenciar': false,
+            'total_seguidores': 124,
+            'seguindo': true,
+            'cidade': 'São Paulo',
+            'estado': 'SP',
+            'edicoes': <Object?>[],
+          },
+        ],
+      '/usuarios/driver' || '/usuarios/other-driver' => {
           ..._owner,
+          'id': options.path.split('/').last,
           'bio': 'Clássicos, estrada e boas histórias.',
           'cidade': 'São Paulo',
           'estado': 'SP',
@@ -85,6 +138,7 @@ Widget _app(double scale) {
           'total_seguindo': 86,
           'seguido_por_mim': false
         },
+      '/usuarios/other-driver/carros' => [_publicCar],
       '/equipes' => [
           {
             'id': 'club',
@@ -150,21 +204,31 @@ Widget _app(double scale) {
         child: child!),
     home: RepaintBoundary(
         key: const ValueKey('design-preview'),
-        child: HomeShell(
-            session: session,
-            carsRepository: CarsRepository(api),
-            evolutionsRepository: EvolutionsRepository(api),
-            eventsRepository: EventsRepository(api),
-            messagesRepository: MessagesRepository(api),
-            notificationsRepository: NotificationsRepository(api),
-            teamsRepository: TeamsRepository(api),
-            usersRepository: UsersRepository(api))),
+        child: page?.call(session, api) ??
+            HomeShell(
+                session: session,
+                carsRepository: CarsRepository(api),
+                evolutionsRepository: EvolutionsRepository(api),
+                eventsRepository: EventsRepository(api),
+                messagesRepository: MessagesRepository(api),
+                notificationsRepository: NotificationsRepository(api),
+                teamsRepository: TeamsRepository(api),
+                usersRepository: UsersRepository(api))),
   );
 }
 
 Future<void> _preview(WidgetTester tester, String name) async {
   final output = Platform.environment['GD_PREVIEW_DIR'];
   if (output == null) return;
+  // Decode bundled images outside the fake clock before exporting a preview.
+  for (final element in find.byType(Image).evaluate()) {
+    final provider = (element.widget as Image).image;
+    if (provider is AssetImage ||
+        (provider is ResizeImage && provider.imageProvider is AssetImage)) {
+      await tester.runAsync(() => precacheImage(provider, element));
+    }
+  }
+  await tester.pumpAndSettle();
   final boundary = tester.renderObject<RenderRepaintBoundary>(
       find.byKey(const ValueKey('design-preview')));
   await tester.runAsync(() async {
@@ -192,13 +256,99 @@ void main() {
   });
 
   for (final layout in [(390.0, 1.0), (320.0, 1.4)]) {
-    testWidgets(
-        'abas mantêm conteúdo e navegação em ${layout.$1}px com escala ${layout.$2}',
+    testWidgets('perfil público preserva ações em ${layout.$1}px',
         (tester) async {
       tester.view.physicalSize = Size(layout.$1, 844);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(_app(layout.$2,
+          page: (session, api) => PublicProfileScreen(
+                userId: 'other-driver',
+                currentUserId: 'driver',
+                usersRepository: UsersRepository(api),
+                carsRepository: CarsRepository(api),
+                evolutionsRepository: EvolutionsRepository(api),
+                messagesRepository: MessagesRepository(api),
+                teamsRepository: TeamsRepository(api),
+                onConversationChanged: () {},
+              )));
+      await tester.pumpAndSettle();
+      expect(find.text('Seguir'), findsOneWidget);
+      expect(find.text('Mensagem'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      if (layout.$1 == 390) await _preview(tester, 'perfil-publico');
+      await tester.ensureVisible(find.text('Mensagem'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(find.text('Abrir projeto'), 250,
+          scrollable: find.byType(Scrollable).first);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('formulários premium continuam acessíveis em ${layout.$1}px',
+        (tester) async {
+      tester.view.physicalSize = Size(layout.$1, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final pages = <(String, Widget Function(SessionController, ApiClient))>[
+        ('login', (session, api) => LoginScreen(session: session)),
+        ('cadastro', (session, api) => RegisterScreen(session: session)),
+        (
+          'novo-projeto',
+          (session, api) => CarFormScreen(repository: CarsRepository(api))
+        ),
+        (
+          'nova-evolucao',
+          (session, api) => EvolutionFormScreen(
+              carId: 'fusca',
+              carModel: 'FUSCA 1300',
+              repository: EvolutionsRepository(api))
+        ),
+        (
+          'nova-equipe',
+          (session, api) => TeamFormScreen(repository: TeamsRepository(api))
+        ),
+        (
+          'novo-encontro',
+          (session, api) => EventFormScreen(repository: EventsRepository(api))
+        ),
+      ];
+      for (final page in pages) {
+        await tester.pumpWidget(_app(layout.$2, page: page.$2));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull, reason: page.$1);
+        if (layout.$1 == 390) await _preview(tester, page.$1);
+        final field = find.byType(TextFormField).first;
+        await tester.ensureVisible(field);
+        await tester.pumpAndSettle();
+        await tester.showKeyboard(field);
+        tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+        await tester.pumpAndSettle();
+        await Scrollable.ensureVisible(tester.element(field), alignment: .3);
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull,
+            reason: '${page.$1} com teclado');
+        FocusManager.instance.primaryFocus?.unfocus();
+        tester.view.resetViewInsets();
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      }
+    });
+
+    testWidgets(
+        'abas mantêm conteúdo e navegação em ${layout.$1}px com escala ${layout.$2}',
+        (tester) async {
+      tester.view.physicalSize = Size(layout.$1, 844);
+      tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 24);
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
       await tester.pumpWidget(_app(layout.$2));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -206,19 +356,23 @@ void main() {
       for (var index = 0; index < names.length; index++) {
         await tester.tap(find.byKey(ValueKey('nav-$index')));
         await tester.pumpAndSettle();
-        expect(find.byType(GdNavigation), findsOneWidget);
+        expect(find.byType(GaronaNavigation), findsOneWidget);
         if (index == 0) {
           expect(find.byKey(const ValueKey('activity-bell')), findsOneWidget);
           await tester.tap(find.byKey(const ValueKey('activity-bell')));
           await tester.pumpAndSettle();
           expect(find.text('Atividade'), findsOneWidget);
-          expect(find.byType(GdNavigation), findsNothing);
+          expect(find.byType(GaronaNavigation), findsNothing);
           expect(tester.takeException(), isNull);
           await tester.pageBack();
           await tester.pumpAndSettle();
         } else {
           expect(find.byKey(const ValueKey('activity-bell')), findsNothing);
         }
+        if (index == 1)
+          expect(find.text('Clássicos na estrada'), findsOneWidget);
+        if (index == 2)
+          expect(find.text('Clube dos Clássicos'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'Aba ${names[index]}');
         if (layout.$1 == 390) await _preview(tester, names[index]);
         final scrollables = find.byType(Scrollable);
@@ -238,19 +392,69 @@ void main() {
     });
   }
 
+  for (final layout in [(390.0, 1.0), (320.0, 1.4)]) {
+    testWidgets('navegação separa inset Android em ${layout.$1}px',
+        (tester) async {
+      tester.view.physicalSize = Size(layout.$1, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      double? dockHeight;
+      for (final inset in [0.0, 24.0, 48.0]) {
+        var selected = -1;
+        await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: Size(layout.$1, 844),
+              padding: EdgeInsets.only(bottom: inset),
+              viewPadding: EdgeInsets.only(bottom: inset),
+              textScaler: TextScaler.linear(layout.$2),
+            ),
+            child: Scaffold(
+              bottomNavigationBar: GaronaNavigation(
+                selectedIndex: 4,
+                hasTeam: true,
+                onSelected: (index) => selected = index,
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        final dock =
+            tester.getRect(find.byKey(const ValueKey('navigation-dock')));
+        dockHeight ??= dock.height;
+        expect(dock.height, dockHeight,
+            reason: 'A área de gesto não deve aumentar o fundo da barra.');
+        expect(dock.height, lessThanOrEqualTo(86));
+        expect(dock.bottom, lessThanOrEqualTo(844 - inset));
+        for (var index = 0; index < 5; index++) {
+          final target = find.byKey(ValueKey('nav-$index'));
+          final bounds = tester.getRect(target);
+          expect(bounds.width, greaterThanOrEqualTo(48));
+          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(bounds.center.dy, closeTo(dock.center.dy, 1));
+          await tester.tap(target);
+          expect(selected, index);
+        }
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
   testWidgets('carregamento respeita movimento reduzido e imagem ausente',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.dark,
         home: const MediaQuery(
             data: MediaQueryData(disableAnimations: true),
-            child: Scaffold(body: GdSkeleton(compact: true)))));
+            child: Scaffold(body: GaronaSkeleton(compact: true)))));
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.dark,
-        home: const Scaffold(body: GdImage(width: 240, height: 150))));
-    expect(find.byIcon(Icons.directions_car_outlined), findsOneWidget);
+        home: const Scaffold(body: GaronaImage(width: 240, height: 150))));
+    expect(find.byType(GaronaCoachwork), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -277,7 +481,15 @@ void main() {
         DefaultTextStyle.of(tester.element(find.text('Filtro inativo'))).style;
     expect(active.fontFamily, 'Manrope');
     expect(inactive.fontFamily, 'Manrope');
-    expect(active.color, AppColors.onPrimary);
+    expect(active.color, AppColors.primary);
+    final background = Color.alphaBlend(
+        AppColors.primary.withValues(alpha: .12), AppColors.surface);
+    final foregroundLuminance = active.color!.computeLuminance();
+    final backgroundLuminance = background.computeLuminance();
+    final contrast = foregroundLuminance > backgroundLuminance
+        ? (foregroundLuminance + .05) / (backgroundLuminance + .05)
+        : (backgroundLuminance + .05) / (foregroundLuminance + .05);
+    expect(contrast, greaterThanOrEqualTo(4.5));
     expect(inactive.color, AppColors.textMuted);
   });
 
@@ -303,7 +515,10 @@ void main() {
     }
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(GdNavigation), findsOneWidget);
+    expect(find.byType(GaronaNavigation), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Projetos para descobrir'), -250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('Projetos para descobrir'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
@@ -315,6 +530,10 @@ void main() {
       280,
       scrollable: find.byType(Scrollable).first,
     );
+    await Scrollable.ensureVisible(
+        tester.element(find.textContaining('FUSCA').first),
+        alignment: .3);
+    await tester.pumpAndSettle();
     await tester.tap(find.textContaining('FUSCA').first);
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ABC1D23'), 250,

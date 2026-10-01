@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
 
 void main() {
   testWidgets('seleção oferece câmera e galeria e pode ser cancelada',

@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/discovery/explore_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/discovery/explore_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 
 final class _EmptyTokenStorage implements TokenStorage {
   @override
@@ -96,6 +96,10 @@ void main() {
     expect(find.text('Omega CD'), findsOneWidget);
 
     await tester.scrollUntilVisible(find.text('Carregar mais projetos'), 250);
+    await Scrollable.ensureVisible(
+        tester.element(find.text('Carregar mais projetos')),
+        alignment: .5);
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Carregar mais projetos'));
     await tester.pumpAndSettle();
     expect(requests.last['ordem'], 'em_alta');

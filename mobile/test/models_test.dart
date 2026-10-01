@@ -1,8 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/auth/user.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/teams/team.dart';
 
 void main() {
   test('converte perfil privado retornado pela API', () {

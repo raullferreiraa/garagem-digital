@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _PhotoSource { camera, gallery }
@@ -76,10 +76,10 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
         selected = photo == null ? [] : [photo];
       } else {
         selected = (await picker.pickMultiImage(
-            maxWidth: 2048,
-            maxHeight: 2048,
-            imageQuality: 90,
-          ))
+          maxWidth: 2048,
+          maxHeight: 2048,
+          imageQuality: 90,
+        ))
             .take(available)
             .toList(growable: false);
       }
@@ -231,9 +231,10 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
                         child: Image.network(
                           photo.url,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: Color(0xFF24262A),
-                            child: Icon(Icons.broken_image_outlined),
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color:
+                                Theme.of(context).colorScheme.surfaceContainer,
+                            child: const Icon(Icons.broken_image_outlined),
                           ),
                         ),
                       ),
@@ -291,6 +292,13 @@ final class EvolutionPhotoViewer extends StatefulWidget {
 
 class _EvolutionPhotoViewerState extends State<EvolutionPhotoViewer> {
   late var _index = widget.initialIndex;
+  late final _pageController = PageController(initialPage: widget.initialIndex);
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -302,7 +310,7 @@ class _EvolutionPhotoViewerState extends State<EvolutionPhotoViewer> {
         title: Text('${_index + 1} de ${widget.photos.length}'),
       ),
       body: PageView.builder(
-        controller: PageController(initialPage: widget.initialIndex),
+        controller: _pageController,
         itemCount: widget.photos.length,
         onPageChanged: (index) => setState(() => _index = index),
         itemBuilder: (context, index) => InteractiveViewer(

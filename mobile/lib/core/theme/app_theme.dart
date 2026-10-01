@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 abstract final class AppColors {
-  static const canvas = Color(0xFF0C0E11);
-  static const surface = Color(0xFF121519);
-  static const surfaceRaised = Color(0xFF191D22);
-  static const surfaceStrong = Color(0xFF242A31);
-  static const primary = Color(0xFFFF642E);
-  static const onPrimary = Color(0xFF2A0B00);
-  static const secondary = Color(0xFFADC4D1);
-  static const text = Color(0xFFF6F2EA);
-  static const textMuted = Color(0xFFA8B0BA);
-  static const outline = Color(0xFF343A44);
+  static const canvas = Color(0xFF090E0C);
+  static const surface = Color(0xFF101813);
+  static const surfaceRaised = Color(0xFF18251D);
+  static const surfaceStrong = Color(0xFF26372B);
+  static const primary = Color(0xFFD6EA78);
+  static const onPrimary = Color(0xFF182005);
+  static const secondary = Color(0xFFD3AA77);
+  static const text = Color(0xFFF1F1E7);
+  static const textMuted = Color(0xFFA8B7AB);
+  static const outline = Color(0xFF526657);
 }
 
 abstract final class AppTheme {
@@ -23,21 +23,22 @@ abstract final class AppTheme {
     ).copyWith(
       primary: AppColors.primary,
       onPrimary: AppColors.onPrimary,
-      primaryContainer: AppColors.surfaceStrong,
-      onPrimaryContainer: const Color(0xFFFFB69E),
+      primaryContainer: const Color(0xFF2D391A),
+      onPrimaryContainer: AppColors.primary,
       secondary: AppColors.secondary,
-      secondaryContainer: AppColors.surfaceStrong,
-      onSecondaryContainer: AppColors.text,
+      onSecondary: const Color(0xFF2C1B07),
+      secondaryContainer: const Color(0xFF33291C),
+      onSecondaryContainer: const Color(0xFFF0CEA4),
       surface: AppColors.surface,
       onSurface: AppColors.text,
       onSurfaceVariant: AppColors.textMuted,
       outline: AppColors.outline,
-      outlineVariant: AppColors.outline.withValues(alpha: 0.66),
+      outlineVariant: AppColors.outline.withValues(alpha: 0.48),
       surfaceContainerLowest: AppColors.canvas,
       surfaceContainerLow: AppColors.surface,
       surfaceContainer: AppColors.surfaceRaised,
       surfaceContainerHigh: AppColors.surfaceStrong,
-      surfaceContainerHighest: const Color(0xFF2B313A),
+      surfaceContainerHighest: const Color(0xFF344838),
     );
 
     final base = ThemeData(
@@ -51,40 +52,40 @@ abstract final class AppTheme {
 
     final textTheme = base.textTheme.copyWith(
       displayLarge: const TextStyle(
-          fontFamily: 'BarlowCondensed',
+          fontFamily: 'Manrope',
           fontSize: 64,
           fontWeight: FontWeight.w700,
           height: 1.02,
           letterSpacing: -0.5),
       displayMedium: const TextStyle(
-          fontFamily: 'BarlowCondensed',
+          fontFamily: 'Manrope',
           fontSize: 52,
           fontWeight: FontWeight.w700,
           height: 1.05),
       displaySmall: const TextStyle(
-          fontFamily: 'BarlowCondensed',
-          fontSize: 44,
+          fontFamily: 'Manrope',
+          fontSize: 40,
           fontWeight: FontWeight.w700,
           height: 1.06),
       headlineLarge: const TextStyle(
-          fontFamily: 'BarlowCondensed',
-          fontSize: 38,
+          fontFamily: 'Manrope',
+          fontSize: 26,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineMedium: const TextStyle(
-          fontFamily: 'BarlowCondensed',
-          fontSize: 32,
+          fontFamily: 'Manrope',
+          fontSize: 26,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
-        fontFamily: 'BarlowCondensed',
-        fontSize: 28,
+        fontFamily: 'Manrope',
+        fontSize: 24,
         fontWeight: FontWeight.w600,
         height: 1.15,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
-        fontFamily: 'BarlowCondensed',
-        fontSize: 26,
+        fontFamily: 'Manrope',
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         height: 1.15,
       ),
@@ -95,6 +96,11 @@ abstract final class AppTheme {
         fontWeight: FontWeight.w700,
         letterSpacing: 0.1,
       ),
+      labelSmall: base.textTheme.labelSmall?.copyWith(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        letterSpacing: .3,
+      ),
       bodyLarge: base.textTheme.bodyLarge?.copyWith(fontSize: 15, height: 1.5),
       bodyMedium:
           base.textTheme.bodyMedium?.copyWith(fontSize: 13, height: 1.5),
@@ -102,13 +108,14 @@ abstract final class AppTheme {
 
     OutlineInputBorder inputBorder(Color color, [double width = 1]) {
       return OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: color, width: width),
       );
     }
 
     return base.copyWith(
-      textTheme: textTheme,
+      textTheme: textTheme.apply(
+          bodyColor: AppColors.text, displayColor: AppColors.text),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -117,6 +124,9 @@ abstract final class AppTheme {
         foregroundColor: colors.onSurface,
         surfaceTintColor: Colors.transparent,
         titleTextStyle: textTheme.titleLarge,
+        iconTheme: IconThemeData(color: colors.onSurface, size: 22),
+        actionsIconTheme:
+            IconThemeData(color: colors.onSurfaceVariant, size: 22),
         systemOverlayStyle: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -126,6 +136,7 @@ abstract final class AppTheme {
         ),
       ),
       cardTheme: CardThemeData(
+        margin: EdgeInsets.zero,
         elevation: 0,
         color: colors.surfaceContainer,
         surfaceTintColor: Colors.transparent,
@@ -137,7 +148,7 @@ abstract final class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: colors.surfaceContainer,
+        fillColor: colors.surfaceContainerLow,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 18,
           vertical: 17,
@@ -148,6 +159,10 @@ abstract final class AppTheme {
         errorBorder: inputBorder(colors.error),
         focusedErrorBorder: inputBorder(colors.error, 1.5),
         hintStyle: TextStyle(color: colors.onSurfaceVariant),
+        floatingLabelStyle:
+            textTheme.labelLarge?.copyWith(color: colors.primary),
+        prefixIconColor: colors.onSurfaceVariant,
+        suffixIconColor: colors.onSurfaceVariant,
         errorMaxLines: 3,
         helperMaxLines: 3,
       ),
@@ -180,30 +195,59 @@ abstract final class AppTheme {
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: colors.surfaceContainer,
-        selectedColor: colors.primary,
-        checkmarkColor: colors.onPrimary,
+        selectedColor: colors.primary.withValues(alpha: .12),
+        checkmarkColor: colors.primary,
         labelStyle: textTheme.labelLarge!.copyWith(
           fontSize: 12,
           color: WidgetStateColor.resolveWith((states) =>
               states.contains(WidgetState.selected)
-                  ? colors.onPrimary
+                  ? colors.primary
                   : colors.onSurfaceVariant),
         ),
-        side: BorderSide(color: colors.outlineVariant),
+        side: WidgetStateBorderSide.resolveWith((states) => BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? colors.primary.withValues(alpha: .5)
+                : colors.outlineVariant)),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
           minimumSize: const Size(48, 50),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: textTheme.labelLarge,
         ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(48, 48),
+          textStyle: textTheme.labelLarge,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colors.primary,
+        foregroundColor: colors.onPrimary,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      listTileTheme: ListTileThemeData(
+        iconColor: colors.onSurfaceVariant,
+        titleTextStyle: textTheme.titleSmall,
+        subtitleTextStyle:
+            textTheme.bodySmall?.copyWith(color: colors.onSurfaceVariant),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
@@ -211,7 +255,7 @@ abstract final class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           side: BorderSide(color: colors.outline),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: textTheme.labelLarge,
         ),
@@ -227,20 +271,20 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyMedium,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: colors.outlineVariant),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: colors.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: textTheme.bodyMedium,
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: colors.outlineVariant),
         ),
         textStyle: textTheme.bodySmall?.copyWith(color: colors.onSurface),
@@ -265,7 +309,7 @@ abstract final class AppTheme {
         contentTextStyle:
             textTheme.bodyMedium?.copyWith(color: colors.onSurface),
         actionTextColor: colors.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(

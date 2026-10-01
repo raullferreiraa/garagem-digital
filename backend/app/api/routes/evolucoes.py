@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
@@ -81,6 +82,7 @@ def _comentario_resposta(
         curtido_por_mim=curtido_por_mim,
         respostas=respostas or [],
         criado_em=comentario.criado_em,
+        editado_em=comentario.editado_em,
     )
 
 
@@ -559,6 +561,36 @@ def remover_curtida_comentario(
     if curtida is not None:
         db.delete(curtida)
         db.commit()
+
+
+@router.patch(
+    "/{carro_id}/evolucoes/{evolucao_id}/comentarios/{comentario_id}",
+    response_model=ComentarioEvolucaoResposta,
+)
+def editar_comentario(
+    carro_id: UUID,
+    evolucao_id: UUID,
+    comentario_id: UUID,
+    dados: ComentarioEvolucaoCriacao,
+    usuario: UsuarioAtual,
+    db: DbSession,
+) -> ComentarioEvolucaoResposta:
+    if obter_evolucao(db, evolucao_id, carro_id) is None:
+        raise HTTPException(status_code=404, detail="Evolucao nao encontrada.")
+    comentario = db.scalar(
+        select(ComentarioEvolucao).where(
+            ComentarioEvolucao.id == comentario_id,
+            ComentarioEvolucao.evolucao_id == evolucao_id,
+            ComentarioEvolucao.autor_id == usuario.id,
+        )
+    )
+    if comentario is None:
+        raise HTTPException(status_code=404, detail="Comentario nao encontrado.")
+    comentario.conteudo = dados.conteudo
+    comentario.editado_em = datetime.now(timezone.utc)
+    db.commit()
+    db.refresh(comentario)
+    return _comentario_resposta(comentario)
 
 
 @router.delete(

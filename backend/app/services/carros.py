@@ -39,6 +39,18 @@ def _codificar_cursor(carro: Carro) -> str:
     return base64.urlsafe_b64encode(conteudo).decode("ascii").rstrip("=")
 
 
+def _codificar_cursor_busca(carro: Carro, relevancia: int) -> str:
+    conteudo = json.dumps(
+        {
+            "criado_em": carro.criado_em.isoformat(),
+            "id": str(carro.id),
+            "relevancia": relevancia,
+        },
+        separators=(",", ":"),
+    ).encode("utf-8")
+    return base64.urlsafe_b64encode(conteudo).decode("ascii").rstrip("=")
+
+
 def _codificar_cursor_em_alta(carro: Carro, pontuacao: int) -> str:
     conteudo = json.dumps(
         {
@@ -56,6 +68,22 @@ def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
         return datetime.fromisoformat(dados["criado_em"]), UUID(dados["id"])
+    except (KeyError, TypeError, ValueError, binascii.Error) as error:
+        raise CursorInvalido("Cursor de paginacao invalido.") from error
+
+
+def _decodificar_cursor_busca(cursor: str) -> tuple[int, datetime, UUID]:
+    try:
+        padding = "=" * (-len(cursor) % 4)
+        dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        relevancia = dados["relevancia"]
+        if type(relevancia) is not int or relevancia not in range(4):
+            raise ValueError("Relevancia invalida.")
+        return (
+            relevancia,
+            datetime.fromisoformat(dados["criado_em"]),
+            UUID(dados["id"]),
+        )
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorInvalido("Cursor de paginacao invalido.") from error
 
@@ -118,6 +146,8 @@ def listar_feed(
     busca: str | None = None,
     ordem: str = "recentes",
     usuario_id: UUID | None = None,
+    ano_min: int | None = None,
+    ano_max: int | None = None,
 ) -> PaginaCarros:
     total_curtidas = (
         select(func.count(CurtidaEvolucao.usuario_id))
@@ -148,6 +178,10 @@ def listar_feed(
         consulta = consulta.where(
             Carro.proprietario_id.not_in(ids_com_bloqueio(db, usuario_id))
         )
+    if ano_min is not None:
+        consulta = consulta.where(Carro.ano >= ano_min)
+    if ano_max is not None:
+        consulta = consulta.where(Carro.ano <= ano_max)
 
     relevancia_modelo = None
     if busca:
@@ -160,6 +194,7 @@ def listar_feed(
             (Carro.modelo.like(padrao_maiusculo), 2),
             else_=3,
         )
+        consulta = consulta.add_columns(relevancia_modelo.label("relevancia"))
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
@@ -210,13 +245,32 @@ def listar_feed(
             Carro.id.desc(),
         )
         if cursor:
-            criado_em, carro_id = _decodificar_cursor(cursor)
-            consulta = consulta.where(
-                or_(
-                    Carro.criado_em < criado_em,
-                    and_(Carro.criado_em == criado_em, Carro.id < carro_id),
+            if relevancia_modelo is not None:
+                relevancia_cursor, criado_em, carro_id = _decodificar_cursor_busca(
+                    cursor
                 )
-            )
+                consulta = consulta.where(
+                    or_(
+                        relevancia_modelo > relevancia_cursor,
+                        and_(
+                            relevancia_modelo == relevancia_cursor,
+                            Carro.criado_em < criado_em,
+                        ),
+                        and_(
+                            relevancia_modelo == relevancia_cursor,
+                            Carro.criado_em == criado_em,
+                            Carro.id < carro_id,
+                        ),
+                    )
+                )
+            else:
+                criado_em, carro_id = _decodificar_cursor(cursor)
+                consulta = consulta.where(
+                    or_(
+                        Carro.criado_em < criado_em,
+                        and_(Carro.criado_em == criado_em, Carro.id < carro_id),
+                    )
+                )
 
     linhas = list(db.execute(consulta.limit(limite + 1)))
     tem_proxima = len(linhas) > limite and (ordem == "recentes" or not busca)
@@ -229,7 +283,9 @@ def listar_feed(
                 "total_comentarios": int(total_comentarios_item or 0),
             }
         )
-        for carro, total_curtidas_item, total_comentarios_item in linhas
+        for carro, total_curtidas_item, total_comentarios_item in (
+            (linha[0], linha[1], linha[2]) for linha in linhas
+        )
     ]
 
     return PaginaCarros(
@@ -241,6 +297,8 @@ def listar_feed(
                     int(linhas[-1][1] or 0) + int(linhas[-1][2] or 0),
                 )
                 if ordem == "em_alta"
+                else _codificar_cursor_busca(carros[-1], int(linhas[-1][3]))
+                if relevancia_modelo is not None
                 else _codificar_cursor(carros[-1])
             )
             if tem_proxima and carros

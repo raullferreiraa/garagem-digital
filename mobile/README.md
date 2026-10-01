@@ -1,6 +1,6 @@
-# Aplicativo mobile
+# Garona · aplicativo mobile
 
-Cliente Flutter Android-first. O nome exibido ainda e temporario e fica centralizado
+Cliente Flutter Android-first. O nome oficial é Garona e fica centralizado
 em `lib/core/config/app_config.dart`.
 
 ## Preparar o ambiente
