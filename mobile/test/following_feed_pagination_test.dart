@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/following_feed.dart';
 
 final class _EmptyTokenStorage implements TokenStorage {
   @override

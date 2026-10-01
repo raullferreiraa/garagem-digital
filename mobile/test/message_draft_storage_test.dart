@@ -1,9 +1,26 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
+import 'package:garona_mobile/features/messages/message_draft_storage.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+
+  test('limpar tokens preserva rascunhos das contas no dispositivo', () async {
+    FlutterSecureStorage.setMockInitialValues({});
+    const tokens = SecureTokenStorage();
+    const drafts = MessageDraftStorage();
+    await tokens.write(accessToken: 'access', refreshToken: 'refresh');
+    await drafts.save('ana', 'direct', 'chat', 'Mensagem pendente');
+    await drafts.save(
+        'bia', 'evolution-comment', 'evolution', 'Comentário pendente');
+    await tokens.clear();
+    expect(await tokens.readAccessToken(), isNull);
+    expect(await tokens.readRefreshToken(), isNull);
+    expect(await drafts.read('ana', 'direct', 'chat'), 'Mensagem pendente');
+    expect(await drafts.read('bia', 'evolution-comment', 'evolution'),
+        'Comentário pendente');
+  });
 
   test('rascunhos ficam separados por conta e conversa e somem após envio',
       () async {

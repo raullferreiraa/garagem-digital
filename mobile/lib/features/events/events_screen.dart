@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:garagem_mobile/core/config/app_config.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/events/event.dart';
-import 'package:garagem_mobile/features/events/event_calendar.dart';
-import 'package:garagem_mobile/features/events/event_form_screen.dart';
-import 'package:garagem_mobile/features/events/event_participants_screen.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/brazil_city_field.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/events/event.dart';
+import 'package:garona_mobile/features/events/event_calendar.dart';
+import 'package:garona_mobile/features/events/event_form_screen.dart';
+import 'package:garona_mobile/features/events/event_participants_screen.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen(
@@ -266,12 +266,12 @@ class _EventsScreenState extends State<EventsScreen> {
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const GdIntro(
-                          eyebrow: 'Cultura que conecta',
-                          title: 'O seu próximo ponto de encontro.',
+                      const GaronaIntro(
+                          eyebrow: 'Da garagem para a rua',
+                          title: 'O próximo encontro começa aqui.',
                           description:
-                              'Conheça a comunidade. Faça parte da história.'),
-                      const SizedBox(height: 24),
+                              'Clássicos, modificados e quem vive essa cultura.'),
+                      const SizedBox(height: 8),
                       TextField(
                           controller: _searchController,
                           textInputAction: TextInputAction.search,
@@ -350,7 +350,7 @@ class _EventsScreenState extends State<EventsScreen> {
                     ]),
               )),
               if (_events == null && _loading)
-                const SliverFillRemaining(child: GdSkeleton())
+                const SliverFillRemaining(child: GaronaSkeleton())
               else if (_events == null && _error != null)
                 const SliverToBoxAdapter(child: SizedBox.shrink())
               else if (events.isEmpty)
@@ -478,9 +478,13 @@ class _CommunityCard extends StatelessWidget {
   final GarageEvent event;
   final VoidCallback onTap;
   @override
-  Widget build(BuildContext context) => GdReveal(
+  Widget build(BuildContext context) => GaronaReveal(
           child: Card(
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
             onTap: onTap,
@@ -493,31 +497,6 @@ class _CommunityCard extends StatelessWidget {
                       child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                                event.description ??
-                                    'Pessoas, projetos e histórias que se encontram.',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis),
-                            const SizedBox(height: 16),
-                            Wrap(spacing: 16, runSpacing: 8, children: [
-                              _Metric(Icons.people_outline,
-                                  '${event.followersCount} seguidores'),
-                              _Metric(Icons.flag_outlined,
-                                  '${event.editions.length} edições'),
-                              if (event.following)
-                                const _Metric(Icons.check, 'Seguindo'),
-                              if (event.startsAt != null &&
-                                  event.myPresence == 'confirmada')
-                                const _Metric(Icons.how_to_reg_outlined,
-                                    'Presença confirmada'),
-                              if (event.startsAt != null &&
-                                  event.myTeamParticipation == 'confirmada')
-                                const _Metric(
-                                    Icons.groups_outlined, 'Equipe confirmada'),
-                            ]),
-                            const SizedBox(height: 16),
-                            const Divider(height: 1),
-                            const SizedBox(height: 14),
                             Row(children: [
                               if (event.startsAt != null) ...[
                                 _EditionDateStamp(date: event.startsAt!),
@@ -536,20 +515,80 @@ class _CommunityCard extends StatelessWidget {
                                             .textTheme
                                             .labelLarge),
                                     if (event.startsAt != null) ...[
-                                      const SizedBox(height: 4),
+                                      const SizedBox(height: 6),
                                       Text(event.location,
-                                          maxLines: 1,
+                                          maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                           style: Theme.of(context)
                                               .textTheme
                                               .bodySmall),
+                                      const SizedBox(height: 4),
+                                      Text(_time(event.startsAt!),
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .labelMedium
+                                              ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .primary)),
                                     ],
                                   ])),
-                              const Icon(Icons.north_east),
+                              const SizedBox(width: 8),
+                              const Icon(Icons.arrow_forward_rounded, size: 20),
+                            ]),
+                            const SizedBox(height: 18),
+                            const _TicketRule(),
+                            const SizedBox(height: 16),
+                            Text(
+                                event.description ??
+                                    'Pessoas, projetos e histórias que se encontram.',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant)),
+                            const SizedBox(height: 14),
+                            Wrap(spacing: 14, runSpacing: 10, children: [
+                              _Metric(Icons.people_outline,
+                                  '${event.followersCount} seguidores'),
+                              _Metric(Icons.flag_outlined,
+                                  '${event.editions.length} edições'),
+                              if (event.following)
+                                const _Metric(Icons.check, 'Seguindo'),
+                              if (event.startsAt != null &&
+                                  event.myPresence == 'confirmada')
+                                const _Metric(Icons.how_to_reg_outlined,
+                                    'Presença confirmada'),
+                              if (event.startsAt != null &&
+                                  event.myTeamParticipation == 'confirmada')
+                                const _Metric(
+                                    Icons.groups_outlined, 'Equipe confirmada'),
                             ]),
                           ])),
                 ])),
       ));
+}
+
+class _TicketRule extends StatelessWidget {
+  const _TicketRule();
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: LayoutBuilder(builder: (context, constraints) {
+          final color = Theme.of(context).colorScheme.outlineVariant;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(
+                (constraints.maxWidth / 12).floor().clamp(1, 100),
+                (_) => Container(
+                    width: 5,
+                    height: 1,
+                    decoration: BoxDecoration(
+                        color: color, borderRadius: BorderRadius.circular(2)))),
+          );
+        }),
+      );
 }
 
 class _CommunityCover extends StatelessWidget {
@@ -564,16 +603,16 @@ class _CommunityCover extends StatelessWidget {
           child: event.coverUrl == null
               ? ColoredBox(
                   color: colors.surfaceContainer,
-                  child: GdTechnicalBackdrop(
+                  child: GaronaTechnicalBackdrop(
                       child: Align(
                     alignment: Alignment.topRight,
                     child: Padding(
                         padding: const EdgeInsets.all(24),
-                        child: Icon(Icons.sports_motorsports_outlined,
-                            size: 110,
-                            color: colors.primary.withValues(alpha: .10))),
+                        child: Icon(Icons.flag_outlined,
+                            size: 132,
+                            color: colors.secondary.withValues(alpha: .14))),
                   )))
-              : GdImage(
+              : GaronaImage(
                   url: AppConfig.resolveApiUrl(event.coverUrl),
                   semanticLabel: 'Capa de ${event.name}')),
       Positioned.fill(
@@ -587,21 +626,20 @@ class _CommunityCover extends StatelessWidget {
             Colors.black.withValues(alpha: .85)
           ])))),
       Padding(
-          padding: EdgeInsets.fromLTRB(22, compact ? 26 : 52, 22, 22),
+          padding: EdgeInsets.fromLTRB(22, 22, 22, compact ? 24 : 30),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(
-                event.visibility == 'somente_equipe'
+            GaronaBadge(
+                label: event.visibility == 'somente_equipe'
                     ? 'EXCLUSIVO DA EQUIPE'
-                    : 'ENCONTRO • COMUNIDADE',
-                style: const TextStyle(
-                    color: Colors.white,
-                    letterSpacing: 2,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700)),
-            SizedBox(height: compact ? 24 : 32),
-            Container(width: 30, height: 3, color: colors.primary),
-            const SizedBox(height: 10),
+                    : 'ENCONTRO GARONA',
+                icon: event.visibility == 'somente_equipe'
+                    ? Icons.lock_outline_rounded
+                    : Icons.flag_outlined,
+                onImage: true),
+            SizedBox(height: compact ? 40 : 68),
+            const GaronaLightSignature(width: 44),
+            const SizedBox(height: 12),
             Text(event.name,
                 style: (compact
                         ? Theme.of(context).textTheme.headlineLarge
@@ -613,7 +651,7 @@ class _CommunityCover extends StatelessWidget {
                     .whereType<String>()
                     .where((s) => s.isNotEmpty)
                     .join(' · '),
-                style: const TextStyle(color: Colors.white70)),
+                style: TextStyle(color: colors.secondary)),
           ])),
     ]);
   }
@@ -899,7 +937,7 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('Encontro'), actions: [
         if (_event.visibility == 'publico')
-          GdShareAction(
+          GaronaShareAction(
               payload: ShareContent.event(_event),
               tooltip: 'Compartilhar encontro'),
         if (_event.canManage)
@@ -927,7 +965,13 @@ class _EventCommunityScreenState extends State<EventCommunityScreen> {
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             children: [
-              _CommunityCover(event: _event),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: _CommunityCover(event: _event),
+                ),
+              ),
               Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
@@ -1357,7 +1401,7 @@ class _Metric extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 17, color: Theme.of(context).colorScheme.primary),
+        Icon(icon, size: 17, color: Theme.of(context).colorScheme.secondary),
         const SizedBox(width: 6),
         Flexible(
             child: Text(text, style: Theme.of(context).textTheme.labelMedium)),
@@ -1402,9 +1446,9 @@ class _EditionDateStamp extends StatelessWidget {
           constraints: const BoxConstraints(minWidth: 54),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-              color: colors.primary.withValues(alpha: .08),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: colors.primary.withValues(alpha: .25))),
+              color: colors.primary.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: colors.primary.withValues(alpha: .3))),
           child: Column(children: [
             Text('${local.day}'.padLeft(2, '0'),
                 style: Theme.of(context)

@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/config/app_config.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/login_screen.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/home/home_shell.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/home/home_shell.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
-final class GaragemApp extends StatelessWidget {
-  const GaragemApp({
+final class GaronaApp extends StatelessWidget {
+  const GaronaApp({
     required this.session,
     required this.carsRepository,
     required this.evolutionsRepository,
@@ -53,7 +53,7 @@ final class GaragemApp extends StatelessWidget {
                   const Icon(Icons.cloud_off_outlined, size: 40),
                   const SizedBox(height: 16),
                   const Text(
-                      'Não foi possível conectar. Sua sessão foi preservada.',
+                      'Não foi possível recuperar sua sessão. Tente novamente.',
                       textAlign: TextAlign.center),
                   const SizedBox(height: 16),
                   FilledButton(
@@ -89,7 +89,7 @@ final class _StartupScreen extends StatelessWidget {
             child: Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GdWordmark(),
+        GaronaWordmark(),
         SizedBox(height: 32),
         SizedBox(width: 120, child: LinearProgressIndicator(minHeight: 2))
       ],

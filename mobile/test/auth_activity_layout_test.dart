@@ -1,16 +1,16 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/login_screen.dart';
-import 'package:garagem_mobile/features/auth/register_screen.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/register_screen.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_screen.dart';
 
 final class _MemoryTokens implements TokenStorage {
   @override
@@ -238,6 +238,6 @@ void main() {
 
     expect(find.text('Nova edição marcada.'), findsOneWidget);
     expect(find.byIcon(Icons.event_available_outlined), findsOneWidget);
-    expect(find.byType(GdAvatar), findsNothing);
+    expect(find.byType(GaronaAvatar), findsNothing);
   });
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_journal_card.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_journal_card.dart';
 
 const _months = [
   'Janeiro',

@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed_item.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_interactions.dart';
+import 'package:garona_mobile/features/evolutions/following_feed_item.dart';
 
 final class EvolutionsRepository {
   EvolutionsRepository(this._api);

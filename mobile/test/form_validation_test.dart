@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
 
 void main() {
   testWidgets('salvar formulário longo revela campo inválido fora da tela',

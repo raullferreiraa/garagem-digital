@@ -1,5 +1,5 @@
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/messages/conversation.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/messages/conversation.dart';
 
 final class MessagesRepository {
   MessagesRepository(this._api);

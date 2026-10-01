@@ -1,4 +1,4 @@
-# Tipografia do Garagem Digital
+# Tipografia do Garona
 
 Barlow Condensed (Semibold e Bold) é usada nos títulos e números. Manrope
 (fonte variável) é usada nos textos e controles. Os arquivos são incluídos

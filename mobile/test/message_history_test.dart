@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/messages/message_history_screen.dart';
-import 'package:garagem_mobile/features/messages/message_reply.dart';
+import 'package:garona_mobile/features/messages/message_history_screen.dart';
+import 'package:garona_mobile/features/messages/message_reply.dart';
 
 HistoryMessage entry(String id, String text, {bool deleted = false}) =>
     HistoryMessage(

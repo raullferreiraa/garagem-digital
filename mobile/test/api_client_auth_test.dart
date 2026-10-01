@@ -5,28 +5,38 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/login_screen.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
 
 final class _MemoryTokens implements TokenStorage {
   String? accessToken;
   String? refreshToken;
+  bool failAccessRead = false;
+  bool failRefreshRead = false;
+  bool failClear = false;
 
   @override
   Future<void> clear() async {
+    if (failClear) throw StateError('storage unavailable');
     accessToken = null;
     refreshToken = null;
   }
 
   @override
-  Future<String?> readAccessToken() async => accessToken;
+  Future<String?> readAccessToken() async {
+    if (failAccessRead) throw StateError('storage unavailable');
+    return accessToken;
+  }
 
   @override
-  Future<String?> readRefreshToken() async => refreshToken;
+  Future<String?> readRefreshToken() async {
+    if (failRefreshRead) throw StateError('storage unavailable');
+    return refreshToken;
+  }
 
   @override
   Future<void> write({
@@ -107,6 +117,42 @@ ApiClient _client(_MemoryTokens tokens, _AuthAdapter adapter) {
 }
 
 void main() {
+  test('falha no armazenamento ao abrir permite tentar novamente', () async {
+    final tokens = _MemoryTokens()..failRefreshRead = true;
+    final session = SessionController(
+        repository: AuthRepository(_client(tokens, _AuthAdapter()), tokens));
+    addTearDown(session.dispose);
+    await session.restore();
+    expect(session.status, SessionStatus.unavailable);
+    tokens.failRefreshRead = false;
+    await session.restore();
+    expect(session.status, SessionStatus.signedOut);
+  });
+
+  test('falha de leitura do token encerra a requisição com erro', () async {
+    final tokens = _MemoryTokens()..failAccessRead = true;
+    final client = _client(tokens, _AuthAdapter());
+    await expectLater(
+        client.dio
+            .get<Object?>('/protegido')
+            .timeout(const Duration(seconds: 1)),
+        throwsA(isA<DioException>()));
+  });
+
+  test('falha ao limpar sessão expirada libera a tela de recuperação',
+      () async {
+    final tokens = _MemoryTokens()
+      ..accessToken = 'expirado'
+      ..refreshToken = 'expirado'
+      ..failClear = true;
+    final session = SessionController(
+        repository: AuthRepository(
+            _client(tokens, _AuthAdapter()..refreshStatus = 401), tokens));
+    addTearDown(session.dispose);
+    await session.restore();
+    expect(session.status, SessionStatus.unavailable);
+  });
+
   test(
       'erros estruturados de validação não exibem mensagens técnicas em inglês',
       () {

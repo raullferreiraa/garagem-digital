@@ -2,7 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
 
 /// Upload retries happen after creation, without repeating the create request.
 Future<T> uploadFormPhoto<T>(

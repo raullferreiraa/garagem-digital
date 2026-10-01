@@ -1,6 +1,6 @@
-# Garagem Digital 🚘
+# Garona
 
-A Garagem Digital é um projeto social para registrar carros, acompanhar suas evoluções e reunir pessoas em equipes automotivas.
+O Garona é um projeto social para registrar carros, acompanhar suas evoluções e reunir pessoas em equipes automotivas.
 
 **Versão atual:** aplicativo Flutter para Android, acompanhado por uma API FastAPI e PostgreSQL/PostGIS. Esta é uma primeira versão mobile em desenvolvimento, validada localmente; ainda não é uma publicação nas lojas de aplicativos.
 

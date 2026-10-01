@@ -1,10 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_screen.dart';
 
 final class _Tokens implements TokenStorage {
   @override

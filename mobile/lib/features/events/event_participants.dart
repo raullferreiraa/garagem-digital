@@ -1,4 +1,4 @@
-import 'package:garagem_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
 
 final class EventParticipants {
   const EventParticipants(

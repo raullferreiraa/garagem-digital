@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
 
 enum _ActivityFilter { all, projects, people, teams, events }
 
@@ -281,7 +281,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
           final allItems = _items ?? snapshot.data;
           if (allItems == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const GdSkeleton(compact: true);
+            return const GaronaSkeleton(compact: true);
           }
           if (allItems == null) {
             return Center(
@@ -311,27 +311,44 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
               if (allItems.isNotEmpty)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      GdSectionTitle(
-                        title: newThisVisit == 0
-                            ? 'Você está em dia.'
-                            : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
-                        eyebrow: 'NA SUA COMUNIDADE',
-                        trailing: Icon(
-                          newThisVisit == 0
-                              ? Icons.done_all_rounded
-                              : Icons.bolt_rounded,
-                          color: colors.primary,
-                        ),
+                  child: Container(
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color.alphaBlend(
+                            colors.primary.withValues(alpha: .09),
+                            colors.surfaceContainerHigh,
+                          ),
+                          colors.surfaceContainer,
+                        ],
                       ),
-                    ],
+                      borderRadius: BorderRadius.circular(26),
+                      border: Border.all(
+                        color: colors.primary.withValues(alpha: .18),
+                      ),
+                    ),
+                    child: GaronaSectionTitle(
+                      title: newThisVisit == 0
+                          ? 'Você está em dia.'
+                          : '$newThisVisit ${newThisVisit == 1 ? 'novidade nesta visita' : 'novidades nesta visita'}',
+                      eyebrow: 'NA SUA COMUNIDADE',
+                      trailing: Icon(
+                        newThisVisit == 0
+                            ? Icons.done_all_rounded
+                            : Icons.bolt_rounded,
+                        color: colors.primary,
+                      ),
+                    ),
                   ),
                 ),
               if (allItems.isNotEmpty)
                 SizedBox(
-                  height: 52,
+                  height: 52 +
+                      (MediaQuery.textScalerOf(context).scale(14) - 14)
+                          .clamp(0.0, 24.0),
                   child: ListView(
                     scrollDirection: Axis.horizontal,
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -361,11 +378,14 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                               child: Container(
                                 padding: const EdgeInsets.all(18),
                                 decoration: BoxDecoration(
-                                  color: colors.primary,
-                                  borderRadius: BorderRadius.circular(16),
+                                  color: colors.primary.withValues(alpha: .12),
+                                  borderRadius: BorderRadius.circular(24),
+                                  border: Border.all(
+                                    color: colors.primary.withValues(alpha: .3),
+                                  ),
                                 ),
                                 child: Icon(Icons.notifications_none_rounded,
-                                    size: 32, color: colors.onPrimary),
+                                    size: 32, color: colors.primary),
                               ),
                             ),
                             const SizedBox(height: 28),
@@ -425,19 +445,24 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                     ]),
                                   ),
                                 Padding(
-                                  padding: const EdgeInsets.only(bottom: 8),
+                                  padding: const EdgeInsets.only(bottom: 10),
                                   child: Material(
                                     key: ValueKey('notification-${item.id}'),
                                     color: isNewThisVisit
-                                        ? colors.primary.withValues(alpha: 0.10)
-                                        : colors.surface,
+                                        ? Color.alphaBlend(
+                                            colors.primary
+                                                .withValues(alpha: .08),
+                                            colors.surfaceContainer,
+                                          )
+                                        : colors.surfaceContainer,
                                     shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(14),
+                                      borderRadius: BorderRadius.circular(24),
                                       side: BorderSide(
                                         color: isNewThisVisit
                                             ? colors.primary
                                                 .withValues(alpha: 0.28)
-                                            : Colors.transparent,
+                                            : colors.outlineVariant
+                                                .withValues(alpha: .55),
                                       ),
                                     ),
                                     clipBehavior: Clip.antiAlias,
@@ -445,7 +470,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                       onTap: () => _open(item),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 16),
+                                            horizontal: 14, vertical: 18),
                                         child: Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
@@ -458,7 +483,7 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                                   color: colors.primary
                                                       .withValues(alpha: 0.14),
                                                   borderRadius:
-                                                      BorderRadius.circular(14),
+                                                      BorderRadius.circular(17),
                                                 ),
                                                 child: Icon(
                                                   _icon(item.type),
@@ -469,11 +494,11 @@ final class _NotificationsScreenState extends State<NotificationsScreen> {
                                               Stack(
                                                 clipBehavior: Clip.none,
                                                 children: [
-                                                  GdAvatar(
+                                                  GaronaAvatar(
                                                       url: item.actorAvatarUrl,
                                                       name:
                                                           item.actorUsername ??
-                                                              'GD',
+                                                              'G',
                                                       size: 44),
                                                   Positioned(
                                                     right: -3,

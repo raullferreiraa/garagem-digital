@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/events/event.dart';
-import 'package:garagem_mobile/features/events/event_participants.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/events/event.dart';
+import 'package:garona_mobile/features/events/event_participants.dart';
 
 final class EventsRepository {
   EventsRepository(this._api);

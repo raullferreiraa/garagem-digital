@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Provides the activity entry point only to the main tab headers.
-class GdActivityScope extends InheritedWidget {
-  const GdActivityScope(
+class GaronaActivityScope extends InheritedWidget {
+  const GaronaActivityScope(
       {super.key,
       required this.unreadCount,
       required this.onOpen,
@@ -12,17 +12,17 @@ class GdActivityScope extends InheritedWidget {
   final VoidCallback onOpen;
 
   @override
-  bool updateShouldNotify(GdActivityScope oldWidget) =>
+  bool updateShouldNotify(GaronaActivityScope oldWidget) =>
       unreadCount != oldWidget.unreadCount || onOpen != oldWidget.onOpen;
 }
 
-class GdActivityAction extends StatelessWidget {
-  const GdActivityAction({super.key});
+class GaronaActivityAction extends StatelessWidget {
+  const GaronaActivityAction({super.key});
 
   @override
   Widget build(BuildContext context) {
     final activity =
-        context.dependOnInheritedWidgetOfExactType<GdActivityScope>();
+        context.dependOnInheritedWidgetOfExactType<GaronaActivityScope>();
     if (activity == null) return const SizedBox.shrink();
     final colors = Theme.of(context).colorScheme;
     return Semantics(

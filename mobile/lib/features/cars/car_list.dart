@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
-import 'package:garagem_mobile/features/cars/project_card.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/features/cars/project_card.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
 
 enum CarListMode { explore, garage }
 
@@ -125,7 +125,7 @@ class _CarListState extends State<CarList> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             _lastCars == null) {
-          return const GdSkeleton();
+          return const GaronaSkeleton();
         }
         if (snapshot.hasError && _lastCars == null) {
           return _MessageState(
@@ -154,15 +154,28 @@ class _CarListState extends State<CarList> {
                 ),
                 const SizedBox(height: 24),
               ],
-              GdSectionTitle(
-                title: isGarage ? 'Seus projetos' : 'Projetos para descobrir',
-                trailing: Text(
-                  cars.length.toString().padLeft(2, '0'),
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                ),
-              ),
+              if (!isGarage) ...[
+                Text('A CENA',
+                    style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        fontFamily: 'BarlowCondensed',
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: .6)),
+                const SizedBox(height: 6),
+              ],
+              Row(children: [
+                Expanded(
+                    child: Text(
+                        isGarage ? 'Seus projetos' : 'Projetos para descobrir',
+                        style: isGarage
+                            ? Theme.of(context).textTheme.headlineSmall
+                            : Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant))),
+                Text(cars.length.toString().padLeft(2, '0'),
+                    style: Theme.of(context).textTheme.labelSmall),
+              ]),
               const SizedBox(height: 16),
               if (cars.isEmpty)
                 _EmptyGarage(
@@ -172,10 +185,11 @@ class _CarListState extends State<CarList> {
                 )
               else
                 for (var index = 0; index < cars.length; index++) ...[
-                  GdReveal(
+                  GaronaReveal(
                     key: ValueKey(cars[index].id),
-                    child: GdProjectCard(
+                    child: GaronaProjectCard(
                       car: cars[index],
+                      compact: index > 0,
                       highlighted: isGarage,
                       onTap: () => widget.onCarTap(cars[index]),
                     ),
@@ -277,10 +291,8 @@ final class _GarageHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(18, 16, 16, 16),
           decoration: BoxDecoration(
             color: colors.surfaceContainer,
-            borderRadius: BorderRadius.circular(16),
-            border: Border(
-              left: BorderSide(color: colors.primary, width: 3),
-            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: colors.outlineVariant),
           ),
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -341,7 +353,7 @@ final class _EmptyGarage extends StatelessWidget {
   final VoidCallback? onCreate;
 
   @override
-  Widget build(BuildContext context) => GdEmptyState(
+  Widget build(BuildContext context) => GaronaEmptyState(
         icon: isGarage ? Icons.garage_outlined : Icons.travel_explore_outlined,
         title: message,
         action: onCreate == null
@@ -369,7 +381,7 @@ final class _MessageState extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: GdEmptyState(
+        child: GaronaEmptyState(
             icon: icon,
             title: message,
             action: onAction == null

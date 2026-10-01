@@ -1,10 +1,8 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 /// Restrained instrument lines: decorative, static and excluded from semantics.
-class GdTechnicalBackdrop extends StatelessWidget {
-  const GdTechnicalBackdrop({required this.child, super.key});
+class GaronaTechnicalBackdrop extends StatelessWidget {
+  const GaronaTechnicalBackdrop({required this.child, super.key});
   final Widget child;
 
   @override
@@ -32,27 +30,29 @@ class _InstrumentPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     canvas.save();
     canvas.clipRect(Offset.zero & size);
-    final center = Offset(size.width + 12, size.height + 20);
-    final radius = math.min(size.width * .65, 180.0);
+    final glow = Rect.fromLTWH(
+        size.width * .35, size.height * .5, size.width * .9, size.height);
+    canvas.drawOval(
+        glow,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              accent.withValues(alpha: .065),
+              accent.withValues(alpha: 0)
+            ],
+          ).createShader(glow));
     final paint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1
-      ..color = line.withValues(alpha: .22);
-    for (final scale in [.7, 1.0, 1.3]) {
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius * scale),
-          math.pi, math.pi / 2, false, paint);
-    }
-    paint.color = accent.withValues(alpha: .18);
-    for (var index = 0; index < 13; index++) {
-      final angle = math.pi + index * math.pi / 24;
-      final vector = Offset(math.cos(angle), math.sin(angle));
-      canvas.drawLine(
-          center + vector * (radius - 6), center + vector * radius, paint);
-    }
-    paint.color = line.withValues(alpha: .12);
-    for (var index = 0; index < 3; index++) {
-      final x = size.width - 60 + index * 18;
-      canvas.drawLine(Offset(x, 0), Offset(x - 32, 72), paint);
+      ..strokeWidth = .8
+      ..color = line.withValues(alpha: .14);
+    for (var i = 0; i < 3; i++) {
+      final y = size.height - 12 - i * 7.0;
+      canvas.drawPath(
+          Path()
+            ..moveTo(size.width * .5, y)
+            ..quadraticBezierTo(
+                size.width * .8, y - 28, size.width + 20, y - 10),
+          paint);
     }
     canvas.restore();
   }
@@ -62,12 +62,12 @@ class _InstrumentPainter extends CustomPainter {
       accent != old.accent || line != old.line;
 }
 
-class GdPanel extends StatelessWidget {
-  const GdPanel(
+class GaronaPanel extends StatelessWidget {
+  const GaronaPanel(
       {required this.child,
       this.padding = const EdgeInsets.all(20),
       this.technical = false,
-      this.radius = 16,
+      this.radius = 24,
       super.key});
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -87,33 +87,32 @@ class GdPanel extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              colors.surfaceContainerHigh.withValues(alpha: .75),
+              colors.surfaceContainerHigh.withValues(alpha: .78),
               colors.surfaceContainer
             ]),
       ),
-      child: technical ? GdTechnicalBackdrop(child: content) : content,
+      child: technical ? GaronaTechnicalBackdrop(child: content) : content,
     );
   }
 }
 
-class GdEyebrow extends StatelessWidget {
-  const GdEyebrow(this.text, {super.key});
+class GaronaEyebrow extends StatelessWidget {
+  const GaronaEyebrow(this.text, {super.key});
   final String text;
   @override
   Widget build(BuildContext context) => Row(children: [
-        Container(
-            width: 14, height: 2, color: Theme.of(context).colorScheme.primary),
+        const GaronaLightSignature(width: 24),
         const SizedBox(width: 8),
         Expanded(
             child: Text(text.toUpperCase(),
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.primary,
-                    letterSpacing: 1.6))),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    letterSpacing: 1.8))),
       ]);
 }
 
-class GdIntro extends StatelessWidget {
-  const GdIntro(
+class GaronaIntro extends StatelessWidget {
+  const GaronaIntro(
       {required this.eyebrow,
       required this.title,
       required this.description,
@@ -122,25 +121,33 @@ class GdIntro extends StatelessWidget {
   final String eyebrow, title, description;
   final Widget? action;
   @override
-  Widget build(BuildContext context) => GdPanel(
-      technical: true,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          GdEyebrow(eyebrow),
-          const SizedBox(height: 12),
-          Text(title, style: Theme.of(context).textTheme.headlineLarge),
-          const SizedBox(height: 8),
-          Text(description,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          if (action != null) ...[const SizedBox(height: 16), action!],
-        ],
-      ));
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        GaronaEyebrow(eyebrow),
+        const SizedBox(height: 14),
+        Text(title, style: theme.textTheme.headlineLarge),
+        const SizedBox(height: 10),
+        Text(description,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+        if (action != null) ...[const SizedBox(height: 18), action!],
+        const SizedBox(height: 22),
+        Row(children: [
+          Container(width: 32, height: 2, color: theme.colorScheme.primary),
+          Expanded(
+              child: Container(
+                  height: 1, color: theme.colorScheme.outlineVariant)),
+        ]),
+      ]),
+    );
+  }
 }
 
-class GdBadge extends StatelessWidget {
-  const GdBadge(
+class GaronaBadge extends StatelessWidget {
+  const GaronaBadge(
       {required this.label,
       this.icon,
       this.accent = false,
@@ -161,7 +168,7 @@ class GdBadge extends StatelessWidget {
             : accent
                 ? colors.primary.withValues(alpha: .10)
                 : colors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(7),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
             color: accent
                 ? colors.primary.withValues(alpha: .28)
@@ -187,8 +194,8 @@ class GdBadge extends StatelessWidget {
   }
 }
 
-class GdEmptyState extends StatelessWidget {
-  const GdEmptyState(
+class GaronaEmptyState extends StatelessWidget {
+  const GaronaEmptyState(
       {required this.icon,
       required this.title,
       this.description,
@@ -199,7 +206,7 @@ class GdEmptyState extends StatelessWidget {
   final String? description;
   final Widget? action;
   @override
-  Widget build(BuildContext context) => GdPanel(
+  Widget build(BuildContext context) => GaronaPanel(
       technical: true,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -237,27 +244,29 @@ class GdEmptyState extends StatelessWidget {
 }
 
 /// Shared dock for comments and chats. The caller owns keyboard and safe areas.
-class GdComposerSurface extends StatelessWidget {
-  const GdComposerSurface({required this.child, super.key});
+class GaronaComposerSurface extends StatelessWidget {
+  const GaronaComposerSurface({required this.child, super.key});
   final Widget child;
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return DecoratedBox(
+    return Container(
+      clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [colors.surfaceContainer, colors.surface]),
-        border: Border(top: BorderSide(color: colors.outlineVariant)),
+        border: Border.all(color: colors.outlineVariant.withValues(alpha: .55)),
       ),
       child: child,
     );
   }
 }
 
-class GdActionPair extends StatelessWidget {
-  const GdActionPair(
+class GaronaActionPair extends StatelessWidget {
+  const GaronaActionPair(
       {required this.primary, required this.secondary, super.key});
   final Widget primary, secondary;
   @override
@@ -275,4 +284,29 @@ class GdActionPair extends StatelessWidget {
           Expanded(child: secondary)
         ]);
       });
+}
+
+/// Static rear-lamp rhythm used as the brand's small decorative signature.
+class GaronaLightSignature extends StatelessWidget {
+  const GaronaLightSignature({this.width = 36, super.key});
+  final double width;
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+          child: SizedBox(
+        width: width,
+        height: 5,
+        child: Row(children: [
+          for (var i = 0; i < 3; i++) ...[
+            Expanded(
+                child: Container(
+                    decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withValues(alpha: 1 - i * .18),
+                        borderRadius: BorderRadius.circular(4)))),
+            if (i < 2) const SizedBox(width: 3),
+          ],
+        ]),
+      ));
 }

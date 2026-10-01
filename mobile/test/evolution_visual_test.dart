@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_carousel.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_journal_card.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_carousel.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/features/evolutions/evolution_journal_card.dart';
 
 Future<ui.Image> _photo(int width, int height) async {
   final recorder = ui.PictureRecorder();

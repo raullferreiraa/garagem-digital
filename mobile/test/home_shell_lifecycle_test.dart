@@ -1,19 +1,19 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/home/home_shell.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/auth/user.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/home/home_shell.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class _EmptyTokenStorage implements TokenStorage {
   @override
@@ -152,7 +152,7 @@ void main() {
 
     await tester.tap(find.text('Perfil'));
     await tester.pumpAndSettle();
-    expect(find.text('Minha coleção'), findsOneWidget);
+    expect(find.text('Minha garagem'), findsOneWidget);
 
     final beforeResume = Map<String, int>.from(requests);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
@@ -169,7 +169,7 @@ void main() {
     await tester.pump();
     await tester.pumpAndSettle();
 
-    expect(find.text('Minha coleção'), findsOneWidget);
+    expect(find.text('Minha garagem'), findsOneWidget);
     expect(requests['/carros'], beforeResume['/carros']! + 1);
     expect(requests['/carros/meus'], beforeResume['/carros/meus']! + 1);
     expect(requests['/equipes'], beforeResume['/equipes']! + 1);

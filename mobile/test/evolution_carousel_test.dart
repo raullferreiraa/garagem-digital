@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_carousel.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_carousel.dart';
 
 Evolution _entry(String id, String title, String category, DateTime date) =>
     Evolution(

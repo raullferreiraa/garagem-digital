@@ -2,23 +2,23 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
-import 'package:garagem_mobile/features/teams/team_form_screen.dart';
-import 'package:garagem_mobile/features/teams/team_invite_sheet.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/team_chat_screen.dart';
+import 'package:garona_mobile/features/teams/team_form_screen.dart';
+import 'package:garona_mobile/features/teams/team_invite_sheet.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 enum _TeamImageAction { details, avatar, cover, removeAvatar, removeCover }
 
@@ -531,7 +531,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
               ),
               for (final member in candidates)
                 ListTile(
-                  leading: GdAvatar(
+                  leading: GaronaAvatar(
                     url: member.avatarUrl,
                     name: member.name,
                     size: 40,
@@ -774,11 +774,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
           ),
           body: snapshot.connectionState == ConnectionState.waiting &&
                   team == null
-              ? const GdSkeleton()
+              ? const GaronaSkeleton()
               : snapshot.hasError && team == null
                   ? SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
-                      child: GdEmptyState(
+                      child: GaronaEmptyState(
                           icon: Icons.cloud_off_outlined,
                           title: 'Não foi possível abrir a equipe.',
                           description: apiErrorMessage(snapshot.error!),
@@ -800,12 +800,12 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
       physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
       children: [
-        GdReveal(child: _TeamHero(team: team)),
+        GaronaReveal(child: _TeamHero(team: team)),
         const SizedBox(height: 16),
         if (team.myRole != null) ...[
           SizedBox(
             height:
-                90 + (MediaQuery.textScalerOf(context).scale(20) - 20) * 1.2,
+                68 + (MediaQuery.textScalerOf(context).scale(20) - 20) * 1.2,
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -1013,7 +1013,7 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             const SizedBox(height: 12),
           ],
           SizedBox(
-            height: 116 + (MediaQuery.textScalerOf(context).scale(36) - 36),
+            height: 246 + (MediaQuery.textScalerOf(context).scale(72) - 72),
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: team.cars.length,
@@ -1111,21 +1111,26 @@ final class _TeamQuickAction extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final foreground = primary ? colors.onPrimary : colors.onSurface;
+    final foreground = primary ? colors.primary : colors.onSurface;
     return Semantics(
       button: true,
       enabled: onTap != null,
+      onTap: onTap,
       label: unreadCount > 0
           ? '$semanticsLabel, $unreadCount mensagens não lidas'
           : semanticsLabel,
       child: ExcludeSemantics(
         child: Material(
-          color: primary ? colors.primary : colors.surfaceContainer,
-          elevation: primary ? 1 : 0,
+          color: primary
+              ? colors.primary.withValues(alpha: .08)
+              : colors.surfaceContainer,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
             side: BorderSide(
-              color: primary ? colors.primary : colors.outline,
+              color: primary
+                  ? colors.primary.withValues(alpha: .4)
+                  : colors.outlineVariant,
             ),
           ),
           clipBehavior: Clip.antiAlias,
@@ -1249,106 +1254,156 @@ final class _TeamHero extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    return GdPanel(
-        technical: true,
+    return GaronaPanel(
+        padding: EdgeInsets.zero,
+        radius: 24,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (team.coverUrl != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: AspectRatio(
-                  aspectRatio: 16 / 7,
-                  child: GdImage(
-                    url: team.coverUrl,
-                    semanticLabel: 'Capa de ${team.name}',
-                    fallbackIcon: Icons.panorama_outlined,
-                  ),
-                ),
+            Stack(children: [
+              Positioned.fill(
+                child: team.coverUrl == null
+                    ? GaronaTechnicalBackdrop(
+                        child: Container(
+                            color: colors.surfaceContainerHigh
+                                .withValues(alpha: .3)))
+                    : GaronaImage(
+                        url: team.coverUrl,
+                        semanticLabel: 'Capa de ${team.name}',
+                        fallbackIcon: Icons.panorama_outlined,
+                      ),
               ),
-              const SizedBox(height: 20),
-            ],
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                _StatusPill(
-                  icon: team.visibility == 'publica'
-                      ? Icons.public
-                      : Icons.lock_outline,
-                  label: team.visibility == 'publica' ? 'Pública' : 'Privada',
-                ),
-                if (team.myRole != null)
-                  _StatusPill(
-                    icon: Icons.shield_outlined,
-                    label: _roleName(team.myRole!),
-                    highlighted: true,
+              Positioned.fill(
+                child: DecoratedBox(
+                    decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: .16),
+                      colors.surfaceContainer
+                    ],
                   ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                GdAvatar(name: team.name, url: team.avatarUrl, size: 72),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: Column(
+                )),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Wrap(spacing: 8, runSpacing: 8, children: [
+                        GaronaBadge(
+                          icon: team.visibility == 'publica'
+                              ? Icons.public
+                              : Icons.lock_outline,
+                          label: team.visibility == 'publica'
+                              ? 'Pública'
+                              : 'Privada',
+                          onImage: true,
+                        ),
+                        if (team.myRole != null)
+                          GaronaBadge(
+                              icon: Icons.shield_outlined,
+                              label: _roleName(team.myRole!),
+                              onImage: true),
+                      ]),
+                      SizedBox(height: team.coverUrl == null ? 28 : 60),
+                      Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: BoxDecoration(
+                                color: colors.surfaceContainer,
+                                borderRadius: BorderRadius.circular(20),
+                                border:
+                                    Border.all(color: colors.outlineVariant),
+                              ),
+                              child: GaronaAvatar(
+                                  name: team.name,
+                                  url: team.avatarUrl,
+                                  size: 64),
+                            ),
+                            const SizedBox(width: 14),
+                            const Expanded(
+                                child: Padding(
+                              padding: EdgeInsets.only(bottom: 8),
+                              child: GaronaEyebrow('Garagem coletiva'),
+                            )),
+                          ]),
+                    ]),
+              ),
+            ]),
+            Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(team.name, style: theme.textTheme.headlineLarge),
-                    if (team.location != null) ...[
-                      const SizedBox(height: 5),
-                      Row(children: [
-                        Icon(Icons.location_on_outlined,
-                            size: 14, color: colors.primary),
-                        const SizedBox(width: 4),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
                         Expanded(
-                            child: Text(
-                          team.location!,
-                          style: theme.textTheme.labelMedium
-                              ?.copyWith(color: colors.onSurfaceVariant),
+                            child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(team.name,
+                                style: theme.textTheme.headlineLarge),
+                            if (team.location != null) ...[
+                              const SizedBox(height: 5),
+                              Row(children: [
+                                Icon(Icons.location_on_outlined,
+                                    size: 14, color: colors.secondary),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                    child: Text(
+                                  team.location!,
+                                  style: theme.textTheme.labelMedium?.copyWith(
+                                      color: colors.onSurfaceVariant),
+                                )),
+                              ]),
+                            ],
+                          ],
+                        )),
+                      ],
+                    ),
+                    if (team.description != null) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        team.description!,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          height: 1.6,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 20),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                          color: colors.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: colors.outlineVariant)),
+                      child: Row(children: [
+                        Expanded(
+                            child: _TeamStat(
+                          icon: Icons.people_outline,
+                          value: '${team.memberCount}',
+                          label: team.memberCount == 1
+                              ? 'integrante'
+                              : 'integrantes',
+                        )),
+                        const SizedBox(width: 10),
+                        Expanded(
+                            child: _TeamStat(
+                          icon: Icons.directions_car_outlined,
+                          value: '${team.cars.length}',
+                          label: team.cars.length == 1 ? 'projeto' : 'projetos',
                         )),
                       ]),
-                    ],
+                    ),
                   ],
                 )),
-              ],
-            ),
-            if (team.description != null) ...[
-              const SizedBox(height: 18),
-              Text(
-                team.description!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                  height: 1.6,
-                ),
-              ),
-            ],
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                  border: Border(
-                top: BorderSide(color: colors.outlineVariant),
-                bottom: BorderSide(color: colors.outlineVariant),
-              )),
-              child: Row(children: [
-                Expanded(
-                    child: _TeamStat(
-                  icon: Icons.people_outline,
-                  value: '${team.memberCount}',
-                  label: team.memberCount == 1 ? 'integrante' : 'integrantes',
-                )),
-                const SizedBox(width: 10),
-                Expanded(
-                    child: _TeamStat(
-                  icon: Icons.directions_car_outlined,
-                  value: '${team.cars.length}',
-                  label: team.cars.length == 1 ? 'projeto' : 'projetos',
-                )),
-              ]),
-            ),
           ],
         ));
   }
@@ -1360,22 +1415,6 @@ String _roleName(String role) => switch (role) {
       'moderador' => 'Moderador',
       _ => 'Membro',
     };
-
-final class _StatusPill extends StatelessWidget {
-  const _StatusPill({
-    required this.icon,
-    required this.label,
-    this.highlighted = false,
-  });
-
-  final IconData icon;
-  final String label;
-  final bool highlighted;
-
-  @override
-  Widget build(BuildContext context) =>
-      GdBadge(label: label, icon: icon, accent: highlighted);
-}
 
 final class _TeamStat extends StatelessWidget {
   const _TeamStat({
@@ -1393,7 +1432,7 @@ final class _TeamStat extends StatelessWidget {
     final theme = Theme.of(context);
     return Row(
       children: [
-        Icon(icon, size: 22, color: theme.colorScheme.primary),
+        Icon(icon, size: 22, color: theme.colorScheme.secondary),
         const SizedBox(width: 10),
         Expanded(
             child: Column(
@@ -1424,7 +1463,7 @@ final class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GdSectionTitle(
+    return GaronaSectionTitle(
       title: title,
       eyebrow: eyebrow,
       trailing: Text(trailing,
@@ -1463,7 +1502,7 @@ final class _RequestCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              GdAvatar(name: request.name, url: request.avatarUrl),
+              GaronaAvatar(name: request.name, url: request.avatarUrl),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1534,7 +1573,7 @@ final class _MemberTile extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            GdAvatar(name: member.name, url: member.avatarUrl, size: 40),
+            GaronaAvatar(name: member.name, url: member.avatarUrl, size: 40),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(
@@ -1616,15 +1655,19 @@ final class _TeamCarCard extends StatelessWidget {
       width: screenWidth >= 348 ? 300 : screenWidth - 48,
       child: Card(
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+          side: BorderSide(color: theme.colorScheme.outlineVariant),
+        ),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                width: 104,
-                height: double.infinity,
-                child: GdImage(url: car.photoUrl, semanticLabel: car.model),
+                height: 150,
+                child: GaronaImage(url: car.photoUrl, semanticLabel: car.model),
               ),
               Expanded(
                 child: Padding(

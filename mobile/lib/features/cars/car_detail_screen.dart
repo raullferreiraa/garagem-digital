@@ -2,22 +2,22 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_carousel.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_journal_card.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_carousel.dart';
+import 'package:garona_mobile/features/evolutions/evolution_journal_card.dart';
+import 'package:garona_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution_photos_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _CarAction { edit, delete }
@@ -550,7 +550,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             !snapshot.hasData) {
-          return const SizedBox(height: 180, child: GdSkeleton(compact: true));
+          return const SizedBox(
+              height: 180, child: GaronaSkeleton(compact: true));
         }
         if (snapshot.hasError) {
           return Card(
@@ -648,7 +649,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   ? Icons.bookmark_rounded
                   : Icons.bookmark_border_rounded),
             ),
-          GdShareAction(
+          GaronaShareAction(
             payload: ShareContent.project(_car),
             tooltip: 'Compartilhar projeto',
           ),
@@ -720,35 +721,47 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                       message: 'A ficha técnica ainda não foi preenchida.',
                     )
                   else
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final singleColumn = constraints.maxWidth < 300 ||
-                            MediaQuery.textScalerOf(context).scale(14) > 20;
-                        final width = singleColumn
-                            ? constraints.maxWidth
-                            : (constraints.maxWidth - 10) / 2;
-                        return Wrap(
-                          spacing: 10,
-                          runSpacing: 10,
-                          children: [
-                            for (final spec in specs)
-                              SizedBox(
-                                width: width,
-                                child: _SpecTile(
-                                  label: spec.$1,
-                                  value: spec.$2!,
-                                  icon: spec.$3,
-                                ),
+                    LayoutBuilder(builder: (context, constraints) {
+                      final scale = MediaQuery.textScalerOf(context).scale(1);
+                      final columns =
+                          constraints.maxWidth >= 330 && scale < 1.3 ? 2 : 1;
+                      return GaronaPanel(
+                        radius: 20,
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 4),
+                        child: Column(children: [
+                          for (var index = 0;
+                              index < specs.length;
+                              index += columns) ...[
+                            if (index > 0) const Divider(height: 1),
+                            IntrinsicHeight(
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  for (var offset = 0;
+                                      offset < columns &&
+                                          index + offset < specs.length;
+                                      offset++) ...[
+                                    if (offset > 0) const SizedBox(width: 10),
+                                    Expanded(
+                                      child: _SpecTile(
+                                          label: specs[index + offset].$1,
+                                          value: specs[index + offset].$2!,
+                                          icon: specs[index + offset].$3),
+                                    ),
+                                  ],
+                                ],
                               ),
+                            ),
                           ],
-                        );
-                      },
-                    ),
+                        ]),
+                      );
+                    }),
                   const SizedBox(height: 30),
                   Row(
                     children: [
                       const Expanded(
-                        child: GdSectionTitle(
+                        child: GaronaSectionTitle(
                           eyebrow: 'DIÁRIO DO PROJETO',
                           title: 'Evoluções',
                         ),
@@ -788,114 +801,113 @@ final class _ProjectCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: Material(
-        borderRadius: BorderRadius.circular(20),
-        clipBehavior: Clip.antiAlias,
-        color: colors.surfaceContainerHighest,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            GdImage(url: car.photoUrl, semanticLabel: car.model),
-            const DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Color(0x22000000),
-                    Color(0x00000000),
-                    Color(0xEB090C10),
-                  ],
-                  stops: [0, 0.52, 1],
+    final theme = Theme.of(context);
+    return Container(
+      decoration: BoxDecoration(
+        color: colors.surfaceContainer,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: colors.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
+            child: Row(
+              children: [
+                const GaronaLightSignature(width: 28),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text('GARONA / PROJETO',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        letterSpacing: 1.6,
+                        color: colors.onSurfaceVariant,
+                      )),
                 ),
-              ),
+                if (car.photoUrl != null)
+                  IconButton(
+                    onPressed: onViewPhoto,
+                    tooltip: 'Ver foto inteira',
+                    icon: const Icon(Icons.zoom_out_map_rounded, size: 20),
+                  ),
+              ],
             ),
-            if (car.photoUrl != null)
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onViewPhoto,
-                  child: const SizedBox.expand(),
+          ),
+          AspectRatio(
+            aspectRatio: 4 / 3,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                ColoredBox(
+                  color: colors.surfaceContainerLowest,
+                  child: GaronaImage(
+                    url: car.photoUrl,
+                    semanticLabel: car.model,
+                    fit: BoxFit.contain,
+                  ),
                 ),
-              ),
-            if (car.photoUrl != null)
-              Positioned(
-                top: 12,
-                right: 12,
-                child: IconButton.filledTonal(
-                  onPressed: onViewPhoto,
-                  tooltip: 'Ver foto inteira',
-                  icon: const Icon(Icons.zoom_out_map_rounded),
-                ),
-              ),
-            Positioned(
-              top: 18,
-              left: 18,
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-                decoration: BoxDecoration(
-                  color: colors.primary,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  'PROJETO AUTOMOTIVO',
-                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: colors.onPrimary,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 1,
-                      ),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 20,
-              right: 20,
-              bottom: 18,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Expanded(
-                    child: Text(
-                      [car.model, car.year]
-                          .where((value) => value != null)
-                          .join(' '),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style:
-                          Theme.of(context).textTheme.headlineLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        height: 1,
-                        shadows: const [
-                          Shadow(
-                            color: Colors.black54,
-                            blurRadius: 8,
-                          ),
-                        ],
-                      ),
+                if (car.photoUrl != null)
+                  Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: onViewPhoto,
+                      child: const SizedBox.expand(),
                     ),
                   ),
-                  if (canManage && !updatingPhoto) ...[
-                    const SizedBox(width: 12),
-                    IconButton.filled(
-                      onPressed: onPhotoTap,
-                      tooltip: 'Alterar foto principal',
-                      icon: const Icon(Icons.add_a_photo_outlined),
-                    ),
-                  ],
-                ],
-              ),
+                if (updatingPhoto)
+                  ColoredBox(
+                    color: colors.scrim.withValues(alpha: .4),
+                    child: const Center(child: CircularProgressIndicator()),
+                  ),
+              ],
             ),
-            if (updatingPhoto)
-              const ColoredBox(
-                color: Color(0x66000000),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-          ],
-        ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 14, 14, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(car.model,
+                    style: theme.textTheme.headlineLarge?.copyWith(
+                      fontFamily: 'BarlowCondensed',
+                      fontWeight: FontWeight.w700,
+                      fontSize: 34,
+                      height: 1.05,
+                    )),
+                if (car.year != null || canManage) ...[
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      if (car.year != null)
+                        Text(
+                          '${car.year}',
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            letterSpacing: 2,
+                            color: colors.secondary,
+                          ),
+                        ),
+                      const Spacer(),
+                      if (canManage && !updatingPhoto)
+                        IconButton.filledTonal(
+                          onPressed: onPhotoTap,
+                          tooltip: 'Alterar foto principal',
+                          icon: const Icon(Icons.add_a_photo_outlined),
+                        ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -947,52 +959,56 @@ final class _ProjectIdentity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: onOwnerTap,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                GdAvatar(
-                    url: car.ownerAvatarUrl, name: car.ownerName, size: 44),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'NA GARAGEM DE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                              letterSpacing: 1.1,
-                            ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '@${car.ownerUsername}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                    ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: onOwnerTap,
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Row(
+                children: [
+                  GaronaAvatar(
+                      url: car.ownerAvatarUrl, name: car.ownerName, size: 44),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'NA GARAGEM DE',
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                    letterSpacing: 1.1,
+                                  ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '@${car.ownerUsername}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                if (onOwnerTap != null)
-                  Icon(Icons.arrow_outward_rounded,
-                      size: 19, color: colors.primary),
-              ],
+                  if (onOwnerTap != null)
+                    Icon(Icons.arrow_outward_rounded,
+                        size: 19, color: colors.primary),
+                ],
+              ),
             ),
           ),
-        ),
-        if (car.projectStatus != null) ...[
-          const SizedBox(height: 10),
-          _ProjectStatus(label: car.projectStatus!),
+          if (car.projectStatus != null) ...[
+            const SizedBox(height: 10),
+            _ProjectStatus(label: car.projectStatus!),
+          ],
         ],
-      ],
+      ),
     );
   }
 }
@@ -1009,8 +1025,8 @@ final class _ProjectStatus extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: colors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(7),
-        border: Border.all(color: colors.outlineVariant),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: colors.primary.withValues(alpha: .22)),
       ),
       child: Text(
         label,
@@ -1039,7 +1055,7 @@ final class _SectionHeading extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    return GdSectionTitle(
+    return GaronaSectionTitle(
       title: title,
       eyebrow: eyebrow,
       trailing: count == null
@@ -1090,9 +1106,11 @@ final class _StoryCard extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => GdPanel(
-      child: Text(text,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(height: 1.6)));
+  Widget build(BuildContext context) => Text(text,
+      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            height: 1.6,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ));
 }
 
 final class _SpecTile extends StatelessWidget {
@@ -1109,24 +1127,29 @@ final class _SpecTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return GdPanel(
-      padding: const EdgeInsets.all(14),
-      radius: 12,
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Expanded(
-              child: Text(label.toUpperCase(),
-                  style: theme.textTheme.labelSmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                      letterSpacing: .8))),
-          const SizedBox(width: 8),
-          Icon(icon, size: 18, color: theme.colorScheme.primary),
-        ]),
-        const SizedBox(height: 12),
-        Text(value,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(fontSize: 22)),
+    final colors = theme.colorScheme;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Icon(icon, size: 18, color: colors.secondary),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: theme.textTheme.labelSmall
+                      ?.copyWith(color: colors.onSurfaceVariant)),
+              const SizedBox(height: 5),
+              Text(value,
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.w700)),
+            ],
+          ),
+        ),
       ]),
     );
   }

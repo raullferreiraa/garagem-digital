@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_list.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_list.dart';
 
 void main() {
   testWidgets('atualiza os cards sem apagar a lista enquanto consulta a API',

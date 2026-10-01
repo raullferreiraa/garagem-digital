@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
 
 enum EvolutionJournalAction { edit, photos, delete }
 
@@ -35,8 +35,12 @@ class EvolutionJournalCard extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         decoration: BoxDecoration(
           color: colors.surfaceContainer,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(24),
           border: Border.all(color: colors.outlineVariant),
+          gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [colors.surfaceContainerHigh, colors.surfaceContainer]),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -49,7 +53,10 @@ class EvolutionJournalCard extends StatelessWidget {
                     runSpacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      Text(date, style: theme.textTheme.labelMedium),
+                      Text(date,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                              color: colors.onSurfaceVariant,
+                              letterSpacing: .4)),
                       if (evolution.category != null)
                         Text(
                           '· ${evolutionCategoryLabels[evolution.category] ?? evolution.category}',
@@ -117,7 +124,7 @@ class EvolutionJournalCard extends StatelessWidget {
                   ? LayoutBuilder(
                       builder: (context, constraints) => Center(
                             child: ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(18),
                               child: Stack(
                                 children: [
                                   EvolutionPhotoFrame(
@@ -154,13 +161,13 @@ class EvolutionJournalCard extends StatelessWidget {
                           ))
                   : InkWell(
                       onTap: onOpen,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(18),
                       child: Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                             color: colors.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(12)),
+                            borderRadius: BorderRadius.circular(18)),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/location/brazil_city.dart';
+import 'package:garona_mobile/core/location/brazil_city.dart';
 
 const _states = <String, String>{
   'AC': 'Acre',

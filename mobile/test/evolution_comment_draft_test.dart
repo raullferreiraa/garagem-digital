@@ -1,6 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_comment_draft.dart';
+import 'package:garona_mobile/features/evolutions/evolution_comment_draft.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

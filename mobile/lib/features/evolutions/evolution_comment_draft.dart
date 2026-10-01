@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
+import 'package:garona_mobile/features/messages/message_draft_storage.dart';
 
 final class EvolutionCommentDraft {
   const EvolutionCommentDraft(this.text, this.replyToId);

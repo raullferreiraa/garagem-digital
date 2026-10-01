@@ -1,11 +1,11 @@
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/events/event.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/events/event.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
 
 abstract final class ShareContent {
-  static GdSharePayload event(GarageEvent event) {
+  static GaronaSharePayload event(GarageEvent event) {
     final date = event.startsAt?.toLocal();
     final edition = date == null
         ? 'Acompanhe as próximas edições dessa comunidade.'
@@ -13,39 +13,40 @@ abstract final class ShareContent {
             '${date.month.toString().padLeft(2, '0')}/${date.year} às '
             '${date.hour.toString().padLeft(2, '0')}:'
             '${date.minute.toString().padLeft(2, '0')} · ${event.location}.';
-    return GdSharePayload(
+    return GaronaSharePayload(
       title: event.name,
-      text: 'Conheça ${event.name} no Garagem Digital.\n'
+      text: 'Conheça ${event.name} no Garona.\n'
           '$edition',
     );
   }
 
-  static GdSharePayload project(Car car) {
+  static GaronaSharePayload project(Car car) {
     final identity = [
       car.model,
       if (car.year != null) car.year.toString(),
     ].join(' ');
-    return GdSharePayload(
+    return GaronaSharePayload(
       title: 'Projeto $identity',
       text: 'Conheça o $identity, projeto de @${car.ownerUsername}.\n\n'
-          'Acompanhe essa garagem no Garagem Digital.',
+          'Acompanhe essa garagem no Garona.',
     );
   }
 
-  static GdSharePayload evolution(Evolution evolution) => GdSharePayload(
+  static GaronaSharePayload evolution(Evolution evolution) =>
+      GaronaSharePayload(
         title: evolution.title,
         text: '@${evolution.authorUsername} registrou “${evolution.title}” '
             'no diário de bordo.\n\n'
-            'Veja esta evolução no Garagem Digital.',
+            'Veja esta evolução no Garona.',
       );
 
-  static GdSharePayload profile(PublicProfile profile) => profileValues(
+  static GaronaSharePayload profile(PublicProfile profile) => profileValues(
         name: profile.name,
         username: profile.username,
         projectCount: profile.projectCount,
       );
 
-  static GdSharePayload profileValues({
+  static GaronaSharePayload profileValues({
     required String name,
     required String username,
     int? projectCount,
@@ -53,9 +54,9 @@ abstract final class ShareContent {
     final projects = projectCount == null
         ? ''
         : ' e acompanhe ${projectCount == 1 ? 'seu projeto' : 'seus $projectCount projetos'}';
-    return GdSharePayload(
+    return GaronaSharePayload(
       title: 'Perfil de @$username',
-      text: 'Conheça $name (@$username) no Garagem Digital$projects.',
+      text: 'Conheça $name (@$username) no Garona$projects.',
     );
   }
 }

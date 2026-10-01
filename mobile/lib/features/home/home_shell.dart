@@ -2,34 +2,34 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
-import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_detail_screen.dart';
-import 'package:garagem_mobile/features/discovery/explore_screen.dart';
-import 'package:garagem_mobile/features/discovery/search_screen.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/events/events_screen.dart';
-import 'package:garagem_mobile/features/messages/conversations_screen.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_screen.dart';
-import 'package:garagem_mobile/features/profile/profile_screen.dart';
-import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/team_chat_screen.dart';
-import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
-import 'package:garagem_mobile/features/teams/teams_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_navigation.dart';
+import 'package:garona_mobile/core/widgets/garona_activity_action.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_detail_screen.dart';
+import 'package:garona_mobile/features/discovery/explore_screen.dart';
+import 'package:garona_mobile/features/discovery/search_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/events/events_screen.dart';
+import 'package:garona_mobile/features/messages/conversations_screen.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_screen.dart';
+import 'package:garona_mobile/features/profile/profile_screen.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/team_chat_screen.dart';
+import 'package:garona_mobile/features/teams/team_detail_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/features/teams/teams_screen.dart';
 
 final class HomeShell extends StatefulWidget {
   const HomeShell({
@@ -526,14 +526,14 @@ final class _HomeShellState extends State<HomeShell>
     ];
 
     return Scaffold(
-      body: GdActivityScope(
+      body: GaronaActivityScope(
           unreadCount: _unreadNotifications,
           onOpen: _openActivity,
           child: IndexedStack(index: _index, children: [
             for (var i = 0; i < pages.length; i++)
               TickerMode(enabled: i == _index, child: pages[i]),
           ])),
-      bottomNavigationBar: GdNavigation(
+      bottomNavigationBar: GaronaNavigation(
         selectedIndex: _index,
         unreadMessages: _unreadMessages,
         unreadTeamMessages: _teamChatSummary?.unreadCount ?? 0,

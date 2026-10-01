@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:crop_your_image/crop_your_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
 
 void main() {
   testWidgets('recorte bloqueia zoom automático mas permite zoom manual',

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/core/widgets/chat_message_bubble.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/core/widgets/chat_message_bubble.dart';
 
 void main() {
   testWidgets('mensagem enviada usa laranja queimado e destaque contrastante',

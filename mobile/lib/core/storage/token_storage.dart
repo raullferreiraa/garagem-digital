@@ -3,7 +3,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 abstract interface class TokenStorage {
   Future<String?> readAccessToken();
   Future<String?> readRefreshToken();
-  Future<void> write({required String accessToken, required String refreshToken});
+  Future<void> write(
+      {required String accessToken, required String refreshToken});
   Future<void> clear();
 }
 
@@ -32,5 +33,11 @@ final class SecureTokenStorage implements TokenStorage {
   }
 
   @override
-  Future<void> clear() => _storage.deleteAll();
+  Future<void> clear() async {
+    // Rascunhos são separados por conta e devem sobreviver à sessão expirada.
+    await Future.wait([
+      _storage.delete(key: _accessTokenKey),
+      _storage.delete(key: _refreshTokenKey),
+    ]);
+  }
 }

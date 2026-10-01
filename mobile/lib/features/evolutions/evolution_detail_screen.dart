@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_comment_draft.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_interactions.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_comment_draft.dart';
+import 'package:garona_mobile/features/evolutions/evolution_interactions.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
 
 final class EvolutionDetailScreen extends StatefulWidget {
   const EvolutionDetailScreen({
@@ -488,6 +488,9 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
     }
   }
 
+  String _formatMileage(int value) => value.toString().replaceAllMapped(
+      RegExp(r'(\d)(?=(\d{3})+$)'), (match) => '${match[1]}.');
+
   String _formatDate(DateTime date) {
     final local = date.toLocal();
     final day = local.day.toString().padLeft(2, '0');
@@ -498,7 +501,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   }
 
   Widget _avatar(EvolutionComment comment) {
-    return GdAvatar(
+    return GaronaAvatar(
       url: comment.authorAvatarUrl,
       name: comment.authorName,
     );
@@ -555,7 +558,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       appBar: AppBar(
         title: const Text('Evolução do projeto'),
         actions: [
-          GdShareAction(
+          GaronaShareAction(
             payload: ShareContent.evolution(evolution),
             tooltip: 'Compartilhar evolução',
           ),
@@ -567,7 +570,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           final interactions = _interactions ?? snapshot.data;
           if (interactions == null &&
               snapshot.connectionState == ConnectionState.waiting) {
-            return const GdSkeleton();
+            return const GaronaSkeleton();
           }
           if (interactions == null) {
             return Center(
@@ -594,7 +597,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
               controller: _scrollController,
               padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
               children: [
-                GdSectionTitle(
+                GaronaSectionTitle(
                   eyebrow: 'DIÁRIO DE BORDO',
                   title: evolution.title,
                 ),
@@ -604,17 +607,21 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  [
-                    _formatDate(evolution.timelineDate),
-                    if (evolution.category != null)
-                      evolutionCategoryLabels[evolution.category] ??
-                          evolution.category!,
-                    if (evolution.mileageKm != null)
-                      '${evolution.mileageKm} km',
-                  ].join(' · '),
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
+                Wrap(spacing: 8, runSpacing: 8, children: [
+                  GaronaBadge(
+                      label: _formatDate(evolution.timelineDate),
+                      icon: Icons.schedule_rounded),
+                  if (evolution.category != null)
+                    GaronaBadge(
+                        label: evolutionCategoryLabels[evolution.category] ??
+                            evolution.category!,
+                        icon: Icons.build_outlined,
+                        accent: true),
+                  if (evolution.mileageKm != null)
+                    GaronaBadge(
+                        label: '${_formatMileage(evolution.mileageKm!)} km',
+                        icon: Icons.speed_outlined),
+                ]),
                 const SizedBox(height: 20),
                 Text(
                   evolution.description,
@@ -683,20 +690,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
                     ),
                   )
                 else
-                  Card(
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        for (var index = 0;
-                            index < interactions.comments.length;
-                            index++) ...[
-                          _buildCommentThread(interactions.comments[index]),
-                          if (index < interactions.comments.length - 1)
-                            const Divider(height: 1),
-                        ],
-                      ],
-                    ),
-                  ),
+                  for (final comment in interactions.comments)
+                    Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: Card(
+                            clipBehavior: Clip.antiAlias,
+                            child: _buildCommentThread(comment))),
               ],
             ),
           );
@@ -706,7 +705,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
           ? null
           : SafeArea(
               top: false,
-              child: GdComposerSurface(
+              child: GaronaComposerSurface(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(
                     12,

@@ -1,5 +1,5 @@
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
 
 final class NotificationsRepository {
   NotificationsRepository(this._api);

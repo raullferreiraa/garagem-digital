@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/cars/car.dart';
 
 enum CarFeedOrder {
   recent('recentes'),

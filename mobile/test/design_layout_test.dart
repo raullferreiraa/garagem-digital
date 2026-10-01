@@ -3,32 +3,33 @@ import 'dart:ui' as ui;
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:garona_mobile/core/widgets/garona_mark.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/core/theme/app_theme.dart';
-import 'package:garagem_mobile/core/widgets/gd_navigation.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/auth/auth_repository.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
-import 'package:garagem_mobile/features/auth/login_screen.dart';
-import 'package:garagem_mobile/features/auth/register_screen.dart';
-import 'package:garagem_mobile/features/cars/car_form_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_form_screen.dart';
-import 'package:garagem_mobile/features/events/event_form_screen.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/home/home_shell.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/notifications/notifications_repository.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/profile/public_profile_screen.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
-import 'package:garagem_mobile/features/teams/team_form_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/core/theme/app_theme.dart';
+import 'package:garona_mobile/core/widgets/garona_navigation.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/auth/auth_repository.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/auth/user.dart';
+import 'package:garona_mobile/features/auth/login_screen.dart';
+import 'package:garona_mobile/features/auth/register_screen.dart';
+import 'package:garona_mobile/features/cars/car_form_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolution_form_screen.dart';
+import 'package:garona_mobile/features/events/event_form_screen.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/home/home_shell.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/notifications/notifications_repository.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/features/teams/team_form_screen.dart';
 
 class _Tokens implements TokenStorage {
   @override
@@ -219,6 +220,15 @@ Widget _app(double scale,
 Future<void> _preview(WidgetTester tester, String name) async {
   final output = Platform.environment['GD_PREVIEW_DIR'];
   if (output == null) return;
+  // Decode bundled images outside the fake clock before exporting a preview.
+  for (final element in find.byType(Image).evaluate()) {
+    final provider = (element.widget as Image).image;
+    if (provider is AssetImage ||
+        (provider is ResizeImage && provider.imageProvider is AssetImage)) {
+      await tester.runAsync(() => precacheImage(provider, element));
+    }
+  }
+  await tester.pumpAndSettle();
   final boundary = tester.renderObject<RenderRepaintBoundary>(
       find.byKey(const ValueKey('design-preview')));
   await tester.runAsync(() async {
@@ -333,8 +343,12 @@ void main() {
         (tester) async {
       tester.view.physicalSize = Size(layout.$1, 844);
       tester.view.devicePixelRatio = 1;
+      tester.view.padding = const FakeViewPadding(bottom: 24);
+      tester.view.viewPadding = const FakeViewPadding(bottom: 24);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPadding);
+      addTearDown(tester.view.resetViewPadding);
       await tester.pumpWidget(_app(layout.$2));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -342,13 +356,13 @@ void main() {
       for (var index = 0; index < names.length; index++) {
         await tester.tap(find.byKey(ValueKey('nav-$index')));
         await tester.pumpAndSettle();
-        expect(find.byType(GdNavigation), findsOneWidget);
+        expect(find.byType(GaronaNavigation), findsOneWidget);
         if (index == 0) {
           expect(find.byKey(const ValueKey('activity-bell')), findsOneWidget);
           await tester.tap(find.byKey(const ValueKey('activity-bell')));
           await tester.pumpAndSettle();
           expect(find.text('Atividade'), findsOneWidget);
-          expect(find.byType(GdNavigation), findsNothing);
+          expect(find.byType(GaronaNavigation), findsNothing);
           expect(tester.takeException(), isNull);
           await tester.pageBack();
           await tester.pumpAndSettle();
@@ -378,19 +392,69 @@ void main() {
     });
   }
 
+  for (final layout in [(390.0, 1.0), (320.0, 1.4)]) {
+    testWidgets('navegação separa inset Android em ${layout.$1}px',
+        (tester) async {
+      tester.view.physicalSize = Size(layout.$1, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      double? dockHeight;
+      for (final inset in [0.0, 24.0, 48.0]) {
+        var selected = -1;
+        await tester.pumpWidget(MaterialApp(
+          theme: AppTheme.dark,
+          home: MediaQuery(
+            data: MediaQueryData(
+              size: Size(layout.$1, 844),
+              padding: EdgeInsets.only(bottom: inset),
+              viewPadding: EdgeInsets.only(bottom: inset),
+              textScaler: TextScaler.linear(layout.$2),
+            ),
+            child: Scaffold(
+              bottomNavigationBar: GaronaNavigation(
+                selectedIndex: 4,
+                hasTeam: true,
+                onSelected: (index) => selected = index,
+              ),
+            ),
+          ),
+        ));
+        await tester.pumpAndSettle();
+        final dock =
+            tester.getRect(find.byKey(const ValueKey('navigation-dock')));
+        dockHeight ??= dock.height;
+        expect(dock.height, dockHeight,
+            reason: 'A área de gesto não deve aumentar o fundo da barra.');
+        expect(dock.height, lessThanOrEqualTo(86));
+        expect(dock.bottom, lessThanOrEqualTo(844 - inset));
+        for (var index = 0; index < 5; index++) {
+          final target = find.byKey(ValueKey('nav-$index'));
+          final bounds = tester.getRect(target);
+          expect(bounds.width, greaterThanOrEqualTo(48));
+          expect(bounds.height, greaterThanOrEqualTo(48));
+          expect(bounds.center.dy, closeTo(dock.center.dy, 1));
+          await tester.tap(target);
+          expect(selected, index);
+        }
+        expect(tester.takeException(), isNull);
+      }
+    });
+  }
+
   testWidgets('carregamento respeita movimento reduzido e imagem ausente',
       (tester) async {
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.dark,
         home: const MediaQuery(
             data: MediaQueryData(disableAnimations: true),
-            child: Scaffold(body: GdSkeleton(compact: true)))));
+            child: Scaffold(body: GaronaSkeleton(compact: true)))));
     await tester.pumpAndSettle();
     expect(tester.binding.hasScheduledFrame, isFalse);
     await tester.pumpWidget(MaterialApp(
         theme: AppTheme.dark,
-        home: const Scaffold(body: GdImage(width: 240, height: 150))));
-    expect(find.byIcon(Icons.directions_car_outlined), findsOneWidget);
+        home: const Scaffold(body: GaronaImage(width: 240, height: 150))));
+    expect(find.byType(GaronaCoachwork), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -417,7 +481,15 @@ void main() {
         DefaultTextStyle.of(tester.element(find.text('Filtro inativo'))).style;
     expect(active.fontFamily, 'Manrope');
     expect(inactive.fontFamily, 'Manrope');
-    expect(active.color, AppColors.onPrimary);
+    expect(active.color, AppColors.primary);
+    final background = Color.alphaBlend(
+        AppColors.primary.withValues(alpha: .12), AppColors.surface);
+    final foregroundLuminance = active.color!.computeLuminance();
+    final backgroundLuminance = background.computeLuminance();
+    final contrast = foregroundLuminance > backgroundLuminance
+        ? (foregroundLuminance + .05) / (backgroundLuminance + .05)
+        : (backgroundLuminance + .05) / (foregroundLuminance + .05);
+    expect(contrast, greaterThanOrEqualTo(4.5));
     expect(inactive.color, AppColors.textMuted);
   });
 
@@ -443,7 +515,10 @@ void main() {
     }
     await tester.pageBack();
     await tester.pumpAndSettle();
-    expect(find.byType(GdNavigation), findsOneWidget);
+    expect(find.byType(GaronaNavigation), findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Projetos para descobrir'), -250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.pumpAndSettle();
     expect(find.text('Projetos para descobrir'), findsOneWidget);
     expect(tester.takeException(), isNull);
 

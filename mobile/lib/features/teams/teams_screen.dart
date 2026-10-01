@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/team_detail_screen.dart';
-import 'package:garagem_mobile/features/teams/team_form_screen.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/team_detail_screen.dart';
+import 'package:garona_mobile/features/teams/team_form_screen.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 enum _TeamView { all, pending, invites }
 
@@ -191,7 +191,7 @@ class _TeamsScreenState extends State<TeamsScreen> {
   }
 
   Widget _body() {
-    if (_loading) return const GdSkeleton();
+    if (_loading) return const GaronaSkeleton();
     if (_loadError != null && _teams == null) {
       return _TeamMessage(
         message: apiErrorMessage(_loadError!),
@@ -257,13 +257,13 @@ class _TeamsScreenState extends State<TeamsScreen> {
             ),
             const SizedBox(height: 20),
           ],
-          GdSectionTitle(title: _sectionTitle, eyebrow: 'COMUNIDADE'),
+          GaronaSectionTitle(title: _sectionTitle, eyebrow: 'COMUNIDADE'),
           const SizedBox(height: 12),
           if (teams.isEmpty)
             _FilteredEmpty(view: _view)
           else
             for (var index = 0; index < teams.length; index++) ...[
-              GdReveal(
+              GaronaReveal(
                 child: _TeamCard(
                     team: teams[index], onTap: () => _open(teams[index].id)),
               ),
@@ -297,7 +297,7 @@ final class _TeamMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: GdEmptyState(
+        child: GaronaEmptyState(
             icon: Icons.groups_outlined,
             title: message,
             action: onRetry == null
@@ -313,14 +313,25 @@ final class _TeamsIntro extends StatelessWidget {
   final VoidCallback onCreate;
 
   @override
-  Widget build(BuildContext context) => GdIntro(
-        eyebrow: 'Cultura automotiva',
-        title: 'Encontre sua equipe.',
-        description: 'Pessoas, máquinas e histórias na mesma direção.',
-        action: FilledButton.icon(
-            onPressed: onCreate,
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Criar minha equipe')),
+  Widget build(BuildContext context) => GaronaPanel(
+        technical: true,
+        radius: 24,
+        padding: const EdgeInsets.all(22),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const GaronaEyebrow('A sua turma. A sua garagem.'),
+          const SizedBox(height: 20),
+          Text('Encontre sua equipe.',
+              style: Theme.of(context).textTheme.headlineLarge),
+          const SizedBox(height: 10),
+          Text('Projetos diferentes. A mesma paixão por carros.',
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          const SizedBox(height: 22),
+          FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('Criar minha equipe')),
+        ]),
       );
 }
 
@@ -345,8 +356,8 @@ final class _FilterChip extends StatelessWidget {
       avatar: Icon(icon,
           size: 18,
           color: selected
-              ? Theme.of(context).colorScheme.onPrimary
-              : Theme.of(context).colorScheme.primary),
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.onSurfaceVariant),
       label: Text(label),
       showCheckmark: false,
     );
@@ -365,96 +376,105 @@ final class _TeamCard extends StatelessWidget {
     final membership = team.myRole != null;
     return Material(
       color: colors.surfaceContainer,
-      borderRadius: BorderRadius.circular(16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+            color: membership
+                ? colors.primary.withValues(alpha: .4)
+                : colors.outlineVariant),
+      ),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: membership ? colors.primary : colors.outlineVariant,
-                width: 2,
-              ),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [colors.surfaceContainerHigh, colors.surfaceContainer],
             ),
           ),
-          child: Row(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              GdAvatar(
-                name: team.name,
-                url: team.avatarUrl,
-                size: 52,
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            team.name,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w800,
-                                ),
+              Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                GaronaAvatar(
+                  name: team.name,
+                  url: team.avatarUrl,
+                  size: 56,
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              team.name,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
                           ),
-                        ),
-                        Icon(Icons.north_east_rounded,
-                            size: 18, color: colors.onSurfaceVariant),
-                      ],
-                    ),
-                    if (team.description != null) ...[
-                      const SizedBox(height: 5),
-                      Text(
-                        team.description!,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(color: colors.onSurfaceVariant),
+                          Icon(Icons.north_east_rounded,
+                              size: 18, color: colors.onSurfaceVariant),
+                        ],
                       ),
                     ],
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _MetaPill(
-                          icon: Icons.people_outline,
-                          label:
-                              '${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}',
-                        ),
-                        if (team.location != null)
-                          _MetaPill(
-                            icon: Icons.location_on_outlined,
-                            label: team.location!,
-                          ),
-                        if (team.myRole != null)
-                          _MetaPill(
-                            icon: Icons.shield_outlined,
-                            label: _roleLabel(team.myRole!),
-                            highlighted: true,
-                          ),
-                        if (team.myRequest == 'pendente')
-                          const _MetaPill(
-                            icon: Icons.schedule,
-                            label: 'Pedido pendente',
-                            highlighted: true,
-                          ),
-                        if (team.myInvite == 'pendente')
-                          const _MetaPill(
-                            icon: Icons.mail_outline_rounded,
-                            label: 'Convite recebido',
-                            highlighted: true,
-                          ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
+              ]),
+              if (team.description != null) ...[
+                const SizedBox(height: 14),
+                Text(
+                  team.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(color: colors.onSurfaceVariant),
+                ),
+              ],
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 14),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MetaPill(
+                    icon: Icons.people_outline,
+                    label:
+                        '${team.memberCount} integrante${team.memberCount == 1 ? '' : 's'}',
+                  ),
+                  if (team.location != null)
+                    _MetaPill(
+                      icon: Icons.location_on_outlined,
+                      label: team.location!,
+                    ),
+                  if (team.myRole != null)
+                    _MetaPill(
+                      icon: Icons.shield_outlined,
+                      label: _roleLabel(team.myRole!),
+                      highlighted: true,
+                    ),
+                  if (team.myRequest == 'pendente')
+                    const _MetaPill(
+                      icon: Icons.schedule,
+                      label: 'Pedido pendente',
+                      highlighted: true,
+                    ),
+                  if (team.myInvite == 'pendente')
+                    const _MetaPill(
+                      icon: Icons.mail_outline_rounded,
+                      label: 'Convite recebido',
+                      highlighted: true,
+                    ),
+                ],
               ),
             ],
           ),
@@ -477,7 +497,7 @@ final class _MetaPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) =>
-      GdBadge(label: label, icon: icon, accent: highlighted);
+      GaronaBadge(label: label, icon: icon, accent: highlighted);
 }
 
 final class _FilteredEmpty extends StatelessWidget {
@@ -486,7 +506,7 @@ final class _FilteredEmpty extends StatelessWidget {
   final _TeamView view;
 
   @override
-  Widget build(BuildContext context) => GdEmptyState(
+  Widget build(BuildContext context) => GaronaEmptyState(
       icon: Icons.groups_outlined,
       title: switch (view) {
         _TeamView.all => 'Nenhuma equipe foi criada ainda.',

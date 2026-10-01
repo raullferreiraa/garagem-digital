@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
 
 final class SocialUsersScreen extends StatefulWidget {
   const SocialUsersScreen({
@@ -62,7 +62,7 @@ final class _SocialUsersScreenState extends State<SocialUsersScreen> {
       appBar: AppBar(title: Text(widget.title)),
       body: users == null
           ? _loading
-              ? const GdSkeleton(compact: true)
+              ? const GaronaSkeleton(compact: true)
               : _errorView()
           : RefreshIndicator(
               onRefresh: _reload,
@@ -95,7 +95,7 @@ final class _SocialUsersScreenState extends State<SocialUsersScreen> {
                       Card(
                         child: ListTile(
                           onTap: () => widget.onUserTap(user.id),
-                          leading: GdAvatar(
+                          leading: GaronaAvatar(
                             name: user.name,
                             url: user.avatarUrl,
                             size: 44,

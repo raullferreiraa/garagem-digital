@@ -1,11 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/events/event.dart';
-import 'package:garagem_mobile/features/events/event_participants.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/events/event.dart';
+import 'package:garona_mobile/features/events/event_participants.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
 
 final class EventParticipantsScreen extends StatefulWidget {
   const EventParticipantsScreen({
@@ -186,7 +186,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
               }
               if (_loading) {
                 return const SizedBox(
-                    height: 220, child: GdSkeleton(compact: false));
+                    height: 220, child: GaronaSkeleton(compact: false));
               }
               if (count == 0) {
                 return Padding(
@@ -214,7 +214,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
               return Card(
                 margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  leading: GdAvatar(
+                  leading: GaronaAvatar(
                       url: person.avatarUrl, name: person.name, size: 46),
                   title: Text(person.name),
                   subtitle: Text(person.carModel == null
@@ -224,7 +224,7 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
                     if (person.carPhotoUrl != null) ...[
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: GdImage(
+                        child: GaronaImage(
                             url: person.carPhotoUrl, width: 44, height: 40),
                       ),
                       const SizedBox(width: 6),
@@ -241,8 +241,8 @@ class _EventParticipantsScreenState extends State<EventParticipantsScreen> {
             return Card(
               margin: const EdgeInsets.only(bottom: 8),
               child: ListTile(
-                leading:
-                    GdAvatar(url: team.avatarUrl, name: team.name, size: 46),
+                leading: GaronaAvatar(
+                    url: team.avatarUrl, name: team.name, size: 46),
                 title: Text(team.name),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: widget.onTeamTap == null

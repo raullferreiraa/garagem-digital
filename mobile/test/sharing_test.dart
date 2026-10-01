@@ -1,10 +1,10 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/sharing/gd_share.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/sharing/share_content.dart';
+import 'package:garona_mobile/core/sharing/garona_share.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/sharing/share_content.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -24,8 +24,8 @@ void main() {
       return null;
     });
 
-    await GdShare.open(
-      const GdSharePayload(title: 'Projeto', text: 'Texto público'),
+    await GaronaShare.open(
+      const GaronaSharePayload(title: 'Projeto', text: 'Texto público'),
     );
 
     expect(received?.method, 'shareText');

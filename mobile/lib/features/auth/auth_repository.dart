@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/storage/token_storage.dart';
-import 'package:garagem_mobile/features/auth/user.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/storage/token_storage.dart';
+import 'package:garona_mobile/features/auth/user.dart';
 
 final class AuthRepository {
   AuthRepository(this._api, this._tokens);

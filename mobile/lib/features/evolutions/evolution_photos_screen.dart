@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 import 'package:image_picker/image_picker.dart';
 
 enum _PhotoSource { camera, gallery }
@@ -231,9 +231,10 @@ class _EvolutionPhotosScreenState extends State<EvolutionPhotosScreen> {
                         child: Image.network(
                           photo.url,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const ColoredBox(
-                            color: Color(0xFF24262A),
-                            child: Icon(Icons.broken_image_outlined),
+                          errorBuilder: (_, __, ___) => ColoredBox(
+                            color:
+                                Theme.of(context).colorScheme.surfaceContainer,
+                            child: const Icon(Icons.broken_image_outlined),
                           ),
                         ),
                       ),

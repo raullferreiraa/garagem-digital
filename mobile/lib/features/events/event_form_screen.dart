@@ -1,13 +1,13 @@
 import 'dart:typed_data';
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
-import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/brazil_city_field.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/events/event.dart';
-import 'package:garagem_mobile/features/events/events_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/events/event.dart';
+import 'package:garona_mobile/features/events/events_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
 
 final class EventFormScreen extends StatefulWidget {
   const EventFormScreen(
@@ -115,12 +115,14 @@ class _EventFormScreenState extends State<EventFormScreen> {
               keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
               padding: const EdgeInsets.all(20),
               children: [
-                const GdIntro(
+                GaronaIntro(
                     eyebrow: 'Encontros / Comunidade',
-                    title: 'Crie um ponto de encontro permanente',
+                    title: widget.event == null
+                        ? 'Dê um ponto de encontro à sua turma.'
+                        : 'O encontro tem a sua identidade.',
                     description:
                         'Conte o que reúne vocês. A comunidade continua viva entre uma edição e outra.'),
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
                 if (widget.event == null)
                   FormPhoto(
                       label: 'Capa do encontro',
@@ -144,15 +146,29 @@ class _EventFormScreenState extends State<EventFormScreen> {
                     decoration: const InputDecoration(labelText: 'Descrição')),
                 const SizedBox(height: 12),
                 if (widget.event == null)
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Agendar primeira edição'),
-                    subtitle:
-                        const Text('Você também pode definir a data depois.'),
-                    value: _scheduleNow,
-                    onChanged: _saving
-                        ? null
-                        : (value) => setState(() => _scheduleNow = value),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 16),
+                    child: Material(
+                      color: Theme.of(context).colorScheme.surfaceContainer,
+                      clipBehavior: Clip.antiAlias,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        side: BorderSide(
+                            color:
+                                Theme.of(context).colorScheme.outlineVariant),
+                      ),
+                      child: SwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
+                        title: const Text('Agendar primeira edição'),
+                        subtitle: const Text(
+                            'Você também pode definir a data depois.'),
+                        value: _scheduleNow,
+                        onChanged: _saving
+                            ? null
+                            : (value) => setState(() => _scheduleNow = value),
+                      ),
+                    ),
                   ),
                 if (_scheduleNow) ...[
                   OutlinedButton.icon(

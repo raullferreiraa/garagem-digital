@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/features/messages/message_reply.dart';
+import 'package:garona_mobile/features/messages/message_reply.dart';
 
 class ChatMessageBubble extends StatelessWidget {
   const ChatMessageBubble({
@@ -35,7 +35,7 @@ class ChatMessageBubble extends StatelessWidget {
     final foreground = colors.onSurface;
     final background = mine
         ? Color.alphaBlend(
-            colors.primary.withValues(alpha: highlighted ? .46 : .28),
+            colors.primary.withValues(alpha: highlighted ? .40 : .18),
             colors.surfaceContainerHigh,
           )
         : Color.alphaBlend(
@@ -48,7 +48,7 @@ class ChatMessageBubble extends StatelessWidget {
     return Align(
       alignment: mine ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: const EdgeInsets.only(bottom: 7),
+        padding: const EdgeInsets.only(bottom: 10),
         child: Semantics(
           hint: deleted ? null : 'Segure para ver as opções da mensagem',
           child: GestureDetector(
@@ -62,7 +62,7 @@ class ChatMessageBubble extends StatelessWidget {
                   : const Duration(milliseconds: 250),
               constraints: BoxConstraints(
                   maxWidth: MediaQuery.sizeOf(context).width * .80),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
               decoration: BoxDecoration(
                 color: background,
                 border: Border.all(
@@ -83,10 +83,10 @@ class ChatMessageBubble extends StatelessWidget {
                       ]
                     : null,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(16),
-                  topRight: const Radius.circular(16),
-                  bottomLeft: Radius.circular(mine ? 16 : 4),
-                  bottomRight: Radius.circular(mine ? 4 : 16),
+                  topLeft: const Radius.circular(23),
+                  topRight: const Radius.circular(23),
+                  bottomLeft: Radius.circular(mine ? 23 : 10),
+                  bottomRight: Radius.circular(mine ? 10 : 23),
                 ),
               ),
               child: Column(
@@ -161,11 +161,11 @@ class MessageQuote extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
         decoration: BoxDecoration(
           color: color.withValues(alpha: .07),
-          border: Border(
-              left: BorderSide(color: color.withValues(alpha: .6), width: 3)),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: color.withValues(alpha: .15)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

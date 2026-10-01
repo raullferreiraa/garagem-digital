@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/notifications/app_notification.dart';
+import 'package:garona_mobile/features/notifications/app_notification.dart';
 
 void main() {
   test('aviso de edição preserva o encontro ao ser marcado como lido', () {

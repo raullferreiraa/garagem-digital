@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_activity_action.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_list.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/garona_activity_action.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_list.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/following_feed.dart';
 
 enum _ExploreView { discover, following }
 
@@ -101,9 +102,9 @@ final class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Explorar'),
+        title: const GaronaWordmark(),
         actions: [
-          const GdActivityAction(),
+          const GaronaActivityAction(),
           IconButton(
             onPressed: widget.onSearch,
             tooltip: 'Buscar',
@@ -125,7 +126,7 @@ final class _ExploreScreenState extends State<ExploreScreen> {
                     onTap: () => setState(() => _view = _ExploreView.discover),
                   ),
                 ),
-                const SizedBox(width: 24),
+                const SizedBox(width: 8),
                 Expanded(
                   child: _ExploreTab(
                     label: 'Seguindo',
@@ -178,28 +179,47 @@ final class _ExploreTab extends StatelessWidget {
       button: true,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Text(
-                label,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color:
-                          selected ? colors.onSurface : colors.onSurfaceVariant,
-                      fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-                    ),
-              ),
-            ),
-            AnimatedContainer(
-              duration: MediaQuery.disableAnimationsOf(context)
-                  ? Duration.zero
-                  : const Duration(milliseconds: 200),
-              height: selected ? 3 : 1,
-              color: selected ? colors.primary : colors.outlineVariant,
-            ),
-          ],
+        borderRadius: BorderRadius.circular(14),
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 180),
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: selected ? colors.surfaceContainerHigh : colors.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: selected
+                    ? colors.outline
+                    : colors.outlineVariant.withValues(alpha: .3)),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                        color: colors.primary.withValues(alpha: .035),
+                        blurRadius: 18,
+                        offset: const Offset(0, 4))
+                  ]
+                : null,
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            if (selected) ...[
+              Container(
+                  width: 5,
+                  height: 5,
+                  decoration: BoxDecoration(
+                      color: colors.primary, shape: BoxShape.circle)),
+              const SizedBox(width: 8),
+            ],
+            Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: selected
+                            ? colors.onSurface
+                            : colors.onSurfaceVariant))),
+          ]),
         ),
       ),
     );
@@ -226,20 +246,19 @@ final class _OrderButton extends StatelessWidget {
       selected: selected,
       button: true,
       child: Material(
-        color: selected
-            ? colors.primary.withValues(alpha: .10)
-            : colors.surfaceContainer,
+        color: selected ? colors.surfaceContainerHigh : Colors.transparent,
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(14),
             side: BorderSide(
                 color: selected
-                    ? colors.primary.withValues(alpha: .4)
+                    ? colors.primary.withValues(alpha: .32)
                     : colors.outlineVariant)),
+        clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(14),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,

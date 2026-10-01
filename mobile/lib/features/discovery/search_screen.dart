@@ -1,16 +1,16 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:flutter/services.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/users_repository.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/users_repository.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 enum SearchCategory { projects, people, teams }
 
@@ -293,7 +293,7 @@ final class _SearchScreenState extends State<SearchScreen> {
       appBar: AppBar(title: const Text('Buscar'), actions: const [
         Padding(
           padding: EdgeInsets.only(right: 20),
-          child: GdWordmark(compact: true),
+          child: GaronaWordmark(compact: true),
         ),
       ]),
       body: Column(
@@ -334,7 +334,7 @@ final class _SearchScreenState extends State<SearchScreen> {
                 filled: true,
                 fillColor: Theme.of(context).colorScheme.surfaceContainer,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(24),
                   borderSide: BorderSide.none,
                 ),
               ),
@@ -409,7 +409,7 @@ final class _SearchScreenState extends State<SearchScreen> {
     if (_loading &&
         _lastQuery == query &&
         (_resultsQuery != query || _resultsFilter != _filter || !_hasResults)) {
-      return const GdSkeleton(compact: true);
+      return const GaronaSkeleton(compact: true);
     }
     if (_error != null &&
         _lastQuery == query &&
@@ -633,17 +633,16 @@ final class _FilterChip extends StatelessWidget {
     return ChoiceChip(
       selected: selected,
       onSelected: (_) => onTap(),
-      selectedColor: colors.primary,
+      selectedColor: colors.primary.withValues(alpha: .14),
       backgroundColor: colors.surfaceContainer,
       side:
           BorderSide(color: selected ? colors.primary : colors.outlineVariant),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       labelStyle: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: selected ? colors.onPrimary : colors.onSurfaceVariant,
+            color: selected ? colors.primary : colors.onSurfaceVariant,
           ),
       avatar: Icon(icon,
-          size: 18,
-          color: selected ? colors.onPrimary : colors.onSurfaceVariant),
+          size: 18, color: selected ? colors.primary : colors.onSurfaceVariant),
       showCheckmark: false,
       label: Text(count == null ? label : '$label  $count'),
     );
@@ -668,7 +667,7 @@ final class _ResultSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          GdSectionTitle(
+          GaronaSectionTitle(
             title: title,
             eyebrow: 'RESULTADOS',
             trailing: Text('$count',
@@ -727,8 +726,8 @@ final class _CarResult extends StatelessWidget {
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: GdImage(
+              borderRadius: BorderRadius.circular(20),
+              child: GaronaImage(
                   url: car.photoUrl,
                   width: 92,
                   height: 92,
@@ -814,7 +813,7 @@ final class _UserResult extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      leading: GdAvatar(url: user.avatarUrl, name: user.name, size: 48),
+      leading: GaronaAvatar(url: user.avatarUrl, name: user.name, size: 48),
       title: Text(
         '@${user.username}',
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -840,7 +839,7 @@ final class _TeamResult extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      leading: GdAvatar(url: team.avatarUrl, name: team.name, size: 48),
+      leading: GaronaAvatar(url: team.avatarUrl, name: team.name, size: 48),
       title: Text(
         team.name,
         style: const TextStyle(fontWeight: FontWeight.w800),
@@ -869,8 +868,8 @@ final class _SearchMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: GdReveal(
-            child: GdEmptyState(
+        child: GaronaReveal(
+            child: GaronaEmptyState(
                 icon: icon,
                 title: title,
                 description: message,

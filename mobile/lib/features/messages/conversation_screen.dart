@@ -2,17 +2,17 @@ import 'dart:async';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:flutter/services.dart';
-import 'package:garagem_mobile/core/widgets/chat_message_bubble.dart';
-import 'package:garagem_mobile/features/messages/message_reply.dart';
-import 'package:garagem_mobile/features/messages/message_history_screen.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/core/widgets/message_management.dart';
-import 'package:garagem_mobile/features/messages/conversation.dart';
-import 'package:garagem_mobile/features/messages/messages_repository.dart';
-import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
+import 'package:garona_mobile/core/widgets/chat_message_bubble.dart';
+import 'package:garona_mobile/features/messages/message_reply.dart';
+import 'package:garona_mobile/features/messages/message_history_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/message_management.dart';
+import 'package:garona_mobile/features/messages/conversation.dart';
+import 'package:garona_mobile/features/messages/messages_repository.dart';
+import 'package:garona_mobile/features/messages/message_draft_storage.dart';
 
 final class ConversationScreen extends StatefulWidget {
   const ConversationScreen({
@@ -387,12 +387,12 @@ final class _ConversationScreenState extends State<ConversationScreen>
         ],
         titleSpacing: 0,
         title: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           onTap: () => widget.onProfileTap(user.id),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
             child: Row(children: [
-              GdAvatar(url: user.avatarUrl, name: user.name, size: 38),
+              GaronaAvatar(url: user.avatarUrl, name: user.name, size: 38),
               const SizedBox(width: 10),
               Expanded(
                 child: Column(
@@ -403,6 +403,8 @@ final class _ConversationScreenState extends State<ConversationScreen>
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleMedium),
                     Text('@${user.username}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.labelSmall?.copyWith(
                               color: Theme.of(context)
                                   .colorScheme
@@ -469,7 +471,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
       );
     }
     if (_messages == null && _error == null)
-      return const GdSkeleton(compact: true);
+      return const GaronaSkeleton(compact: true);
     if (_messages == null) {
       return Center(
         child: FilledButton.icon(
@@ -544,11 +546,21 @@ final class _ConversationScreenState extends State<ConversationScreen>
             : '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Text(label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                letterSpacing: 1.4,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              )),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainer,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+          ),
+        ),
+        child: Text(label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  letterSpacing: 1.4,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                )),
+      ),
     );
   }
 
@@ -689,7 +701,7 @@ final class _ConversationScreenState extends State<ConversationScreen>
 
   Widget _composerBar() {
     if (_unavailable) return const SizedBox.shrink();
-    return GdComposerSurface(
+    return GaronaComposerSurface(
       child: SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -727,6 +739,12 @@ final class _ConversationScreenState extends State<ConversationScreen>
               ),
               const SizedBox(width: 8),
               IconButton.filled(
+                style: IconButton.styleFrom(
+                  minimumSize: const Size.square(48),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
                 tooltip: 'Enviar mensagem',
                 onPressed: _sending ||
                         _messages == null ||

@@ -2,16 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 abstract final class AppColors {
-  static const canvas = Color(0xFF0B0E12);
-  static const surface = Color(0xFF10151B);
-  static const surfaceRaised = Color(0xFF171E26);
-  static const surfaceStrong = Color(0xFF222C37);
-  static const primary = Color(0xFFFF642E);
-  static const onPrimary = Color(0xFF2A0B00);
-  static const secondary = Color(0xFFADC4D1);
-  static const text = Color(0xFFF6F2EA);
-  static const textMuted = Color(0xFFADB8C5);
-  static const outline = Color(0xFF3B4857);
+  static const canvas = Color(0xFF090E0C);
+  static const surface = Color(0xFF101813);
+  static const surfaceRaised = Color(0xFF18251D);
+  static const surfaceStrong = Color(0xFF26372B);
+  static const primary = Color(0xFFD6EA78);
+  static const onPrimary = Color(0xFF182005);
+  static const secondary = Color(0xFFD3AA77);
+  static const text = Color(0xFFF1F1E7);
+  static const textMuted = Color(0xFFA8B7AB);
+  static const outline = Color(0xFF526657);
 }
 
 abstract final class AppTheme {
@@ -23,11 +23,12 @@ abstract final class AppTheme {
     ).copyWith(
       primary: AppColors.primary,
       onPrimary: AppColors.onPrimary,
-      primaryContainer: AppColors.surfaceStrong,
-      onPrimaryContainer: const Color(0xFFFFB69E),
+      primaryContainer: const Color(0xFF2D391A),
+      onPrimaryContainer: AppColors.primary,
       secondary: AppColors.secondary,
-      secondaryContainer: AppColors.surfaceStrong,
-      onSecondaryContainer: AppColors.text,
+      onSecondary: const Color(0xFF2C1B07),
+      secondaryContainer: const Color(0xFF33291C),
+      onSecondaryContainer: const Color(0xFFF0CEA4),
       surface: AppColors.surface,
       onSurface: AppColors.text,
       onSurfaceVariant: AppColors.textMuted,
@@ -37,7 +38,7 @@ abstract final class AppTheme {
       surfaceContainerLow: AppColors.surface,
       surfaceContainer: AppColors.surfaceRaised,
       surfaceContainerHigh: AppColors.surfaceStrong,
-      surfaceContainerHighest: const Color(0xFF2C3744),
+      surfaceContainerHighest: const Color(0xFF344838),
     );
 
     final base = ThemeData(
@@ -51,40 +52,40 @@ abstract final class AppTheme {
 
     final textTheme = base.textTheme.copyWith(
       displayLarge: const TextStyle(
-          fontFamily: 'BarlowCondensed',
+          fontFamily: 'Manrope',
           fontSize: 64,
           fontWeight: FontWeight.w700,
           height: 1.02,
           letterSpacing: -0.5),
       displayMedium: const TextStyle(
-          fontFamily: 'BarlowCondensed',
+          fontFamily: 'Manrope',
           fontSize: 52,
           fontWeight: FontWeight.w700,
           height: 1.05),
       displaySmall: const TextStyle(
-          fontFamily: 'BarlowCondensed',
+          fontFamily: 'Manrope',
           fontSize: 40,
           fontWeight: FontWeight.w700,
           height: 1.06),
       headlineLarge: const TextStyle(
-          fontFamily: 'BarlowCondensed',
-          fontSize: 36,
+          fontFamily: 'Manrope',
+          fontSize: 26,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineMedium: const TextStyle(
-          fontFamily: 'BarlowCondensed',
-          fontSize: 30,
+          fontFamily: 'Manrope',
+          fontSize: 26,
           fontWeight: FontWeight.w600,
           height: 1.1),
       headlineSmall: base.textTheme.headlineSmall?.copyWith(
-        fontFamily: 'BarlowCondensed',
-        fontSize: 28,
+        fontFamily: 'Manrope',
+        fontSize: 24,
         fontWeight: FontWeight.w600,
         height: 1.15,
       ),
       titleLarge: base.textTheme.titleLarge?.copyWith(
-        fontFamily: 'BarlowCondensed',
-        fontSize: 24,
+        fontFamily: 'Manrope',
+        fontSize: 22,
         fontWeight: FontWeight.w600,
         height: 1.15,
       ),
@@ -107,13 +108,14 @@ abstract final class AppTheme {
 
     OutlineInputBorder inputBorder(Color color, [double width = 1]) {
       return OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide(color: color, width: width),
       );
     }
 
     return base.copyWith(
-      textTheme: textTheme,
+      textTheme: textTheme.apply(
+          bodyColor: AppColors.text, displayColor: AppColors.text),
       appBarTheme: AppBarTheme(
         centerTitle: false,
         elevation: 0,
@@ -193,27 +195,32 @@ abstract final class AppTheme {
       ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: colors.surfaceContainer,
-        selectedColor: colors.primary,
-        checkmarkColor: colors.onPrimary,
+        selectedColor: colors.primary.withValues(alpha: .12),
+        checkmarkColor: colors.primary,
         labelStyle: textTheme.labelLarge!.copyWith(
           fontSize: 12,
           color: WidgetStateColor.resolveWith((states) =>
               states.contains(WidgetState.selected)
-                  ? colors.onPrimary
+                  ? colors.primary
                   : colors.onSurfaceVariant),
         ),
-        side: BorderSide(color: colors.outlineVariant),
+        side: WidgetStateBorderSide.resolveWith((states) => BorderSide(
+            color: states.contains(WidgetState.selected)
+                ? colors.primary.withValues(alpha: .5)
+                : colors.outlineVariant)),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(16),
         ),
         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
+          backgroundColor: colors.primary,
+          foregroundColor: colors.onPrimary,
           minimumSize: const Size(48, 50),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: textTheme.labelLarge,
         ),
@@ -223,7 +230,7 @@ abstract final class AppTheme {
           minimumSize: const Size(48, 48),
           textStyle: textTheme.labelLarge,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -248,7 +255,7 @@ abstract final class AppTheme {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           side: BorderSide(color: colors.outline),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
           textStyle: textTheme.labelLarge,
         ),
@@ -264,20 +271,20 @@ abstract final class AppTheme {
         titleTextStyle: textTheme.headlineSmall,
         contentTextStyle: textTheme.bodyMedium,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           side: BorderSide(color: colors.outlineVariant),
         ),
       ),
       popupMenuTheme: PopupMenuThemeData(
         color: colors.surfaceContainerHigh,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         textStyle: textTheme.bodyMedium,
       ),
       tooltipTheme: TooltipThemeData(
         decoration: BoxDecoration(
           color: colors.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(color: colors.outlineVariant),
         ),
         textStyle: textTheme.bodySmall?.copyWith(color: colors.onSurface),
@@ -302,7 +309,7 @@ abstract final class AppTheme {
         contentTextStyle:
             textTheme.bodyMedium?.copyWith(color: colors.onSurface),
         actionTextColor: colors.primary,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         insetPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       ),
       progressIndicatorTheme: ProgressIndicatorThemeData(

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/features/profile/public_profile.dart';
-import 'package:garagem_mobile/features/profile/social_users_screen.dart';
+import 'package:garona_mobile/features/profile/public_profile.dart';
+import 'package:garona_mobile/features/profile/social_users_screen.dart';
 
 void main() {
   testWidgets(

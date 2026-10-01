@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_mark.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 
 /// Shared visual elements; no network requests besides the requested image.
-class GdImage extends StatelessWidget {
-  const GdImage(
+class GaronaImage extends StatelessWidget {
+  const GaronaImage(
       {super.key,
       this.url,
       this.semanticLabel,
@@ -28,14 +29,16 @@ class GdImage extends StatelessWidget {
             end: Alignment.bottomRight,
             colors: [colors.surfaceContainerHigh, colors.surfaceContainerLow],
           )),
-          child: GdTechnicalBackdrop(
+          child: GaronaTechnicalBackdrop(
               child: Center(
                   child: Padding(
             padding: const EdgeInsets.all(8),
-            child: Icon(
-                failed ? Icons.image_not_supported_outlined : fallbackIcon,
-                size: 32,
-                color: colors.onSurfaceVariant),
+            child: !failed && fallbackIcon == Icons.directions_car_outlined
+                ? const GaronaCoachwork()
+                : Icon(
+                    failed ? Icons.image_not_supported_outlined : fallbackIcon,
+                    size: 32,
+                    color: colors.onSurfaceVariant),
           ))),
         );
     final source = url?.trim();
@@ -74,8 +77,8 @@ class GdImage extends StatelessWidget {
   }
 }
 
-class GdAvatar extends StatelessWidget {
-  const GdAvatar({super.key, this.url, required this.name, this.size = 40});
+class GaronaAvatar extends StatelessWidget {
+  const GaronaAvatar({super.key, this.url, required this.name, this.size = 40});
   final String? url;
   final String name;
   final double size;
@@ -88,11 +91,9 @@ class GdAvatar extends StatelessWidget {
       padding: const EdgeInsets.all(1),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * .25),
-        border: Border.all(color: colors.outline),
-        gradient: LinearGradient(colors: [
-          colors.surfaceContainerHighest,
-          colors.surfaceContainerLow
-        ]),
+        border: Border.all(color: colors.primary.withValues(alpha: .28)),
+        gradient: LinearGradient(
+            colors: [colors.primaryContainer, colors.surfaceContainerLow]),
       ),
       child: ClipRRect(
           borderRadius: BorderRadius.circular(size * .25 - 1),
@@ -105,7 +106,7 @@ class GdAvatar extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        colors.surfaceContainerHighest,
+                        colors.primaryContainer,
                         colors.surfaceContainer
                       ],
                     )),
@@ -115,8 +116,8 @@ class GdAvatar extends StatelessWidget {
                                 fontFamily: 'BarlowCondensed',
                                 fontSize: size * .46,
                                 fontWeight: FontWeight.w600,
-                                color: colors.onSurface))))
-                : GdImage(
+                                color: colors.primary))))
+                : GaronaImage(
                     url: url,
                     width: size,
                     height: size,
@@ -128,14 +129,14 @@ class GdAvatar extends StatelessWidget {
 }
 
 /// One short entrance, never replayed by a refresh of the same widget.
-class GdReveal extends StatefulWidget {
-  const GdReveal({super.key, required this.child});
+class GaronaReveal extends StatefulWidget {
+  const GaronaReveal({super.key, required this.child});
   final Widget child;
   @override
-  State<GdReveal> createState() => _GdRevealState();
+  State<GaronaReveal> createState() => _GaronaRevealState();
 }
 
-class _GdRevealState extends State<GdReveal>
+class _GaronaRevealState extends State<GaronaReveal>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
       vsync: this, duration: const Duration(milliseconds: 320));
@@ -172,8 +173,8 @@ class _GdRevealState extends State<GdReveal>
 }
 
 /// A bounded pulse avoids perpetual GPU work on slow/offline connections.
-class GdSkeleton extends StatelessWidget {
-  const GdSkeleton({super.key, this.compact = false});
+class GaronaSkeleton extends StatelessWidget {
+  const GaronaSkeleton({super.key, this.compact = false});
   final bool compact;
   @override
   Widget build(BuildContext context) {
@@ -241,8 +242,8 @@ class GdSkeleton extends StatelessWidget {
   }
 }
 
-class GdSectionTitle extends StatelessWidget {
-  const GdSectionTitle(
+class GaronaSectionTitle extends StatelessWidget {
+  const GaronaSectionTitle(
       {super.key, required this.title, this.eyebrow, this.trailing});
   final String title;
   final String? eyebrow;
@@ -256,7 +257,7 @@ class GdSectionTitle extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                 if (eyebrow != null) ...[
-                  GdEyebrow(eyebrow!),
+                  GaronaEyebrow(eyebrow!),
                   const SizedBox(height: 8)
                 ],
                 Text(title, style: Theme.of(context).textTheme.headlineSmall),
@@ -266,53 +267,26 @@ class GdSectionTitle extends StatelessWidget {
       );
 }
 
-class GdWordmark extends StatelessWidget {
-  const GdWordmark({super.key, this.compact = false});
+class GaronaWordmark extends StatelessWidget {
+  const GaronaWordmark({super.key, this.compact = false});
   final bool compact;
   @override
   Widget build(BuildContext context) => Semantics(
-        label: 'Garagem Digital',
+        label: 'Garona',
         excludeSemantics: true,
         child: Row(mainAxisSize: MainAxisSize.min, children: [
-          SizedBox(
-              width: 28,
-              height: 28,
-              child: CustomPaint(
-                  painter:
-                      _StripesPainter(Theme.of(context).colorScheme.primary))),
+          GaronaMark(size: compact ? 25 : 34),
           const SizedBox(width: 10),
           Flexible(
-              child: Text(compact ? 'GD' : 'GARAGEM DIGITAL',
+              child: Text('GARONA',
+                  maxLines: 1,
                   style: TextStyle(
-                      fontFamily: 'BarlowCondensed',
-                      fontWeight: FontWeight.w700,
-                      fontSize: compact ? 25 : 22,
-                      letterSpacing: 1.4,
+                      fontFamily: 'Manrope',
+                      fontWeight: FontWeight.w800,
+                      fontStyle: FontStyle.italic,
+                      fontSize: compact ? 20 : 26,
+                      letterSpacing: compact ? 1.8 : 2.4,
                       color: Theme.of(context).colorScheme.onSurface))),
         ]),
       );
-}
-
-class _StripesPainter extends CustomPainter {
-  const _StripesPainter(this.color);
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    for (var i = 0; i < 3; i++) {
-      final x = i * size.width / 3;
-      canvas.drawPath(
-          Path()
-            ..moveTo(x + 6, 3)
-            ..lineTo(x + 11, 3)
-            ..lineTo(x + 3, size.height - 3)
-            ..lineTo(x - 2, size.height - 3)
-            ..close(),
-          paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant _StripesPainter oldDelegate) =>
-      color != oldDelegate.color;
 }

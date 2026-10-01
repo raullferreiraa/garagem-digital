@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_photos_screen.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolution_photos_screen.dart';
 
 /// Keeps the complete photo visible, including portraits and panoramas.
 class EvolutionPhotoFrame extends StatefulWidget {
@@ -74,7 +74,7 @@ class _EvolutionPhotoFrameState extends State<EvolutionPhotoFrame> {
               height: (constraints.maxWidth / _ratio.clamp(0.8, 2.0))
                   .clamp(0.0, widget.maxHeight),
               child: ColoredBox(
-                color: const Color(0xFF101214),
+                color: Theme.of(context).colorScheme.surface,
                 child: Image(
                   image: widget.image,
                   fit: BoxFit.contain,

@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/cars/car.dart';
-import 'package:garagem_mobile/features/cars/car_detail_screen.dart';
-import 'package:garagem_mobile/features/cars/cars_repository.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/cars/car.dart';
+import 'package:garona_mobile/features/cars/car_detail_screen.dart';
+import 'package:garona_mobile/features/cars/cars_repository.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 
 final class SavedProjectsScreen extends StatefulWidget {
   const SavedProjectsScreen({
@@ -244,7 +244,7 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
                               child: SizedBox(
                                 width: 74,
                                 height: 74,
-                                child: GdImage(
+                                child: GaronaImage(
                                     url: car.photoUrl,
                                     semanticLabel: car.model),
                               ),

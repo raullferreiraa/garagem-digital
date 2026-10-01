@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
-import 'package:garagem_mobile/core/config/app_config.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/messages/message_reply.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/messages/message_reply.dart';
 
 final class TeamChatMessage {
   const TeamChatMessage({

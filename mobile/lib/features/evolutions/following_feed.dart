@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/features/evolutions/evolution_gallery.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/features/evolutions/evolution.dart';
-import 'package:garagem_mobile/features/evolutions/evolutions_repository.dart';
-import 'package:garagem_mobile/features/evolutions/following_feed_item.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/evolutions/evolution.dart';
+import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
+import 'package:garona_mobile/features/evolutions/following_feed_item.dart';
 
 final class FollowingFeed extends StatefulWidget {
   const FollowingFeed({
@@ -114,7 +114,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             _lastItems == null) {
-          return const GdSkeleton();
+          return const GaronaSkeleton();
         }
         if (snapshot.hasError && _lastItems == null) {
           return _FeedMessage(
@@ -157,7 +157,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                   onAction: widget.onFindPeople == null ? null : _findPeople,
                 )
               else ...[
-                GdSectionTitle(
+                GaronaSectionTitle(
                   title: 'Atualizações recentes',
                   eyebrow: 'DA SUA COMUNIDADE',
                   trailing: Text(
@@ -167,7 +167,7 @@ final class _FollowingFeedState extends State<FollowingFeed> {
                 ),
                 const SizedBox(height: 20),
                 for (var index = 0; index < items.length; index++) ...[
-                  GdReveal(
+                  GaronaReveal(
                     key: ValueKey(items[index].evolution.id),
                     child: _EvolutionFeedCard(
                       item: items[index],
@@ -255,7 +255,7 @@ final class _EvolutionFeedCard extends StatelessWidget {
                     InkWell(
                       onTap: onProfileTap,
                       customBorder: const CircleBorder(),
-                      child: GdAvatar(
+                      child: GaronaAvatar(
                         size: 38,
                         url: car.ownerAvatarUrl,
                         name: car.ownerName,

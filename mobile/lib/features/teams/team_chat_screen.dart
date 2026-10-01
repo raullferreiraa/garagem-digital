@@ -1,17 +1,17 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_premium.dart';
+import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:flutter/services.dart';
-import 'package:garagem_mobile/core/widgets/chat_message_bubble.dart';
-import 'package:garagem_mobile/features/messages/message_reply.dart';
-import 'package:garagem_mobile/features/messages/message_draft_storage.dart';
-import 'package:garagem_mobile/features/messages/message_history_screen.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/core/widgets/message_management.dart';
-import 'package:garagem_mobile/features/teams/team.dart';
-import 'package:garagem_mobile/features/teams/teams_repository.dart';
+import 'package:garona_mobile/core/widgets/chat_message_bubble.dart';
+import 'package:garona_mobile/features/messages/message_reply.dart';
+import 'package:garona_mobile/features/messages/message_draft_storage.dart';
+import 'package:garona_mobile/features/messages/message_history_screen.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/message_management.dart';
+import 'package:garona_mobile/features/teams/team.dart';
+import 'package:garona_mobile/features/teams/teams_repository.dart';
 
 final class TeamChatScreen extends StatefulWidget {
   const TeamChatScreen({
@@ -322,7 +322,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
           titleSpacing: 0,
           title: Row(
             children: [
-              GdAvatar(
+              GaronaAvatar(
                 url: widget.team.avatarUrl,
                 name: widget.team.name,
                 size: 38,
@@ -380,7 +380,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
 
   Widget _body() {
     if (_messages == null && _error == null)
-      return const GdSkeleton(compact: true);
+      return const GaronaSkeleton(compact: true);
     if (_messages == null) {
       return Center(
         child: FilledButton.icon(
@@ -609,7 +609,7 @@ final class _TeamChatScreenState extends State<TeamChatScreen>
       ));
 
   Widget _composerBar() {
-    return GdComposerSurface(
+    return GaronaComposerSurface(
       child: SafeArea(
         top: false,
         child: Column(mainAxisSize: MainAxisSize.min, children: [

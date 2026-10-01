@@ -1,14 +1,14 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garagem_mobile/core/widgets/gd_ui.dart';
-import 'package:garagem_mobile/core/widgets/form_validation.dart';
-import 'package:garagem_mobile/core/widgets/form_photo.dart';
-import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
-import 'package:garagem_mobile/core/config/app_config.dart';
-import 'package:garagem_mobile/core/network/api_client.dart';
-import 'package:garagem_mobile/features/auth/session_controller.dart';
-import 'package:garagem_mobile/features/cars/photo_crop_screen.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/core/widgets/form_validation.dart';
+import 'package:garona_mobile/core/widgets/form_photo.dart';
+import 'package:garona_mobile/core/widgets/brazil_city_field.dart';
+import 'package:garona_mobile/core/config/app_config.dart';
+import 'package:garona_mobile/core/network/api_client.dart';
+import 'package:garona_mobile/features/auth/session_controller.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
 import 'package:image_picker/image_picker.dart';
 
 final class EditProfileScreen extends StatefulWidget {
@@ -185,7 +185,7 @@ final class _EditProfileScreenState extends State<EditProfileScreen> {
           Stack(
             clipBehavior: Clip.none,
             children: [
-              GdAvatar(name: user.name, url: avatarUrl, size: 108),
+              GaronaAvatar(name: user.name, url: avatarUrl, size: 108),
               Positioned(
                 right: -4,
                 bottom: -4,

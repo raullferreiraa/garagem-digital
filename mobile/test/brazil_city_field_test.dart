@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:garagem_mobile/core/location/brazil_city.dart';
-import 'package:garagem_mobile/core/widgets/brazil_city_field.dart';
+import 'package:garona_mobile/core/location/brazil_city.dart';
+import 'package:garona_mobile/core/widgets/brazil_city_field.dart';
 
 void main() {
   test('catálogo local contém municípios e busca sem acentos', () async {
