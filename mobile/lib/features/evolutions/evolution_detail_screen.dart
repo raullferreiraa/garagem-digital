@@ -37,7 +37,6 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   final _draftStorage = const EvolutionCommentDraftStorage();
   Timer? _draftTimer;
   bool _draftEdited = false;
-  bool _draftLoaded = false;
   String? _draftReplyId;
   bool _draftReplyMissing = false;
   final _commentFocusNode = FocusNode();
@@ -63,7 +62,7 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
   @override
   void dispose() {
     _draftTimer?.cancel();
-    if (_draftLoaded || _draftEdited) _saveDraft();
+    if (_draftEdited) _saveDraft();
     _commentController.dispose();
     _commentFocusNode.dispose();
     _scrollController.dispose();
@@ -75,13 +74,12 @@ final class _EvolutionDetailScreenState extends State<EvolutionDetailScreen> {
       final draft =
           await _draftStorage.read(widget.currentUserId, widget.evolution.id);
       if (!mounted) return;
-      _draftLoaded = true;
       if (_draftEdited || draft == null) return;
       _draftReplyId = draft.replyToId;
       _commentController.text = draft.text;
       _applyDraftReply();
     } catch (_) {
-      _draftLoaded = true;
+      // Preserve o rascunho salvo se a leitura falhar temporariamente.
     }
   }
 

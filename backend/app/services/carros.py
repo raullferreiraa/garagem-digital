@@ -67,6 +67,8 @@ def _decodificar_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if not isinstance(dados["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         return datetime.fromisoformat(dados["criado_em"]), UUID(dados["id"])
     except (KeyError, TypeError, ValueError, binascii.Error) as error:
         raise CursorInvalido("Cursor de paginacao invalido.") from error
@@ -76,6 +78,8 @@ def _decodificar_cursor_busca(cursor: str) -> tuple[int, datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if not isinstance(dados["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         relevancia = dados["relevancia"]
         if type(relevancia) is not int or relevancia not in range(4):
             raise ValueError("Relevancia invalida.")
@@ -92,6 +96,8 @@ def _decodificar_cursor_em_alta(cursor: str) -> tuple[int, datetime, UUID]:
     try:
         padding = "=" * (-len(cursor) % 4)
         dados = json.loads(base64.urlsafe_b64decode(cursor + padding))
+        if not isinstance(dados["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         pontuacao = dados["pontuacao"]
         if type(pontuacao) is not int or pontuacao < 0:
             raise ValueError("Pontuacao invalida.")

@@ -183,14 +183,14 @@ def excluir_encontro(evento_id: UUID, usuario: UsuarioAtual, db: DbSession) -> R
 
 
 @router.post("/{evento_id}/capa", response_model=EventoResposta)
-async def enviar_capa(evento_id: UUID, usuario: UsuarioAtual, db: DbSession, arquivo: Annotated[UploadFile, File()]) -> EventoResposta:
+def enviar_capa(evento_id: UUID, usuario: UsuarioAtual, db: DbSession, arquivo: Annotated[UploadFile, File()]) -> EventoResposta:
     from app.core.config import settings
     from app.services.media import salvar_capa_encontro, remover_media, ArquivoMuitoGrande, ImagemInvalida
     try:
         encontro = service.gerenciavel(db, evento_id, usuario.id)
     except (service.EventoNaoEncontrado, service.AcaoEventoNaoPermitida) as error:
         raise _erro(error) from error
-    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    conteudo = arquivo.file.read(settings.media_max_upload_bytes + 1)
     try:
         nova_url = salvar_capa_encontro(evento_id, conteudo)
     except ArquivoMuitoGrande as error:

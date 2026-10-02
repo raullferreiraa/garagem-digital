@@ -30,6 +30,8 @@ def _cursor(mensagem: MensagemEquipe) -> str:
 def _ler_cursor(cursor: str) -> tuple[datetime, UUID]:
     try:
         data = json.loads(base64.urlsafe_b64decode(cursor + "=" * (-len(cursor) % 4)))
+        if not isinstance(data["id"], str):
+            raise ValueError("Identificador do cursor invalido.")
         return datetime.fromisoformat(data["criada_em"]), UUID(data["id"])
     except (ValueError, KeyError, TypeError, binascii.Error) as error:
         raise ValueError("Cursor de paginacao invalido.") from error

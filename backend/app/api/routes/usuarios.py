@@ -66,12 +66,12 @@ def atualizar_meu_perfil(
 
 
 @router.post("/me/avatar", response_model=PerfilPrivado)
-async def enviar_avatar(
+def enviar_avatar(
     usuario: UsuarioAtual,
     db: DbSession,
     arquivo: Annotated[UploadFile, File()],
 ) -> PerfilPrivado:
-    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    conteudo = arquivo.file.read(settings.media_max_upload_bytes + 1)
     try:
         nova_url = salvar_avatar(usuario.id, conteudo)
     except ArquivoMuitoGrande as error:

@@ -220,7 +220,7 @@ def atualizar_evolucao(
     "/{carro_id}/evolucoes/{evolucao_id}/fotos",
     response_model=EvolucaoResposta,
 )
-async def adicionar_foto(
+def adicionar_foto(
     carro_id: UUID,
     evolucao_id: UUID,
     usuario: UsuarioAtual,
@@ -236,7 +236,7 @@ async def adicionar_foto(
             detail="Cada evolucao pode ter no maximo 8 fotos.",
         )
 
-    conteudo = await arquivo.read(settings.media_max_upload_bytes + 1)
+    conteudo = arquivo.file.read(settings.media_max_upload_bytes + 1)
     try:
         url = salvar_foto_evolucao(carro_id, evolucao_id, conteudo)
     except ArquivoMuitoGrande as error:
