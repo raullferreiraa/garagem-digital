@@ -717,7 +717,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                   if ([_car.history, _car.acquiredOn, _car.initialCondition]
                       .any((value) => value?.trim().isNotEmpty ?? false))
                     ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
+                      tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      collapsedBackgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      collapsedShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                       title: const Text('Sobre o projeto'),
                       subtitle: const Text('História e origem'),
                       children: [
@@ -730,7 +740,10 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                                   .reversed
                                   .join('/'))),
                         if (_car.history?.trim().isNotEmpty ?? false)
-                          _StoryCard(text: _car.history!),
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('História'),
+                              subtitle: Text(_car.history!)),
                         if (_car.initialCondition != null)
                           ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -738,21 +751,73 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                               subtitle: Text(_car.initialCondition!)),
                       ],
                     ),
+                  const SizedBox(height: 16),
                   if (specs.isNotEmpty ||
                       _car.originalSpec != null ||
                       _car.modifications != null)
                     ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
+                      tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      collapsedBackgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      collapsedShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
                       title: const Text('Ficha do carro'),
                       subtitle: const Text(
                           'Configuração atual, original e modificações'),
                       children: [
-                        for (final spec in specs)
-                          ListTile(
-                              contentPadding: EdgeInsets.zero,
-                              leading: Icon(spec.$3),
-                              title: Text(spec.$1),
-                              subtitle: Text(spec.$2!)),
+                        LayoutBuilder(builder: (context, constraints) {
+                          final singleColumn = constraints.maxWidth < 260 ||
+                              MediaQuery.textScalerOf(context).scale(14) > 18;
+                          final width = singleColumn
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 16) / 2;
+                          return Wrap(spacing: 16, runSpacing: 20, children: [
+                            for (final spec in specs)
+                              SizedBox(
+                                  width: width,
+                                  child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 2),
+                                            child: Icon(spec.$3,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary)),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                            child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                              Text(spec.$1,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelMedium),
+                                              const SizedBox(height: 4),
+                                              Text(spec.$2!,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge),
+                                            ])),
+                                      ])),
+                          ]);
+                        }),
+                        if (specs.isNotEmpty &&
+                            (_car.originalSpec != null ||
+                                _car.modifications != null))
+                          const Padding(
+                              padding: EdgeInsets.only(top: 20, bottom: 8),
+                              child: Divider()),
                         if (_car.originalSpec != null)
                           ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -1080,17 +1145,4 @@ final class _DiarySummary extends StatelessWidget {
       ),
     );
   }
-}
-
-final class _StoryCard extends StatelessWidget {
-  const _StoryCard({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            height: 1.6,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ));
 }

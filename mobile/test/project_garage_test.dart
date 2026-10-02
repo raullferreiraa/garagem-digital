@@ -184,6 +184,11 @@ void main() {
     await tester.tap(find.text('Sobre o projeto'));
     await tester.pumpAndSettle();
     expect(find.text(car.history!), findsOneWidget);
+    await tester.ensureVisible(find.text('Ficha do carro'));
+    await tester.tap(find.text('Ficha do carro'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Configuração original'));
+    await capture(tester, key, 'ficha');
     expect(tester.takeException(), isNull);
   });
   testWidgets('falha ao salvar etapa mantém texto e permite repetir',

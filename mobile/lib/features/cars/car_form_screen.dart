@@ -364,7 +364,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                       _OptionalField(
                           controller: _identity['projectName']!,
                           label: 'Nome do projeto (opcional)',
-                          hint: 'Ex.: Ômega do Raul',
+                          hint: 'Ex.: Projeto Madrugada',
                           helper:
                               'Um apelido escolhido por você. Sem ele, usamos o modelo.',
                           maxLength: 80),
@@ -530,7 +530,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                                 controller: _identity['originalSpec']!,
                                 label: 'Configuração original (opcional)',
                                 hint:
-                                    'Ex.: Motor 4.1, câmbio manual e interior de fábrica.',
+                                    'Ex.: Motor e câmbio de fábrica, interior original.',
                                 helper:
                                     'Registre a base original que você conhece.',
                                 multiline: true,

@@ -135,7 +135,7 @@ class GaronaProjectCard extends StatelessWidget {
                                     style: TextStyle(color: colors.secondary))),
                         ])),
                 Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+                    padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
