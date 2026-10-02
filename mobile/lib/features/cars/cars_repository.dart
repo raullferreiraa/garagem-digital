@@ -1,3 +1,4 @@
+import 'package:garona_mobile/features/cars/project_garage.dart';
 import 'package:dio/dio.dart';
 import 'package:garona_mobile/core/network/api_client.dart';
 import 'package:garona_mobile/features/cars/car.dart';
@@ -22,6 +23,60 @@ final class CarsRepository {
   CarsRepository(this._api);
 
   final ApiClient _api;
+
+  Future<ProjectGarage> garage(String id) async {
+    final response =
+        await _api.dio.get<Map<String, Object?>>('/carros/$id/garagem');
+    return ProjectGarage.fromJson(response.data!);
+  }
+
+  Future<void> addGalleryPhoto(String id, List<int> bytes, String name) async {
+    await _api.dio.post<Object?>('/carros/$id/galeria',
+        data: FormData.fromMap(
+            {'arquivo': MultipartFile.fromBytes(bytes, filename: name)}));
+  }
+
+  Future<void> captionPhoto(String id, String photoId, String caption) async {
+    await _api.dio.patch<Object?>('/carros/$id/galeria/$photoId',
+        data: {'legenda': caption});
+  }
+
+  Future<void> orderPhotos(String id, List<String> ids) async {
+    await _api.dio.put<void>('/carros/$id/galeria/ordem', data: {'ids': ids});
+  }
+
+  Future<void> deleteGalleryPhoto(String id, String photoId) async {
+    await _api.dio.delete<void>('/carros/$id/galeria/$photoId');
+  }
+
+  Future<Car> galleryCover(String id, String photoId) async {
+    final response = await _api.dio
+        .put<Map<String, Object?>>('/carros/$id/galeria/$photoId/capa');
+    return Car.fromJson(response.data!);
+  }
+
+  Future<void> saveStage(String carId,
+      {String? id,
+      required String title,
+      required String description,
+      required String status,
+      String? evolutionId}) async {
+    final data = {
+      'titulo': title,
+      'descricao': description.isEmpty ? null : description,
+      'status': status,
+      'evolucao_id': evolutionId
+    };
+    if (id == null) {
+      await _api.dio.post<Object?>('/carros/$carId/etapas', data: data);
+    } else {
+      await _api.dio.put<Object?>('/carros/$carId/etapas/$id', data: data);
+    }
+  }
+
+  Future<void> deleteStage(String carId, String id) async {
+    await _api.dio.delete<void>('/carros/$carId/etapas/$id');
+  }
 
   Future<List<Car>> feed({
     CarFeedOrder order = CarFeedOrder.recent,

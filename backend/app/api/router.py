@@ -1,3 +1,4 @@
+from app.api.routes.garagem import router as garagem_router
 from fastapi import APIRouter
 
 from app.api.routes.auth import router as auth_router
@@ -31,3 +32,5 @@ api_router.include_router(
     prefix="/notificacoes",
     tags=["notificacoes"],
 )
+
+api_router.include_router(garagem_router, prefix="/carros", tags=["garagem"])

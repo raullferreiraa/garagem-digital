@@ -32,13 +32,18 @@ class GaronaProjectCard extends StatelessWidget {
           style: theme.textTheme.labelSmall
               ?.copyWith(color: colors.onSurfaceVariant, letterSpacing: .5)),
       const SizedBox(height: 6),
-      Text(car.model,
+      Text(car.displayName,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.titleLarge?.copyWith(
               fontFamily: 'BarlowCondensed',
               fontSize: 27,
               fontWeight: FontWeight.w700)),
+      if (car.projectName != null)
+        Text(car.model,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: theme.textTheme.bodySmall),
       if (car.year != null)
         Text('${car.year}',
             style:
@@ -162,7 +167,7 @@ class GaronaProjectCard extends StatelessWidget {
                                           ?.copyWith(
                                               color: colors.onSurfaceVariant)),
                                   const SizedBox(height: 8),
-                                  Text(car.model,
+                                  Text(car.displayName,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: TextStyle(
@@ -171,6 +176,10 @@ class GaronaProjectCard extends StatelessWidget {
                                           fontWeight: FontWeight.w600,
                                           height: .98,
                                           color: colors.onSurface)),
+                                  if (car.projectName != null)
+                                    Text(car.model,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
                                   if (car.projectStatus?.trim().isNotEmpty ??
                                       false) ...[
                                     const SizedBox(height: 10),

@@ -1,3 +1,4 @@
+import 'package:garona_mobile/features/cars/project_garage_screen.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -192,6 +193,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       _carRequest++;
       setState(() => _car = updated);
     }
+  }
+
+  Future<void> _openGarage() async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => ProjectGarageScreen(
+            car: _car,
+            repository: widget.repository,
+            evolutions: widget.evolutionsRepository,
+            canManage: _canManage,
+            currentUserId: widget.currentUserId)));
+    if (mounted) await _reloadProject();
   }
 
   Future<void> _delete() async {
@@ -696,67 +708,64 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     car: _car,
                     onOwnerTap: widget.onOwnerTap,
                   ),
-                  const SizedBox(height: 28),
-                  const _SectionHeading(
-                    eyebrow: 'A HISTÓRIA',
-                    title: 'Sobre o projeto',
-                    icon: Icons.auto_stories_outlined,
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                      onPressed: _openGarage,
+                      icon: const Icon(Icons.collections_outlined),
+                      label: const Text('Galeria e etapas')),
+                  const SizedBox(height: 16),
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Sobre o projeto'),
+                    subtitle: const Text('História e origem'),
+                    children: [
+                      if (_car.acquiredOn != null)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Comigo desde'),
+                            subtitle: Text(_car.acquiredOn!
+                                .split('-')
+                                .reversed
+                                .join('/'))),
+                      _StoryCard(
+                          text: _car.history ??
+                              'O proprietário ainda não contou a história deste projeto.'),
+                      if (_car.initialCondition != null)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Como chegou'),
+                            subtitle: Text(_car.initialCondition!)),
+                    ],
                   ),
-                  const SizedBox(height: 12),
-                  _StoryCard(
-                    text: _car.history ??
-                        'O proprietário ainda não contou a história deste projeto.',
+                  ExpansionTile(
+                    tilePadding: EdgeInsets.zero,
+                    title: const Text('Ficha do carro'),
+                    subtitle: const Text(
+                        'Configuração atual, original e modificações'),
+                    children: [
+                      if (specs.isEmpty)
+                        const Padding(
+                            padding: EdgeInsets.all(16),
+                            child: Text(
+                                'A ficha técnica ainda não foi preenchida.')),
+                      for (final spec in specs)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: Icon(spec.$3),
+                            title: Text(spec.$1),
+                            subtitle: Text(spec.$2!)),
+                      if (_car.originalSpec != null)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Configuração original'),
+                            subtitle: Text(_car.originalSpec!)),
+                      if (_car.modifications != null)
+                        ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('Modificações realizadas'),
+                            subtitle: Text(_car.modifications!)),
+                    ],
                   ),
-                  const SizedBox(height: 28),
-                  _SectionHeading(
-                    eyebrow: 'A MÁQUINA',
-                    title: 'Ficha do carro',
-                    icon: Icons.tune_rounded,
-                    count: specs.length,
-                  ),
-                  const SizedBox(height: 12),
-                  if (specs.isEmpty)
-                    const _EmptyProjectSection(
-                      icon: Icons.tune_rounded,
-                      message: 'A ficha técnica ainda não foi preenchida.',
-                    )
-                  else
-                    LayoutBuilder(builder: (context, constraints) {
-                      final scale = MediaQuery.textScalerOf(context).scale(1);
-                      final columns =
-                          constraints.maxWidth >= 330 && scale < 1.3 ? 2 : 1;
-                      return GaronaPanel(
-                        radius: 20,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: Column(children: [
-                          for (var index = 0;
-                              index < specs.length;
-                              index += columns) ...[
-                            if (index > 0) const Divider(height: 1),
-                            IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (var offset = 0;
-                                      offset < columns &&
-                                          index + offset < specs.length;
-                                      offset++) ...[
-                                    if (offset > 0) const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _SpecTile(
-                                          label: specs[index + offset].$1,
-                                          value: specs[index + offset].$2!,
-                                          icon: specs[index + offset].$3),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ]),
-                      );
-                    }),
                   const SizedBox(height: 30),
                   Row(
                     children: [
@@ -875,13 +884,19 @@ final class _ProjectCover extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(car.model,
+                Text(car.displayName,
                     style: theme.textTheme.headlineLarge?.copyWith(
                       fontFamily: 'BarlowCondensed',
                       fontWeight: FontWeight.w700,
                       fontSize: 34,
                       height: 1.05,
                     )),
+                if (car.projectName != null)
+                  Text(car.model, style: theme.textTheme.bodyMedium),
+                if (car.proposal != null)
+                  Padding(
+                      padding: const EdgeInsets.only(top: 10),
+                      child: Text(car.proposal!)),
                 if (car.year != null || canManage) ...[
                   const SizedBox(height: 6),
                   Row(
@@ -1039,37 +1054,6 @@ final class _ProjectStatus extends StatelessWidget {
   }
 }
 
-final class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.eyebrow,
-    required this.title,
-    required this.icon,
-    this.count,
-  });
-
-  final String eyebrow;
-  final String title;
-  final IconData icon;
-  final int? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return GaronaSectionTitle(
-      title: title,
-      eyebrow: eyebrow,
-      trailing: count == null
-          ? Icon(icon, color: colors.primary, size: 21)
-          : Text(
-              count.toString().padLeft(2, '0'),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-            ),
-    );
-  }
-}
-
 final class _DiarySummary extends StatelessWidget {
   const _DiarySummary(
       {required this.count, required this.latestDate, required this.mileage});
@@ -1111,74 +1095,4 @@ final class _StoryCard extends StatelessWidget {
             height: 1.6,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ));
-}
-
-final class _SpecTile extends StatelessWidget {
-  const _SpecTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Icon(icon, size: 18, color: colors.secondary),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: colors.onSurfaceVariant)),
-              const SizedBox(height: 5),
-              Text(value,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-final class _EmptyProjectSection extends StatelessWidget {
-  const _EmptyProjectSection({
-    required this.icon,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 30),
-          const SizedBox(width: 14),
-          Expanded(child: Text(message)),
-        ],
-      ),
-    );
-  }
 }

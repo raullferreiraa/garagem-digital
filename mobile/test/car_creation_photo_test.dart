@@ -39,8 +39,9 @@ void main() {
     await tester.pumpWidget(
         MaterialApp(home: CarFormScreen(repository: CarsRepository(api))));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byType(ExpansionTile));
-    await tester.tap(find.byType(ExpansionTile));
+    await tester
+        .ensureVisible(find.widgetWithText(ExpansionTile, 'Ficha técnica'));
+    await tester.tap(find.widgetWithText(ExpansionTile, 'Ficha técnica'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Adicionar à garagem'));
     await tester.pumpAndSettle();

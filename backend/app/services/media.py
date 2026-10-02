@@ -116,3 +116,8 @@ def remover_midias_do_carro(carro_id: UUID) -> None:
     if raiz not in diretorio.parents:
         return
     rmtree(diretorio, ignore_errors=True)
+
+
+def salvar_foto_garagem(carro_id: UUID, conteudo: bytes) -> str:
+    destino = _salvar_imagem(_diretorio_do_carro(carro_id) / "galeria", conteudo)
+    return f"{settings.media_url_prefix}/carros/{carro_id}/galeria/{destino.name}"

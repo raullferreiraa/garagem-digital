@@ -1,3 +1,4 @@
+from app.models.garagem import FotoProjeto, EtapaProjeto
 from app.models.carro import Carro
 from app.models.bloqueio_usuario import BloqueioUsuario
 from app.models.comentario_evolucao import ComentarioEvolucao
@@ -24,6 +25,7 @@ from app.models.sessao_refresh import SessaoRefresh
 from app.models.usuario import Usuario
 
 __all__ = [
+    "FotoProjeto", "EtapaProjeto",
     "Carro",
     "BloqueioUsuario",
     "ComentarioEvolucao",

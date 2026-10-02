@@ -739,9 +739,11 @@ final class _CarResult extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    [car.model, car.year]
-                        .where((item) => item != null)
-                        .join(' '),
+                    [
+                      if (car.projectName != null) car.projectName,
+                      car.model,
+                      car.year
+                    ].where((item) => item != null).join(' '),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: Theme.of(context).textTheme.titleLarge,
@@ -783,6 +785,8 @@ String? _projectMatchLabel(Car car, String query) {
           .any((word) => word.startsWith(term)) ??
       false;
 
+  if (contains(car.projectName)) return 'Nome do projeto';
+  if (contains(car.proposal)) return 'Proposta do projeto';
   if (contains(car.model)) return 'Correspondência no modelo';
   if (startsWord(car.year?.toString())) return 'Ano: ${car.year}';
   if (startsWord(car.color)) return 'Cor: ${car.color}';
