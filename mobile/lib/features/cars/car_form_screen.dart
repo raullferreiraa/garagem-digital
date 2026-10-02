@@ -445,7 +445,22 @@ class _CarFormScreenState extends State<CarFormScreen> {
                         maxLines: 6,
                         maxLength: 10000,
                       ),
+                      const SizedBox(height: 24),
                       ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        childrenPadding:
+                            const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        collapsedBackgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        collapsedShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        leading: Icon(Icons.history_rounded,
+                            color: Theme.of(context).colorScheme.primary),
                         title: const Text('Como tudo começou'),
                         subtitle:
                             const Text('Aquisição e estado inicial — opcional'),
@@ -491,7 +506,22 @@ class _CarFormScreenState extends State<CarFormScreen> {
                               maxLength: 3000),
                         ],
                       ),
+                      const SizedBox(height: 20),
                       ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 6),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.surfaceContainer,
+                          collapsedBackgroundColor:
+                              Theme.of(context).colorScheme.surfaceContainer,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          collapsedShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          leading: Icon(Icons.build_outlined,
+                              color: Theme.of(context).colorScheme.primary),
                           title: const Text('Original e modificações'),
                           subtitle: const Text(
                               'Opcional — a base do carro e o que já mudou'),
@@ -515,7 +545,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                                 multiline: true,
                                 maxLength: 3000),
                           ]),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 20),
                       ExpansionTile(
                         tilePadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 6),
@@ -839,7 +869,7 @@ final class _OptionalField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 20, bottom: 12),
       child: TextFormField(
         controller: controller,
         textCapitalization: uppercase

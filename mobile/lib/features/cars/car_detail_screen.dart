@@ -883,41 +883,40 @@ final class _ProjectCover extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(car.displayName,
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontFamily: 'BarlowCondensed',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 34,
-                      height: 1.05,
-                    )),
-                if (car.projectName != null)
-                  Text(car.model, style: theme.textTheme.bodyMedium),
+                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text(car.displayName,
+                            style: theme.textTheme.headlineLarge?.copyWith(
+                                fontFamily: 'BarlowCondensed',
+                                fontWeight: FontWeight.w700,
+                                fontSize: 34,
+                                height: 1.05)),
+                        if (car.projectName != null || car.year != null)
+                          Padding(
+                              padding: const EdgeInsets.only(top: 6),
+                              child: Text(
+                                  [
+                                    if (car.projectName != null) car.model,
+                                    if (car.year != null) '${car.year}'
+                                  ].join(' · '),
+                                  style: theme.textTheme.labelLarge
+                                      ?.copyWith(color: colors.secondary))),
+                      ])),
+                  if (canManage && !updatingPhoto) ...[
+                    const SizedBox(width: 12),
+                    IconButton.filledTonal(
+                        onPressed: onPhotoTap,
+                        tooltip: 'Alterar foto principal',
+                        icon: const Icon(Icons.add_a_photo_outlined)),
+                  ],
+                ]),
                 if (car.proposal != null)
                   Padding(
-                      padding: const EdgeInsets.only(top: 10),
+                      padding: const EdgeInsets.only(top: 12),
                       child: Text(car.proposal!)),
-                if (car.year != null || canManage) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      if (car.year != null)
-                        Text(
-                          '${car.year}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            letterSpacing: 2,
-                            color: colors.secondary,
-                          ),
-                        ),
-                      const Spacer(),
-                      if (canManage && !updatingPhoto)
-                        IconButton.filledTonal(
-                          onPressed: onPhotoTap,
-                          tooltip: 'Alterar foto principal',
-                          icon: const Icon(Icons.add_a_photo_outlined),
-                        ),
-                    ],
-                  ),
-                ],
               ],
             ),
           ),

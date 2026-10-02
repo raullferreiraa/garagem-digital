@@ -1,3 +1,4 @@
+import 'package:garona_mobile/features/cars/project_card.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -1015,21 +1016,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             ),
             const SizedBox(height: 12),
           ],
-          SizedBox(
-            height: 246 + (MediaQuery.textScalerOf(context).scale(72) - 72),
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: team.cars.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (context, index) {
-                final car = team.cars[index];
-                return _TeamCarCard(
-                  car: car,
-                  onTap: () => _openCar(car),
-                );
-              },
-            ),
-          ),
+          for (final car in team.cars)
+            Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: GaronaProjectCard(
+                    car: car, compact: true, onTap: () => _openCar(car))),
         ],
         const SizedBox(height: 28),
         _SectionHeader(
@@ -1638,82 +1629,6 @@ final class _MemberTile extends StatelessWidget {
               Icon(Icons.north_east_rounded,
                   size: 18, color: colors.onSurfaceVariant),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-final class _TeamCarCard extends StatelessWidget {
-  const _TeamCarCard({required this.car, required this.onTap});
-
-  final Car car;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final screenWidth = MediaQuery.sizeOf(context).width;
-    return SizedBox(
-      width: screenWidth >= 348 ? 300 : screenWidth - 48,
-      child: Card(
-        margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(color: theme.colorScheme.outlineVariant),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: onTap,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                height: 150,
-                child: GaronaImage(
-                    url: car.photoUrl,
-                    fit: BoxFit.contain,
-                    semanticLabel: car.model),
-              ),
-              Expanded(
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Row(children: [
-                        Expanded(
-                            child: Text(
-                          [
-                            if (car.projectName != null) car.projectName,
-                            car.model,
-                            car.year
-                          ].whereType<Object>().join(' '),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.titleMedium,
-                        )),
-                        const SizedBox(width: 8),
-                        Icon(Icons.north_east_rounded,
-                            size: 18, color: theme.colorScheme.primary),
-                      ]),
-                      const SizedBox(height: 4),
-                      Text(
-                        '@${car.ownerUsername}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
