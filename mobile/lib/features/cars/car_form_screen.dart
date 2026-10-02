@@ -1,3 +1,4 @@
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
 import 'package:garona_mobile/core/widgets/form_photo.dart';
 import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
@@ -334,7 +335,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                               ? 'Dados do projeto'
                               : 'Comece pelo essencial',
                           description: _editing
-                              ? 'Mantenha a história e a ficha do carro atualizadas.'
+                              ? 'Só o modelo é obrigatório. Complete o restante no seu tempo.'
                               : 'Você poderá completar e atualizar o projeto a qualquer momento.'),
                       const SizedBox(height: 24),
                       if (!_editing)
@@ -363,10 +364,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
                       _OptionalField(
                           controller: _identity['projectName']!,
                           label: 'Nome do projeto (opcional)',
+                          hint: 'Ex.: Ômega do Raul',
+                          helper:
+                              'Um apelido escolhido por você. Sem ele, usamos o modelo.',
                           maxLength: 80),
                       _OptionalField(
                           controller: _identity['proposal']!,
-                          label: 'A ideia por trás do carro',
+                          label: 'A ideia por trás do carro (opcional)',
+                          hint:
+                              'Ex.: Um clássico baixo para encontros e viagens.',
+                          helper:
+                              'Resuma o estilo e o objetivo do projeto. Aparece junto ao nome.',
+                          multiline: true,
                           maxLength: 240),
                       const SizedBox(height: 12),
                       Row(
@@ -424,8 +433,12 @@ class _CarFormScreenState extends State<CarFormScreen> {
                         controller: _historyController,
                         textCapitalization: TextCapitalization.sentences,
                         decoration: const InputDecoration(
-                          labelText: 'História do carro',
-                          hintText: 'Como esse projeto começou?',
+                          labelText: 'História do carro (opcional)',
+                          hintText:
+                              'Ex.: Era um sonho antigo. Encontrei este carro em 2022 e comecei pela mecânica…',
+                          helperText:
+                              'Conte a trajetória e sua relação com o carro. Fica em Sobre o projeto.',
+                          helperMaxLines: 3,
                           alignLabelWithHint: true,
                         ),
                         minLines: 3,
@@ -469,22 +482,37 @@ class _CarFormScreenState extends State<CarFormScreen> {
                               }),
                           _OptionalField(
                               controller: _identity['initialCondition']!,
-                              label: 'Como o carro chegou',
+                              label: 'Como o carro chegou (opcional)',
+                              hint:
+                                  'Ex.: Rodando, mas com pintura cansada e suspensão para revisar.',
+                              helper:
+                                  'Descreva o estado na aquisição; não precisa repetir a história.',
+                              multiline: true,
                               maxLength: 3000),
                         ],
                       ),
                       ExpansionTile(
                           title: const Text('Original e modificações'),
                           subtitle: const Text(
-                              'Separe a base do carro do que você mudou'),
+                              'Opcional — a base do carro e o que já mudou'),
                           children: [
                             _OptionalField(
                                 controller: _identity['originalSpec']!,
-                                label: 'Configuração original',
+                                label: 'Configuração original (opcional)',
+                                hint:
+                                    'Ex.: Motor 4.1, câmbio manual e interior de fábrica.',
+                                helper:
+                                    'Registre a base original que você conhece.',
+                                multiline: true,
                                 maxLength: 3000),
                             _OptionalField(
                                 controller: _identity['modifications']!,
-                                label: 'Modificações realizadas',
+                                label: 'Modificações realizadas (opcional)',
+                                hint:
+                                    'Ex.: Rodas aro 17, suspensão refeita e escape novo.',
+                                helper:
+                                    'Conte o que já mudou. Use as etapas para planejar o que vem depois.',
+                                multiline: true,
                                 maxLength: 3000),
                           ]),
                       const SizedBox(height: 8),
@@ -680,7 +708,10 @@ class _CarFormScreenState extends State<CarFormScreen> {
                         value: _plateVisible,
                         onChanged: _submitting
                             ? null
-                            : (value) => setState(() => _plateVisible = value),
+                            : (value) => setState(() {
+                                  _plateVisible = value;
+                                  _dirty = true;
+                                }),
                       ),
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 12),
@@ -730,8 +761,18 @@ class _CarFormScreenState extends State<CarFormScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         if (_photo != null)
-                          Image.memory(_photo!,
-                              height: 180, fit: BoxFit.contain),
+                          AspectRatio(
+                              aspectRatio: 16 / 10,
+                              child:
+                                  Image.memory(_photo!, fit: BoxFit.contain)),
+                        if (_photo == null && widget.car?.photoUrl != null)
+                          AspectRatio(
+                              aspectRatio: 16 / 10,
+                              child: GaronaImage(
+                                  url: widget.car!.photoUrl,
+                                  fit: BoxFit.contain,
+                                  semanticLabel: data.model)),
+                        const SizedBox(height: 12),
                         const Text('PRÉVIA / PROJETO'),
                         const SizedBox(height: 12),
                         Text(data.projectName ?? data.model,
@@ -783,12 +824,17 @@ final class _OptionalField extends StatelessWidget {
     required this.label,
     required this.maxLength,
     this.uppercase = false,
+    this.hint,
+    this.helper,
+    this.multiline = false,
   });
 
   final TextEditingController controller;
   final String label;
   final int maxLength;
   final bool uppercase;
+  final String? hint, helper;
+  final bool multiline;
 
   @override
   Widget build(BuildContext context) {
@@ -802,7 +848,15 @@ final class _OptionalField extends StatelessWidget {
         inputFormatters: uppercase
             ? const <TextInputFormatter>[_UpperCaseTextFormatter()]
             : const <TextInputFormatter>[],
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            helperText: helper,
+            helperMaxLines: 3,
+            alignLabelWithHint: multiline),
+        minLines: multiline ? 3 : 1,
+        maxLines: multiline ? 7 : 1,
+        keyboardType: multiline ? TextInputType.multiline : TextInputType.text,
         maxLength: maxLength,
       ),
     );

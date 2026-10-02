@@ -43,3 +43,18 @@ flutter run -d emulator-5554
 5. Abrir o projeto com outra conta: conferir apresentação e galeria, sem controles de edição nem placa privada. Reabrir com o dono pelo Descobrir e conferir os controles.
 
 Após aprovação manual e CI verde, concluir a PR e fazer merge. Os documentos anteriores de pesquisa de nome não fazem parte deste ciclo.
+
+## Refinamento após validação do proprietário
+
+- Capas do Descobrir, projeto e cards do perfil em 16:10, sem novo corte automático. Informações no Descobrir ficam abaixo da imagem. Busca, salvos e equipes preservam toda a imagem nas miniaturas.
+- Selecionar capa pela galeria abre o editor e mantém a foto completa na galeria. Fotos antigas de outra proporção podem ter margens para preservar conteúdo; reenquadrar uma nova capa em 16:10 elimina essas margens. Conteúdo já cortado no arquivo antigo só pode ser recuperado reenviando o original.
+- Campos narrativos com 3 a 7 linhas, parágrafos, exemplos e instruções; opcionalidade explícita. Proposta explica objetivo/estilo, história explica trajetória, estado inicial descreve a aquisição.
+- Prévia inclui capa existente; seções vazias não aparecem no projeto; alteração da visibilidade da placa também aciona proteção ao sair.
+- Teste de exclusão de evolução verifica SET NULL e preservação da etapa; teste de reabertura verifica remoção do vínculo no envio. A evolução publicada no formulário existe independentemente de salvar a etapa, conforme texto explicativo.
+
+### Revalidar
+
+1. Conferir a mesma capa em Descobrir, perfil, busca, salvos, equipe e projeto; usar uma foto de carro horizontal e uma vertical na galeria.
+2. Definir capa pela galeria, cancelar o recorte (não deve mudar) e repetir confirmando. Conferir que o original da galeria permaneceu completo.
+3. Preencher campos opcionais com parágrafos e conferir prévia/detalhes. Deixar campos vazios não deve criar seções vazias.
+4. Concluir etapa com evolução existente, abrir o vínculo, reabrir a etapa e conferir que a evolução continua no diário. Excluir uma evolução vinculada deve preservar a etapa sem link quebrado.

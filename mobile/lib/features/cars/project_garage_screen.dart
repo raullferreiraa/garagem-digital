@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+import 'package:garona_mobile/features/cars/photo_crop_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:garona_mobile/core/network/api_client.dart';
@@ -279,9 +281,23 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
                               'Esta foto será a apresentação do projeto.')) {
                         if (mounted)
                           await _act(() async {
-                            await widget.repository
-                                .galleryCover(widget.car.id, photo.id);
-                          }, message: 'Capa atualizada.');
+                            final data =
+                                await NetworkAssetBundle(Uri.parse(photo.url))
+                                    .load(photo.url);
+                            if (!mounted) return;
+                            final cropped = await Navigator.of(context)
+                                .push<Uint8List>(MaterialPageRoute(
+                                    builder: (_) => PhotoCropScreen(
+                                        image: data.buffer.asUint8List(),
+                                        title: 'Capa do projeto',
+                                        instructions:
+                                            'Este recorte aparece no Descobrir e no projeto. A foto completa continua na galeria.')));
+                            if (cropped == null || !mounted) return;
+                            await widget.repository.uploadMainPhoto(
+                                widget.car.id,
+                                bytes: cropped,
+                                fileName: 'capa.jpg');
+                          });
                       }
                       if (action == 'delete' &&
                           await _confirm('Remover foto?',
@@ -520,7 +536,8 @@ class _ProjectStageFormState extends State<ProjectStageForm> {
                               controller: _title,
                               maxLength: 100,
                               decoration: const InputDecoration(
-                                  labelText: 'O próximo passo'),
+                                  labelText: 'O próximo passo',
+                                  hintText: 'Ex.: Revisar o arrefecimento'),
                               validator: (v) => v?.trim().isEmpty != false
                                   ? 'Informe o título.'
                                   : null),
@@ -531,7 +548,9 @@ class _ProjectStageFormState extends State<ProjectStageForm> {
                               minLines: 2,
                               maxLines: 5,
                               decoration: const InputDecoration(
-                                  labelText: 'Detalhes (opcional)')),
+                                  labelText: 'Detalhes (opcional)',
+                                  hintText:
+                                      'Ex.: Conferir radiador, mangueiras e bomba d’água.')),
                           const SizedBox(height: 16),
                           DropdownButtonFormField<String>(
                               initialValue: _status,
@@ -548,7 +567,7 @@ class _ProjectStageFormState extends State<ProjectStageForm> {
                                   })),
                           if (_status == 'concluida') ...[
                             const SizedBox(height: 24),
-                            const Text('Conte como ficou'),
+                            const Text('Registro da conclusão (opcional)'),
                             const SizedBox(height: 8),
                             if (_loadError != null) ...[
                               Text(_loadError!),
@@ -601,7 +620,7 @@ class _ProjectStageFormState extends State<ProjectStageForm> {
                                 label: const Text(
                                     'Registrar conclusão no diário')),
                             const Text(
-                                'A evolução é publicada no diário. Salve a etapa para vincular os dois registros.'),
+                                'Escolha uma evolução deste carro ou publique uma nova. Salve a etapa para criar o vínculo. Reabrir ou excluir a etapa preserva a evolução no diário.'),
                           ],
                           if (_error != null)
                             Padding(

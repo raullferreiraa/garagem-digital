@@ -243,9 +243,10 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
                               borderRadius: BorderRadius.circular(12),
                               child: SizedBox(
                                 width: 74,
-                                height: 74,
+                                height: 46.25,
                                 child: GaronaImage(
                                     url: car.photoUrl,
+                                    fit: BoxFit.contain,
                                     semanticLabel: car.model),
                               ),
                             ),
@@ -255,9 +256,12 @@ final class _SavedProjectsScreenState extends State<SavedProjectsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    [car.model, car.year]
-                                        .whereType<Object>()
-                                        .join(' '),
+                                    [
+                                      if (car.projectName != null)
+                                        car.projectName,
+                                      car.model,
+                                      car.year
+                                    ].whereType<Object>().join(' '),
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style:

@@ -729,8 +729,9 @@ final class _CarResult extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               child: GaronaImage(
                   url: car.photoUrl,
+                  fit: BoxFit.contain,
                   width: 92,
-                  height: 92,
+                  height: 57.5,
                   semanticLabel: car.model),
             ),
             const SizedBox(width: 14),

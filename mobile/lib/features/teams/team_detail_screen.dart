@@ -635,8 +635,11 @@ class _TeamDetailScreenState extends State<TeamDetailScreen> {
             for (final car in ownCars)
               ListTile(
                 leading: const Icon(Icons.directions_car_outlined),
-                title:
-                    Text([car.model, car.year].whereType<Object>().join(' ')),
+                title: Text([
+                  if (car.projectName != null) car.projectName,
+                  car.model,
+                  car.year
+                ].whereType<Object>().join(' ')),
                 trailing: team.cars.any((item) => item.id == car.id)
                     ? const Icon(Icons.check)
                     : null,
@@ -1667,7 +1670,10 @@ final class _TeamCarCard extends StatelessWidget {
             children: [
               SizedBox(
                 height: 150,
-                child: GaronaImage(url: car.photoUrl, semanticLabel: car.model),
+                child: GaronaImage(
+                    url: car.photoUrl,
+                    fit: BoxFit.contain,
+                    semanticLabel: car.model),
               ),
               Expanded(
                 child: Padding(
@@ -1680,7 +1686,11 @@ final class _TeamCarCard extends StatelessWidget {
                       Row(children: [
                         Expanded(
                             child: Text(
-                          [car.model, car.year].whereType<Object>().join(' '),
+                          [
+                            if (car.projectName != null) car.projectName,
+                            car.model,
+                            car.year
+                          ].whereType<Object>().join(' '),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium,

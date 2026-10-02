@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:garona_mobile/core/widgets/garona_ui.dart';
-import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:garona_mobile/features/cars/car.dart';
 
 /// A garage cover in discovery, and a compact vehicle entry in collections.
@@ -73,7 +72,7 @@ class GaronaProjectCard extends StatelessWidget {
                   final photo = ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: AspectRatio(
-                          aspectRatio: 1.15,
+                          aspectRatio: 16 / 10,
                           child: GaronaImage(
                               url: car.photoUrl,
                               fit: BoxFit.contain,
@@ -82,7 +81,7 @@ class GaronaProjectCard extends StatelessWidget {
                     return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          SizedBox(height: 130, child: photo),
+                          photo,
                           const SizedBox(height: 12),
                           identity
                         ]);
@@ -105,92 +104,36 @@ class GaronaProjectCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                LayoutBuilder(builder: (context, box) {
-                  final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
-                  return SizedBox(
-                      height: box.maxWidth * .92 + (scale - 1).clamp(0, 2) * 90,
-                      child: Stack(fit: StackFit.expand, children: [
-                        GaronaImage(
-                            url: car.photoUrl, semanticLabel: car.model),
-                        DecoratedBox(
-                            decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                              colors.surfaceContainerLowest
-                                  .withValues(alpha: .27),
-                              colors.surfaceContainerLowest
-                                  .withValues(alpha: 0),
-                              colors.surfaceContainerLowest
-                                  .withValues(alpha: .96)
-                            ],
-                                    stops: [
-                              0,
-                              .32,
-                              1
-                            ]))),
-                        Positioned(
-                            top: 18,
-                            left: 18,
-                            right: 18,
-                            child: Row(children: [
-                              const GaronaLightSignature(width: 24),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                  child: Text(
-                                      highlighted
-                                          ? 'SEU PROJETO'
-                                          : 'GARONA / GARAGENS',
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                              color: colors.onSurface,
-                                              letterSpacing: 2))),
-                              if (car.year != null)
-                                Text('${car.year}',
-                                    style: TextStyle(
-                                        fontFamily: 'BarlowCondensed',
-                                        fontSize: 24,
-                                        color: colors.onSurface)),
-                            ])),
-                        Positioned(
-                            left: 18,
-                            right: 18,
-                            bottom: 20,
-                            child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('@${car.ownerUsername}',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                              color: colors.onSurfaceVariant)),
-                                  const SizedBox(height: 8),
-                                  Text(car.displayName,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontFamily: 'BarlowCondensed',
-                                          fontSize: 38,
-                                          fontWeight: FontWeight.w600,
-                                          height: .98,
-                                          color: colors.onSurface)),
-                                  if (car.projectName != null)
-                                    Text(car.model,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                  if (car.projectStatus?.trim().isNotEmpty ??
-                                      false) ...[
-                                    const SizedBox(height: 10),
-                                    Text(car.projectStatus!,
-                                        style: theme.textTheme.labelMedium
-                                            ?.copyWith(
-                                                color: colors.secondary)),
-                                  ],
-                                ])),
-                      ]));
-                }),
+                AspectRatio(
+                    aspectRatio: 16 / 10,
+                    child: GaronaImage(
+                        url: car.photoUrl,
+                        fit: BoxFit.contain,
+                        semanticLabel: car.displayName)),
+                Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('@${car.ownerUsername}',
+                              style: theme.textTheme.labelSmall),
+                          const SizedBox(height: 6),
+                          Text(car.displayName,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.headlineMedium
+                                  ?.copyWith(fontFamily: 'BarlowCondensed')),
+                          if (car.projectName != null || car.year != null)
+                            Text([
+                              if (car.projectName != null) car.model,
+                              if (car.year != null) '${car.year}'
+                            ].join(' · ')),
+                          if (car.projectStatus?.isNotEmpty ?? false)
+                            Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(car.projectStatus!,
+                                    style: TextStyle(color: colors.secondary))),
+                        ])),
                 Padding(
                     padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
                     child: Column(
@@ -200,9 +143,9 @@ class GaronaProjectCard extends StatelessWidget {
                             Text(specs.join('  ·  '),
                                 style: theme.textTheme.labelMedium
                                     ?.copyWith(color: colors.secondary)),
-                          if (car.history?.trim().isNotEmpty ?? false) ...[
+                          if (car.proposal?.trim().isNotEmpty ?? false) ...[
                             const SizedBox(height: 10),
-                            Text(car.history!,
+                            Text(car.proposal!,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodyMedium),

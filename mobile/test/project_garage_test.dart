@@ -1,4 +1,7 @@
 import 'dart:io';
+import 'package:garona_mobile/features/cars/project_card.dart';
+import 'package:garona_mobile/features/cars/project_garage.dart';
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
 import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -254,5 +257,93 @@ void main() {
     await tester.tap(find.text('Continuar editando'));
     await tester.pumpAndSettle();
     expect(find.text('Seis canecos'), findsOneWidget);
+  });
+
+  testWidgets(
+      'capas preservam foto e proporção com nome longo e fonte ampliada',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
+            child: Scaffold(
+                body: SingleChildScrollView(
+                    child: Column(children: [
+              GaronaProjectCard(car: car, onTap: () {}),
+              GaronaProjectCard(car: car, compact: true, onTap: () {}),
+            ]))))));
+    await tester.pumpAndSettle();
+    for (final image
+        in tester.widgetList<GaronaImage>(find.byType(GaronaImage))) {
+      expect(image.fit, BoxFit.contain);
+    }
+    for (final ratio
+        in tester.widgetList<AspectRatio>(find.byType(AspectRatio))) {
+      expect(ratio.aspectRatio, 16 / 10);
+    }
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'campos narrativos aceitam parágrafos e explicam preenchimento opcional',
+      (tester) async {
+    final client = api();
+    await tester.pumpWidget(MaterialApp(
+        theme: AppTheme.dark,
+        home: CarFormScreen(car: car, repository: CarsRepository(client))));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Original e modificações'));
+    await tester.tap(find.text('Original e modificações'));
+    await tester.pumpAndSettle();
+    final field = find.widgetWithText(
+        TextFormField, 'Modificações realizadas (opcional)');
+    await tester.ensureVisible(field);
+    await tester.enterText(field, 'Rodas aro 17\nSuspensão revisada');
+    final widget = tester.widget<TextField>(
+        find.descendant(of: field, matching: find.byType(TextField)));
+    expect(widget.maxLines, 7);
+    expect(widget.minLines, 3);
+    expect(widget.controller!.text, contains('\n'));
+    expect(widget.decoration!.hintText, contains('Ex.:'));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'reabrir etapa concluída remove vínculo no envio e mantém evolução',
+      (tester) async {
+    Map<String, Object?>? saved;
+    final client = api(intercept: (options, handler) {
+      if (options.method == 'PUT') {
+        saved = Map<String, Object?>.from(options.data as Map);
+        handler.resolve(Response(requestOptions: options, data: {}));
+      } else {
+        handler.resolve(Response(requestOptions: options, data: <Object?>[]));
+      }
+    });
+    await tester.pumpWidget(MaterialApp(
+        home: ProjectStageForm(
+            car: car,
+            repository: CarsRepository(client),
+            evolutions: EvolutionsRepository(client),
+            stage: const ProjectStage(
+                id: 's',
+                title: 'Motor',
+                status: 'concluida',
+                evolutionId: 'removed'))));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Concluído').first);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Em andamento').last);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('Salvar etapa'));
+    await tester.tap(find.text('Salvar etapa'));
+    await tester.pumpAndSettle();
+    expect(saved!['status'], 'em_andamento');
+    expect(saved!['evolucao_id'], isNull);
+    expect(tester.takeException(), isNull);
   });
 }

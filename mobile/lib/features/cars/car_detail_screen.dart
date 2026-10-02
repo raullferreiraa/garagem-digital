@@ -714,58 +714,57 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                       icon: const Icon(Icons.collections_outlined),
                       label: const Text('Galeria e etapas')),
                   const SizedBox(height: 16),
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('Sobre o projeto'),
-                    subtitle: const Text('História e origem'),
-                    children: [
-                      if (_car.acquiredOn != null)
-                        ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Comigo desde'),
-                            subtitle: Text(_car.acquiredOn!
-                                .split('-')
-                                .reversed
-                                .join('/'))),
-                      _StoryCard(
-                          text: _car.history ??
-                              'O proprietário ainda não contou a história deste projeto.'),
-                      if (_car.initialCondition != null)
-                        ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Como chegou'),
-                            subtitle: Text(_car.initialCondition!)),
-                    ],
-                  ),
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('Ficha do carro'),
-                    subtitle: const Text(
-                        'Configuração atual, original e modificações'),
-                    children: [
-                      if (specs.isEmpty)
-                        const Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text(
-                                'A ficha técnica ainda não foi preenchida.')),
-                      for (final spec in specs)
-                        ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: Icon(spec.$3),
-                            title: Text(spec.$1),
-                            subtitle: Text(spec.$2!)),
-                      if (_car.originalSpec != null)
-                        ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Configuração original'),
-                            subtitle: Text(_car.originalSpec!)),
-                      if (_car.modifications != null)
-                        ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            title: const Text('Modificações realizadas'),
-                            subtitle: Text(_car.modifications!)),
-                    ],
-                  ),
+                  if ([_car.history, _car.acquiredOn, _car.initialCondition]
+                      .any((value) => value?.trim().isNotEmpty ?? false))
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Sobre o projeto'),
+                      subtitle: const Text('História e origem'),
+                      children: [
+                        if (_car.acquiredOn != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Comigo desde'),
+                              subtitle: Text(_car.acquiredOn!
+                                  .split('-')
+                                  .reversed
+                                  .join('/'))),
+                        if (_car.history?.trim().isNotEmpty ?? false)
+                          _StoryCard(text: _car.history!),
+                        if (_car.initialCondition != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Como chegou'),
+                              subtitle: Text(_car.initialCondition!)),
+                      ],
+                    ),
+                  if (specs.isNotEmpty ||
+                      _car.originalSpec != null ||
+                      _car.modifications != null)
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      title: const Text('Ficha do carro'),
+                      subtitle: const Text(
+                          'Configuração atual, original e modificações'),
+                      children: [
+                        for (final spec in specs)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              leading: Icon(spec.$3),
+                              title: Text(spec.$1),
+                              subtitle: Text(spec.$2!)),
+                        if (_car.originalSpec != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Configuração original'),
+                              subtitle: Text(_car.originalSpec!)),
+                        if (_car.modifications != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Modificações realizadas'),
+                              subtitle: Text(_car.modifications!)),
+                      ],
+                    ),
                   const SizedBox(height: 30),
                   Row(
                     children: [
@@ -851,7 +850,7 @@ final class _ProjectCover extends StatelessWidget {
             ),
           ),
           AspectRatio(
-            aspectRatio: 4 / 3,
+            aspectRatio: 16 / 10,
             child: Stack(
               fit: StackFit.expand,
               children: [

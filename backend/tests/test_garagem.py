@@ -91,3 +91,26 @@ def test_galeria_limita_doze_fotos_e_rejeita_foto_de_outro_carro(client):
     assert client.post(base+'/galeria', headers=auth(owner), files={'arquivo': ('a.png', imagem_png(), 'image/png')}).status_code == 409
     photo_id = response.json()['id']
     assert client.put(f"/api/v1/carros/{other['carro_id']}/galeria/{photo_id}/capa", headers=auth(owner)).status_code == 404
+
+
+def test_excluir_evolucao_desvincula_etapa_sem_apagar_planejamento(client):
+    from sqlalchemy import text
+    from app.core.database import get_db
+
+    # Exercita a mesma ação SET NULL da FK no PostgreSQL.
+    session_generator = client.app.dependency_overrides[get_db]()
+    session = next(session_generator)
+    session.execute(text("PRAGMA foreign_keys=ON"))
+    session.commit()
+    session_generator.close()
+    owner = cadastrar(client, 'vinculo.dono')
+    evolution = criar_evolucao(client, owner, 'Omega', 'Revisão pronta')
+    base = f"/api/v1/carros/{evolution['carro_id']}"
+    stage = client.post(base+'/etapas', headers=auth(owner), json={
+        'titulo': 'Revisar motor', 'status': 'concluida', 'evolucao_id': evolution['id']})
+    assert stage.status_code == 201
+    assert client.delete(base+f"/evolucoes/{evolution['id']}", headers=auth(owner)).status_code == 204
+    remaining = client.get(base+'/garagem').json()['etapas']
+    assert len(remaining) == 1
+    assert remaining[0]['evolucao_id'] is None
+    assert remaining[0]['status'] == 'concluida'
