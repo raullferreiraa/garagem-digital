@@ -796,8 +796,9 @@ class _CarFormScreenState extends State<CarFormScreen> {
                                 ? null
                                 : Image.memory(_photo!, fit: BoxFit.contain)),
                         const SizedBox(height: 16),
-                        const Text(
-                            'Confira a apresentação. Para publicar, volte e salve o projeto.'),
+                        Text(widget.car == null
+                            ? 'Confira a apresentação. Para publicar, volte e salve o projeto.'
+                            : 'Confira a apresentação. Para salvar as alterações, volte ao formulário.'),
                       ])),
             ));
   }

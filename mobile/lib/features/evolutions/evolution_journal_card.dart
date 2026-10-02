@@ -4,8 +4,23 @@ import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
 
 enum EvolutionJournalAction { edit, photos, delete }
 
-double evolutionJournalCardHeight(BuildContext context) {
+double evolutionJournalCardHeight(BuildContext context,
+    {Evolution? evolution}) {
   final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+  if (evolution != null && evolution.photos.isEmpty) {
+    final width = (MediaQuery.sizeOf(context).width - 120).clamp(120.0, 700.0);
+    final painter = TextPainter(
+      text: TextSpan(
+          text: evolution.description,
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(height: 1.4)),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+      maxLines: 4,
+    )..layout(maxWidth: width);
+    final height = 290 + painter.height + (scale - 1).clamp(0.0, 2.0) * 260;
+    painter.dispose();
+    return height;
+  }
   return 420 + (scale - 1).clamp(0.0, 2.0) * 160;
 }
 
@@ -30,7 +45,7 @@ class EvolutionJournalCard extends StatelessWidget {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return SizedBox(
-      height: evolutionJournalCardHeight(context),
+      height: evolutionJournalCardHeight(context, evolution: evolution),
       child: Container(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         decoration: BoxDecoration(

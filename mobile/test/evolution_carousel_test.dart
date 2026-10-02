@@ -82,7 +82,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Agosto de 2026').last);
     await tester.pumpAndSettle();
-    expect(find.text('1 de 1 evolução'), findsOneWidget);
+    expect(find.text('1 de 1 evolução'), findsNothing);
+    expect(find.byTooltip('Próxima evolução'), findsNothing);
     expect(find.text('Troca dos pneus'), findsOneWidget);
     await tester.tap(find.widgetWithText(ChoiceChip, 'Mecânica'));
     await tester.pumpAndSettle();
@@ -100,7 +101,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ChoiceChip, 'Estética'));
     await tester.pumpAndSettle();
-    expect(find.text('1 de 1 evolução'), findsOneWidget);
+    expect(find.text('1 de 1 evolução'), findsNothing);
+    expect(find.byTooltip('Próxima evolução'), findsNothing);
     expect(find.text('Pintura completa'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });

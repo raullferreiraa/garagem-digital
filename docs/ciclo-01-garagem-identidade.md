@@ -73,3 +73,9 @@ Atualize a API com `docker compose up -d --build` antes de testar o app: esta re
 Revalidar: publicar foto com legenda e sem legenda; simular falha e repetir; navegar por fotos verticais/horizontais; organizar e reabrir; comparar acesso do dono e visitante; salvar somente ano e depois mês/ano; conferir que edição de outro campo preserva data antiga e preparação; concluir/reabrir etapa vinculada sem apagar evolução.
 
 Verificação desta revisão: 116 testes backend e 174 testes Flutter aprovados; análise estática sem problemas; APK debug gerado. Validação com fotos reais pelo proprietário e CI da PR ainda complementam os testes locais.
+
+### Acabamento final após os prints
+- Menu da galeria ao lado da legenda; ordenação em linha separada apenas no modo Organizar.
+- Evoluções sem foto com altura menor ajustada ao texto e à escala da fonte. Navegação ocultada quando há somente um resultado.
+- Prévia de edição orienta salvar alterações.
+- 21 testes dos fluxos afetados aprovados e análise estática sem problemas. Alterações apenas no app.

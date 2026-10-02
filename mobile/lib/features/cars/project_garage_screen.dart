@@ -265,68 +265,71 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
                                 errorBuilder: (_, __, ___) => const Center(
                                     child:
                                         Icon(Icons.broken_image_outlined))))))),
-            if (photo.caption.isNotEmpty)
-              Padding(
-                  padding: const EdgeInsets.only(top: 12),
-                  child: Text(photo.caption,
-                      maxLines: 2, overflow: TextOverflow.ellipsis)),
-            if (widget.canManage)
-              Wrap(alignment: WrapAlignment.end, children: [
-                if (_organizing)
-                  IconButton(
-                      tooltip: 'Mover antes',
-                      onPressed: index > 0 ? () => _move(index, -1) : null,
-                      icon: const Icon(Icons.arrow_upward)),
-                if (_organizing)
-                  IconButton(
-                      tooltip: 'Mover depois',
-                      onPressed: index + 1 < _data!.photos.length
-                          ? () => _move(index, 1)
-                          : null,
-                      icon: const Icon(Icons.arrow_downward)),
-                PopupMenuButton<String>(
-                    tooltip: 'Opções da foto',
-                    onSelected: (action) async {
-                      if (action == 'caption') await _caption(photo);
-                      if (action == 'cover' &&
-                          await _confirm('Usar como capa?',
-                              'Esta foto será a apresentação do projeto.')) {
-                        if (mounted)
-                          await _act(() async {
-                            final data =
-                                await NetworkAssetBundle(Uri.parse(photo.url))
-                                    .load(photo.url);
-                            if (!mounted) return;
-                            final cropped = await Navigator.of(context)
-                                .push<Uint8List>(MaterialPageRoute(
-                                    builder: (_) => PhotoCropScreen(
-                                        image: data.buffer.asUint8List(),
-                                        title: 'Capa do projeto',
-                                        instructions:
-                                            'Este recorte aparece no Descobrir e no projeto. A foto completa continua na galeria.')));
-                            if (cropped == null || !mounted) return;
-                            await widget.repository.uploadMainPhoto(
-                                widget.car.id,
-                                bytes: cropped,
-                                fileName: 'capa.jpg');
-                          });
-                      }
-                      if (action == 'delete' &&
-                          await _confirm('Remover foto?',
-                              'A foto será removida da galeria. A capa atual será preservada.')) {
-                        if (mounted)
-                          await _act(() => widget.repository
-                              .deleteGalleryPhoto(widget.car.id, photo.id));
-                      }
-                    },
-                    itemBuilder: (_) => const [
-                          PopupMenuItem(
-                              value: 'caption', child: Text('Editar legenda')),
-                          PopupMenuItem(
-                              value: 'cover', child: Text('Usar como capa')),
-                          PopupMenuItem(
-                              value: 'delete', child: Text('Remover foto'))
-                        ]),
+            if (photo.caption.isNotEmpty || widget.canManage)
+              Row(children: [
+                Expanded(
+                    child: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(photo.caption,
+                            maxLines: 2, overflow: TextOverflow.ellipsis))),
+                if (widget.canManage)
+                  PopupMenuButton<String>(
+                      tooltip: 'Opções da foto',
+                      onSelected: (action) async {
+                        if (action == 'caption') await _caption(photo);
+                        if (action == 'cover' &&
+                            await _confirm('Usar como capa?',
+                                'Esta foto será a apresentação do projeto.')) {
+                          if (mounted)
+                            await _act(() async {
+                              final data =
+                                  await NetworkAssetBundle(Uri.parse(photo.url))
+                                      .load(photo.url);
+                              if (!mounted) return;
+                              final cropped = await Navigator.of(context)
+                                  .push<Uint8List>(MaterialPageRoute(
+                                      builder: (_) => PhotoCropScreen(
+                                          image: data.buffer.asUint8List(),
+                                          title: 'Capa do projeto',
+                                          instructions:
+                                              'Este recorte aparece no Descobrir e no projeto. A foto completa continua na galeria.')));
+                              if (cropped == null || !mounted) return;
+                              await widget.repository.uploadMainPhoto(
+                                  widget.car.id,
+                                  bytes: cropped,
+                                  fileName: 'capa.jpg');
+                            });
+                        }
+                        if (action == 'delete' &&
+                            await _confirm('Remover foto?',
+                                'A foto será removida da galeria. A capa atual será preservada.')) {
+                          if (mounted)
+                            await _act(() => widget.repository
+                                .deleteGalleryPhoto(widget.car.id, photo.id));
+                        }
+                      },
+                      itemBuilder: (_) => const [
+                            PopupMenuItem(
+                                value: 'caption',
+                                child: Text('Editar legenda')),
+                            PopupMenuItem(
+                                value: 'cover', child: Text('Usar como capa')),
+                            PopupMenuItem(
+                                value: 'delete', child: Text('Remover foto'))
+                          ]),
+              ]),
+            if (widget.canManage && _organizing)
+              Wrap(children: [
+                IconButton(
+                    tooltip: 'Mover antes',
+                    onPressed: index > 0 ? () => _move(index, -1) : null,
+                    icon: const Icon(Icons.arrow_upward)),
+                IconButton(
+                    tooltip: 'Mover depois',
+                    onPressed: index + 1 < _data!.photos.length
+                        ? () => _move(index, 1)
+                        : null,
+                    icon: const Icon(Icons.arrow_downward)),
               ]),
           ])));
 
