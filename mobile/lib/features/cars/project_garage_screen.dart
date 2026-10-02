@@ -10,7 +10,7 @@ import 'package:garona_mobile/features/cars/project_garage.dart';
 import 'package:garona_mobile/features/evolutions/evolution.dart';
 import 'package:garona_mobile/features/evolutions/evolution_detail_screen.dart';
 import 'package:garona_mobile/features/evolutions/evolution_form_screen.dart';
-import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
+import 'gallery_photo_flow.dart';
 import 'package:garona_mobile/features/evolutions/evolutions_repository.dart';
 
 class ProjectGarageScreen extends StatefulWidget {
@@ -34,6 +34,7 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
   ProjectGarage? _data;
   Object? _error;
   bool _busy = false;
+  bool _organizing = false;
   bool _loading = false;
   int _request = 0;
   @override
@@ -98,36 +99,20 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
       if (photo == null) return;
       final bytes = await photo.readAsBytes();
       if (!mounted) return;
-      await widget.repository.addGalleryPhoto(widget.car.id, bytes, photo.name);
+      await Navigator.of(context).push(MaterialPageRoute<bool>(
+          builder: (_) => GalleryPhotoPublishScreen(
+              carId: widget.car.id,
+              repository: widget.repository,
+              bytes: bytes,
+              fileName: photo.name)));
     });
   }
 
-  void _view(ProjectPhoto photo) => showDialog<void>(
-      context: context,
-      builder: (context) => Dialog.fullscreen(
-          backgroundColor: Colors.black,
-          child: SafeArea(
-              child: Column(children: [
-            Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                    tooltip: 'Fechar foto',
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close))),
-            Expanded(
-                child: InteractiveViewer(
-                    minScale: 1,
-                    maxScale: 5,
-                    child: Center(
-                        child: Image.network(photo.url,
-                            fit: BoxFit.contain,
-                            errorBuilder: (_, __, ___) =>
-                                const Text('Foto indisponível.'))))),
-            if (photo.caption.isNotEmpty)
-              Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(photo.caption)),
-          ]))));
+  void _view(ProjectPhoto photo) =>
+      Navigator.of(context).push(MaterialPageRoute<void>(
+          builder: (_) => GalleryPhotoViewer(
+              photos: _data!.photos,
+              initialIndex: _data!.photos.indexOf(photo))));
 
   Future<void> _caption(ProjectPhoto photo) async {
     final controller = TextEditingController(text: photo.caption);
@@ -222,7 +207,8 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
             Text('O carro, do seu jeito',
                 style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
-            Text('${_data!.photos.length} / 12 fotos · Toque para ampliar'),
+            Text(
+                '${_data!.photos.length} fotos${widget.canManage ? ' · limite de 12' : ''} · Toque para ampliar'),
             if (widget.canManage)
               Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -236,42 +222,68 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
                   child: Text(widget.canManage
                       ? 'Um detalhe, o interior, o carro na rua. Escolha as fotos que contam esse projeto.'
                       : 'O dono ainda não adicionou fotos à galeria.')),
-            for (var i = 0; i < _data!.photos.length; i++)
-              _photoCard(_data!.photos[i], i),
+            if (widget.canManage && _data!.photos.length > 1)
+              Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                      onPressed: () =>
+                          setState(() => _organizing = !_organizing),
+                      icon: Icon(_organizing ? Icons.check : Icons.swap_vert),
+                      label: Text(
+                          _organizing ? 'Concluir organização' : 'Organizar'))),
+            LayoutBuilder(builder: (context, constraints) {
+              final columns = constraints.maxWidth < 280 ||
+                      MediaQuery.textScalerOf(context).scale(14) > 22
+                  ? 1
+                  : 2;
+              return Wrap(spacing: 12, runSpacing: 12, children: [
+                for (var i = 0; i < _data!.photos.length; i++)
+                  SizedBox(
+                      width:
+                          (constraints.maxWidth - (columns - 1) * 12) / columns,
+                      child: _photoCard(_data!.photos[i], i)),
+              ]);
+            }),
           ]));
 
   Widget _photoCard(ProjectPhoto photo, int index) => Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: EdgeInsets.zero,
       child: GaronaPanel(
           padding: const EdgeInsets.all(12),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             ClipRRect(
                 borderRadius: BorderRadius.circular(14),
-                child: EvolutionPhotoFrame(
-                    image: NetworkImage(photo.url),
-                    label: photo.caption.isEmpty
-                        ? 'Foto ${index + 1}'
-                        : photo.caption,
-                    maxHeight: 260,
-                    onTap: () => _view(photo))),
+                child: AspectRatio(
+                    aspectRatio: 1,
+                    child: InkWell(
+                        onTap: () => _view(photo),
+                        child: Semantics(
+                            label: 'Foto ${index + 1}. Toque para ampliar',
+                            child: Image.network(photo.url,
+                                fit: BoxFit.contain,
+                                errorBuilder: (_, __, ___) => const Center(
+                                    child:
+                                        Icon(Icons.broken_image_outlined))))))),
             if (photo.caption.isNotEmpty)
               Padding(
                   padding: const EdgeInsets.only(top: 12),
-                  child: Text(photo.caption)),
+                  child: Text(photo.caption,
+                      maxLines: 2, overflow: TextOverflow.ellipsis)),
             if (widget.canManage)
-              Row(children: [
-                IconButton(
-                    tooltip: 'Mover antes',
-                    onPressed: index > 0 ? () => _move(index, -1) : null,
-                    icon: const Icon(Icons.arrow_upward)),
-                IconButton(
-                    tooltip: 'Mover depois',
-                    onPressed: index + 1 < _data!.photos.length
-                        ? () => _move(index, 1)
-                        : null,
-                    icon: const Icon(Icons.arrow_downward)),
-                const Spacer(),
+              Wrap(alignment: WrapAlignment.end, children: [
+                if (_organizing)
+                  IconButton(
+                      tooltip: 'Mover antes',
+                      onPressed: index > 0 ? () => _move(index, -1) : null,
+                      icon: const Icon(Icons.arrow_upward)),
+                if (_organizing)
+                  IconButton(
+                      tooltip: 'Mover depois',
+                      onPressed: index + 1 < _data!.photos.length
+                          ? () => _move(index, 1)
+                          : null,
+                      icon: const Icon(Icons.arrow_downward)),
                 PopupMenuButton<String>(
                     tooltip: 'Opções da foto',
                     onSelected: (action) async {
@@ -350,8 +362,13 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
               for (final status in projectStageLabels.keys)
                 if (stages.any((e) => e.status == status)) ...[
                   Padding(
-                      padding: const EdgeInsets.only(top: 20, bottom: 12),
-                      child: Text(projectStageLabels[status]!,
+                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      child: Text(
+                          const {
+                            'planejada': 'Planejadas',
+                            'em_andamento': 'Em andamento',
+                            'concluida': 'Concluídas'
+                          }[status]!,
                           style: Theme.of(context).textTheme.titleMedium)),
                   for (final stage in stages.where((e) => e.status == status))
                     Padding(
@@ -400,8 +417,7 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
                                     TextButton.icon(
                                         onPressed: () => _openEvolution(stage),
                                         icon: const Icon(Icons.north_east),
-                                        label: const Text(
-                                            'Ver registro da conclusão')),
+                                        label: const Text('Ver evolução')),
                                 ]))),
                 ],
             ]));

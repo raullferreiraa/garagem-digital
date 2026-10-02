@@ -1,4 +1,5 @@
-import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'project_cover.dart';
+import 'acquisition_date.dart';
 import 'package:garona_mobile/core/widgets/form_photo.dart';
 import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
@@ -450,7 +451,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                         tilePadding: const EdgeInsets.symmetric(
                             horizontal: 16, vertical: 6),
                         childrenPadding:
-                            const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                            const EdgeInsets.fromLTRB(16, 0, 16, 20),
                         backgroundColor:
                             Theme.of(context).colorScheme.surfaceContainer,
                         collapsedBackgroundColor:
@@ -469,7 +470,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                               title: const Text('Comigo desde'),
                               subtitle: Text(_acquiredOn == null
                                   ? 'Não informado'
-                                  : _acquiredOn!.split('-').reversed.join('/')),
+                                  : formatAcquisitionDate(_acquiredOn!)),
                               trailing: _acquiredOn == null
                                   ? const Icon(Icons.calendar_today_outlined)
                                   : IconButton(
@@ -480,18 +481,11 @@ class _CarFormScreenState extends State<CarFormScreen> {
                                             _dirty = true;
                                           })),
                               onTap: () async {
-                                final now = DateTime.now();
-                                final date = await showDatePicker(
-                                    context: context,
-                                    initialDate:
-                                        DateTime.tryParse(_acquiredOn ?? '') ??
-                                            now,
-                                    firstDate: DateTime(1886),
-                                    lastDate: now);
+                                final date = await pickAcquisitionDate(
+                                    context, _acquiredOn);
                                 if (date != null && mounted)
                                   setState(() {
-                                    _acquiredOn =
-                                        date.toIso8601String().substring(0, 10);
+                                    _acquiredOn = date;
                                     _dirty = true;
                                   });
                               }),
@@ -511,7 +505,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                           tilePadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 6),
                           childrenPadding:
-                              const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                              const EdgeInsets.fromLTRB(16, 0, 16, 20),
                           backgroundColor:
                               Theme.of(context).colorScheme.surfaceContainer,
                           collapsedBackgroundColor:
@@ -563,7 +557,7 @@ class _CarFormScreenState extends State<CarFormScreen> {
                             color: Theme.of(context).colorScheme.primary),
                         title: const Text('Ficha técnica'),
                         subtitle:
-                            const Text('Motor, câmbio, rodas e preparação'),
+                            const Text('Motor, câmbio, suspensão e rodas'),
                         children: [
                           _OptionalField(
                             controller: _engineController,
@@ -660,11 +654,6 @@ class _CarFormScreenState extends State<CarFormScreen> {
                             ),
                             maxLength: 4,
                             validator: _validatePower,
-                          ),
-                          _OptionalField(
-                            controller: _preparationController,
-                            label: 'Preparação',
-                            maxLength: 100,
                           ),
                           Padding(
                             padding: const EdgeInsets.only(top: 12),
@@ -790,33 +779,22 @@ class _CarFormScreenState extends State<CarFormScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (_photo != null)
-                          AspectRatio(
-                              aspectRatio: 16 / 10,
-                              child:
-                                  Image.memory(_photo!, fit: BoxFit.contain)),
-                        if (_photo == null && widget.car?.photoUrl != null)
-                          AspectRatio(
-                              aspectRatio: 16 / 10,
-                              child: GaronaImage(
-                                  url: widget.car!.photoUrl,
-                                  fit: BoxFit.contain,
-                                  semanticLabel: data.model)),
-                        const SizedBox(height: 12),
                         const Text('PRÉVIA / PROJETO'),
                         const SizedBox(height: 12),
-                        Text(data.projectName ?? data.model,
-                            style: Theme.of(context).textTheme.headlineMedium),
-                        Text([data.model, if (data.year != null) '${data.year}']
-                            .join(' · ')),
-                        if (data.proposal != null)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 12),
-                              child: Text(data.proposal!)),
-                        if (data.history != null)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 16),
-                              child: Text(data.history!)),
+                        ProjectCover(
+                            car: Car(
+                                id: widget.car?.id ?? 'preview',
+                                model: data.model,
+                                ownerId: '',
+                                ownerName: '',
+                                ownerUsername: '',
+                                projectName: data.projectName,
+                                year: data.year,
+                                proposal: data.proposal,
+                                photoUrl: widget.car?.photoUrl),
+                            previewImage: _photo == null
+                                ? null
+                                : Image.memory(_photo!, fit: BoxFit.contain)),
                         const SizedBox(height: 16),
                         const Text(
                             'Confira a apresentação. Para publicar, volte e salve o projeto.'),

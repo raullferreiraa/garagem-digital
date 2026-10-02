@@ -112,10 +112,13 @@ class IdentidadeProjeto(BaseModel):
         from datetime import date
         if not value:
             return None
-        parsed = date.fromisoformat(value)
-        if parsed > date.today():
-            raise ValueError("A aquisição não pode estar no futuro.")
-        return parsed.isoformat()
+        if not re.fullmatch(r"\d{4}(?:-\d{2})?(?:-\d{2})?", value):
+            raise ValueError("Informe ano, ano e mês ou uma data completa.")
+        parts = [int(part) for part in value.split("-")]
+        parsed = date(parts[0], parts[1] if len(parts) > 1 else 1, parts[2] if len(parts) > 2 else 1)
+        if parsed.year < 1886 or parsed > date.today():
+            raise ValueError("Informe uma aquisição entre 1886 e o presente.")
+        return value
 
 
 class CarroBase(IdentidadeProjeto):

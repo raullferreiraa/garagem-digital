@@ -58,3 +58,18 @@ Após aprovação manual e CI verde, concluir a PR e fazer merge. Os documentos 
 2. Definir capa pela galeria, cancelar o recorte (não deve mudar) e repetir confirmando. Conferir que o original da galeria permaneceu completo.
 3. Preencher campos opcionais com parágrafos e conferir prévia/detalhes. Deixar campos vazios não deve criar seções vazias.
 4. Concluir etapa com evolução existente, abrir o vínculo, reabrir a etapa e conferir que a evolução continua no diário. Excluir uma evolução vinculada deve preservar a etapa sem link quebrado.
+
+## Revisão de galeria, etapas e aquisição
+
+- Galeria em duas colunas (uma em telas muito estreitas ou com fonte grande), miniaturas sem corte, legenda visível e visualizador com zoom, navegação e legenda completa.
+- Publicação de foto abre prévia com legenda opcional. Foto e legenda são enviadas juntas; falha mantém o preenchimento e permite tentar novamente. Organizar revela os controles de ordem, exclusivos do proprietário.
+- Etapas agrupadas em Planejadas, Em andamento e Concluídas, com menos espaço entre grupos e ação Ver evolução.
+- Comigo desde aceita ano e mês opcional. Datas completas antigas permanecem armazenadas até edição explícita; apresentação usa mês/ano. Sem migration adicional (campo continua string de até 10 caracteres).
+- Preparação removida do formulário; conteúdo já salvo continua preservado. A ficha mantém a leitura do dado antigo.
+- Prévia usa o mesmo componente de capa da página do projeto; espaçamentos internos de origem/história reduzidos e ícone de suspensão atualizado.
+
+Atualize a API com `docker compose up -d --build` antes de testar o app: esta revisão altera a validação da data e o envio da legenda no upload. Depois, em `mobile`, execute `flutter run -d emulator-5554`.
+
+Revalidar: publicar foto com legenda e sem legenda; simular falha e repetir; navegar por fotos verticais/horizontais; organizar e reabrir; comparar acesso do dono e visitante; salvar somente ano e depois mês/ano; conferir que edição de outro campo preserva data antiga e preparação; concluir/reabrir etapa vinculada sem apagar evolução.
+
+Verificação desta revisão: 116 testes backend e 174 testes Flutter aprovados; análise estática sem problemas; APK debug gerado. Validação com fotos reais pelo proprietário e CI da PR ainda complementam os testes locais.

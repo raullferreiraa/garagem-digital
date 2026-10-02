@@ -1,9 +1,10 @@
+import 'project_cover.dart';
+import 'acquisition_date.dart';
 import 'package:garona_mobile/features/cars/project_garage_screen.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:garona_mobile/core/network/api_client.dart';
 import 'package:garona_mobile/core/sharing/garona_share.dart';
 import 'package:garona_mobile/core/widgets/garona_ui.dart';
@@ -640,7 +641,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ('Combustível', _car.fuel, Icons.local_gas_station_outlined),
       ('Potência', _car.estimatedPower, Icons.speed_outlined),
       ('Preparação', _car.preparation, Icons.build_outlined),
-      ('Suspensão', _car.suspensionType, Icons.airline_seat_recline_extra),
+      ('Suspensão', _car.suspensionType, Icons.swap_vert_rounded),
       (
         'Rodas',
         _car.wheelSize == null ? null : 'Aro ${_car.wheelSize}',
@@ -696,7 +697,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
                 children: [
-                  _ProjectCover(
+                  ProjectCover(
                     car: _car,
                     canManage: _canManage,
                     updatingPhoto: _updatingPhoto,
@@ -719,7 +720,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     ExpansionTile(
                       tilePadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
-                      childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       backgroundColor:
                           Theme.of(context).colorScheme.surfaceContainer,
                       collapsedBackgroundColor:
@@ -735,10 +736,8 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                           ListTile(
                               contentPadding: EdgeInsets.zero,
                               title: const Text('Comigo desde'),
-                              subtitle: Text(_car.acquiredOn!
-                                  .split('-')
-                                  .reversed
-                                  .join('/'))),
+                              subtitle: Text(
+                                  formatAcquisitionDate(_car.acquiredOn!))),
                         if (_car.history?.trim().isNotEmpty ?? false)
                           ListTile(
                               contentPadding: EdgeInsets.zero,
@@ -758,7 +757,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     ExpansionTile(
                       tilePadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 6),
-                      childrenPadding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       backgroundColor:
                           Theme.of(context).colorScheme.surfaceContainer,
                       collapsedBackgroundColor:
@@ -852,141 +851,6 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 ],
               ),
             ),
-    );
-  }
-}
-
-final class _ProjectCover extends StatelessWidget {
-  const _ProjectCover({
-    required this.car,
-    required this.canManage,
-    required this.updatingPhoto,
-    required this.onPhotoTap,
-    required this.onViewPhoto,
-  });
-
-  final Car car;
-  final bool canManage;
-  final bool updatingPhoto;
-  final VoidCallback onPhotoTap;
-  final VoidCallback onViewPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .16),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
-            child: Row(
-              children: [
-                const GaronaLightSignature(width: 28),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text('GARONA / PROJETO',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.6,
-                        color: colors.onSurfaceVariant,
-                      )),
-                ),
-                if (car.photoUrl != null)
-                  IconButton(
-                    onPressed: onViewPhoto,
-                    tooltip: 'Ver foto inteira',
-                    icon: const Icon(Icons.zoom_out_map_rounded, size: 20),
-                  ),
-              ],
-            ),
-          ),
-          AspectRatio(
-            aspectRatio: 16 / 10,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ColoredBox(
-                  color: colors.surfaceContainerLowest,
-                  child: GaronaImage(
-                    url: car.photoUrl,
-                    semanticLabel: car.model,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (car.photoUrl != null)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onViewPhoto,
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                if (updatingPhoto)
-                  ColoredBox(
-                    color: colors.scrim.withValues(alpha: .4),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-                  Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        Text(car.displayName,
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                                fontFamily: 'BarlowCondensed',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 34,
-                                height: 1.05)),
-                        if (car.projectName != null || car.year != null)
-                          Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                  [
-                                    if (car.projectName != null) car.model,
-                                    if (car.year != null) '${car.year}'
-                                  ].join(' · '),
-                                  style: theme.textTheme.labelLarge
-                                      ?.copyWith(color: colors.secondary))),
-                      ])),
-                  if (canManage && !updatingPhoto) ...[
-                    const SizedBox(width: 12),
-                    IconButton.filledTonal(
-                        onPressed: onPhotoTap,
-                        tooltip: 'Alterar foto principal',
-                        icon: const Icon(Icons.add_a_photo_outlined)),
-                  ],
-                ]),
-                if (car.proposal != null)
-                  Padding(
-                      padding: const EdgeInsets.only(top: 12),
-                      child: Text(car.proposal!)),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

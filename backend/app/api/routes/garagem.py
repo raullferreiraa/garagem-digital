@@ -1,7 +1,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -50,7 +50,7 @@ def garagem(carro_id: UUID, db: Db, usuario: UsuarioOpcional):
 
 
 @router.post("/{carro_id}/galeria", response_model=FotoResposta, status_code=201)
-def adicionar_foto(carro_id: UUID, usuario: UsuarioAtual, db: Db, arquivo: Annotated[UploadFile, File()]):
+def adicionar_foto(carro_id: UUID, usuario: UsuarioAtual, db: Db, arquivo: Annotated[UploadFile, File()], legenda: Annotated[str, Form(max_length=160)] = ""):
     _dono(db, carro_id, usuario)
     fotos = _fotos(db, carro_id)
     if len(fotos) >= 12:
@@ -61,7 +61,7 @@ def adicionar_foto(carro_id: UUID, usuario: UsuarioAtual, db: Db, arquivo: Annot
         raise HTTPException(413, "A foto deve ter no máximo 10 MB.") from error
     except ImagemInvalida as error:
         raise HTTPException(415, "Envie uma imagem válida.") from error
-    foto = FotoProjeto(carro_id=carro_id, url=url, ordem=max((f.ordem for f in fotos), default=-1) + 1)
+    foto = FotoProjeto(carro_id=carro_id, url=url, legenda=legenda.strip(), ordem=max((f.ordem for f in fotos), default=-1) + 1)
     db.add(foto)
     try:
         db.commit()

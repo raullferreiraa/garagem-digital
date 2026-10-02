@@ -30,10 +30,13 @@ final class CarsRepository {
     return ProjectGarage.fromJson(response.data!);
   }
 
-  Future<void> addGalleryPhoto(String id, List<int> bytes, String name) async {
+  Future<void> addGalleryPhoto(String id, List<int> bytes, String name,
+      {String caption = ''}) async {
     await _api.dio.post<Object?>('/carros/$id/galeria',
-        data: FormData.fromMap(
-            {'arquivo': MultipartFile.fromBytes(bytes, filename: name)}));
+        data: FormData.fromMap({
+          'arquivo': MultipartFile.fromBytes(bytes, filename: name),
+          'legenda': caption
+        }));
   }
 
   Future<void> captionPhoto(String id, String photoId, String caption) async {

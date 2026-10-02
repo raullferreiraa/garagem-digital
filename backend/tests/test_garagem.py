@@ -114,3 +114,23 @@ def test_excluir_evolucao_desvincula_etapa_sem_apagar_planejamento(client):
     assert len(remaining) == 1
     assert remaining[0]['evolucao_id'] is None
     assert remaining[0]['status'] == 'concluida'
+
+
+def test_data_aquisicao_preserva_precisao_e_legenda_no_upload(client):
+    owner = cadastrar(client, 'precisao.dono')
+    response = client.post('/api/v1/carros', headers=auth(owner), json={'modelo': 'Clássico', 'adquirido_em': '2020'})
+    assert response.status_code == 201
+    base = f"/api/v1/carros/{response.json()['id']}"
+    for value in ['2020', '2020-02', '2020-02-29']:
+        result = client.patch(base, headers=auth(owner), json={'adquirido_em': value})
+        assert result.status_code == 200
+        assert result.json()['adquirido_em'] == value
+        assert client.patch(base, headers=auth(owner), json={'cor': 'Azul'}).json()['adquirido_em'] == value
+    for value in ['2020-13', '2020-00', '2020-2', '2020-02-30', '1800', str(date.today().year + 1)]:
+        assert client.patch(base, headers=auth(owner), json={'adquirido_em': value}).status_code == 422
+    upload = {'arquivo': ('foto.png', imagem_png(), 'image/png')}
+    result = client.post(base+'/galeria', headers=auth(owner), files=upload, data={'legenda': '  Primeiro passeio  '})
+    assert result.status_code == 201
+    assert result.json()['legenda'] == 'Primeiro passeio'
+    assert client.post(base+'/galeria', headers=auth(owner), files=upload, data={'legenda': 'x'*161}).status_code == 422
+    assert len(client.get(base+'/garagem').json()['fotos']) == 1
