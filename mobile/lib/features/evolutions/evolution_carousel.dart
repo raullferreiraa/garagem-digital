@@ -194,7 +194,9 @@ class _EvolutionCarouselState extends State<EvolutionCarousel> {
           )
         else ...[
           SizedBox(
-            height: evolutionJournalCardHeight(context),
+            height: items
+                .map((e) => evolutionJournalCardHeight(context, evolution: e))
+                .reduce((a, b) => a > b ? a : b),
             child: PageView.builder(
               key: ValueKey('$category:$period'),
               controller: _controller,
@@ -212,40 +214,43 @@ class _EvolutionCarouselState extends State<EvolutionCarousel> {
                 final evolution = items[position];
                 return Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: EvolutionJournalCard(
-                    key: ValueKey(evolution.id),
-                    evolution: evolution,
-                    date: _date(evolution.timelineDate),
-                    mileage: evolution.mileageKm == null
-                        ? null
-                        : _mileage(evolution.mileageKm!),
-                    onOpen: () => widget.onOpen(evolution),
-                    onManage: widget.onManage == null
-                        ? null
-                        : (action) => widget.onManage!(action, evolution),
-                  ),
+                  child: Align(
+                      alignment: Alignment.topCenter,
+                      child: EvolutionJournalCard(
+                        key: ValueKey(evolution.id),
+                        evolution: evolution,
+                        date: _date(evolution.timelineDate),
+                        mileage: evolution.mileageKm == null
+                            ? null
+                            : _mileage(evolution.mileageKm!),
+                        onOpen: () => widget.onOpen(evolution),
+                        onManage: widget.onManage == null
+                            ? null
+                            : (action) => widget.onManage!(action, evolution),
+                      )),
                 );
               },
             ),
           ),
-          const SizedBox(height: 8),
-          Row(children: [
-            IconButton(
-                tooltip: 'Evolução anterior',
-                onPressed: index == 0 ? null : () => _goTo(index - 1),
-                icon: const Icon(Icons.chevron_left_rounded)),
-            Expanded(
-                child: Text(
-              '${index + 1} de ${items.length} ${items.length == 1 ? 'evolução' : 'evoluções'}',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.labelLarge,
-            )),
-            IconButton(
-                tooltip: 'Próxima evolução',
-                onPressed:
-                    index == items.length - 1 ? null : () => _goTo(index + 1),
-                icon: const Icon(Icons.chevron_right_rounded)),
-          ]),
+          if (items.length > 1) const SizedBox(height: 8),
+          if (items.length > 1)
+            Row(children: [
+              IconButton(
+                  tooltip: 'Evolução anterior',
+                  onPressed: index == 0 ? null : () => _goTo(index - 1),
+                  icon: const Icon(Icons.chevron_left_rounded)),
+              Expanded(
+                  child: Text(
+                '${index + 1} de ${items.length} ${items.length == 1 ? 'evolução' : 'evoluções'}',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge,
+              )),
+              IconButton(
+                  tooltip: 'Próxima evolução',
+                  onPressed:
+                      index == items.length - 1 ? null : () => _goTo(index + 1),
+                  icon: const Icon(Icons.chevron_right_rounded)),
+            ]),
           if (items.length > 1)
             Text('Deslize para acompanhar a história do projeto',
                 textAlign: TextAlign.center,

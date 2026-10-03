@@ -94,6 +94,7 @@ def listar_salvos(
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao, escape="\\"),
+                Carro.nome_projeto.ilike(padrao, escape="\\"),
                 Usuario.nome.ilike(padrao, escape="\\"),
                 Usuario.username.ilike(padrao, escape="\\"),
             )

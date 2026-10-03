@@ -1,8 +1,10 @@
+import 'project_cover.dart';
+import 'acquisition_date.dart';
+import 'package:garona_mobile/features/cars/project_garage_screen.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
-import 'package:garona_mobile/core/widgets/garona_premium.dart';
 import 'package:garona_mobile/core/network/api_client.dart';
 import 'package:garona_mobile/core/sharing/garona_share.dart';
 import 'package:garona_mobile/core/widgets/garona_ui.dart';
@@ -192,6 +194,17 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       _carRequest++;
       setState(() => _car = updated);
     }
+  }
+
+  Future<void> _openGarage() async {
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => ProjectGarageScreen(
+            car: _car,
+            repository: widget.repository,
+            evolutions: widget.evolutionsRepository,
+            canManage: _canManage,
+            currentUserId: widget.currentUserId)));
+    if (mounted) await _reloadProject();
   }
 
   Future<void> _delete() async {
@@ -628,7 +641,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
       ('Combustível', _car.fuel, Icons.local_gas_station_outlined),
       ('Potência', _car.estimatedPower, Icons.speed_outlined),
       ('Preparação', _car.preparation, Icons.build_outlined),
-      ('Suspensão', _car.suspensionType, Icons.airline_seat_recline_extra),
+      ('Suspensão', _car.suspensionType, Icons.swap_vert_rounded),
       (
         'Rodas',
         _car.wheelSize == null ? null : 'Aro ${_car.wheelSize}',
@@ -684,7 +697,7 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 36),
                 children: [
-                  _ProjectCover(
+                  ProjectCover(
                     car: _car,
                     canManage: _canManage,
                     updatingPhoto: _updatingPhoto,
@@ -696,67 +709,126 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                     car: _car,
                     onOwnerTap: widget.onOwnerTap,
                   ),
-                  const SizedBox(height: 28),
-                  const _SectionHeading(
-                    eyebrow: 'A HISTÓRIA',
-                    title: 'Sobre o projeto',
-                    icon: Icons.auto_stories_outlined,
-                  ),
-                  const SizedBox(height: 12),
-                  _StoryCard(
-                    text: _car.history ??
-                        'O proprietário ainda não contou a história deste projeto.',
-                  ),
-                  const SizedBox(height: 28),
-                  _SectionHeading(
-                    eyebrow: 'A MÁQUINA',
-                    title: 'Ficha do carro',
-                    icon: Icons.tune_rounded,
-                    count: specs.length,
-                  ),
-                  const SizedBox(height: 12),
-                  if (specs.isEmpty)
-                    const _EmptyProjectSection(
-                      icon: Icons.tune_rounded,
-                      message: 'A ficha técnica ainda não foi preenchida.',
-                    )
-                  else
-                    LayoutBuilder(builder: (context, constraints) {
-                      final scale = MediaQuery.textScalerOf(context).scale(1);
-                      final columns =
-                          constraints.maxWidth >= 330 && scale < 1.3 ? 2 : 1;
-                      return GaronaPanel(
-                        radius: 20,
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 4),
-                        child: Column(children: [
-                          for (var index = 0;
-                              index < specs.length;
-                              index += columns) ...[
-                            if (index > 0) const Divider(height: 1),
-                            IntrinsicHeight(
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
-                                children: [
-                                  for (var offset = 0;
-                                      offset < columns &&
-                                          index + offset < specs.length;
-                                      offset++) ...[
-                                    if (offset > 0) const SizedBox(width: 10),
-                                    Expanded(
-                                      child: _SpecTile(
-                                          label: specs[index + offset].$1,
-                                          value: specs[index + offset].$2!,
-                                          icon: specs[index + offset].$3),
-                                    ),
-                                  ],
-                                ],
-                              ),
-                            ),
-                          ],
-                        ]),
-                      );
-                    }),
+                  const SizedBox(height: 16),
+                  OutlinedButton.icon(
+                      onPressed: _openGarage,
+                      icon: const Icon(Icons.collections_outlined),
+                      label: const Text('Galeria e etapas')),
+                  const SizedBox(height: 16),
+                  if ([_car.history, _car.acquiredOn, _car.initialCondition]
+                      .any((value) => value?.trim().isNotEmpty ?? false))
+                    ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      collapsedBackgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      collapsedShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Sobre o projeto'),
+                      subtitle: const Text('História e origem'),
+                      children: [
+                        if (_car.acquiredOn != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Comigo desde'),
+                              subtitle: Text(
+                                  formatAcquisitionDate(_car.acquiredOn!))),
+                        if (_car.history?.trim().isNotEmpty ?? false)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('História'),
+                              subtitle: Text(_car.history!)),
+                        if (_car.initialCondition != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Como chegou'),
+                              subtitle: Text(_car.initialCondition!)),
+                      ],
+                    ),
+                  const SizedBox(height: 16),
+                  if (specs.isNotEmpty ||
+                      _car.originalSpec != null ||
+                      _car.modifications != null)
+                    ExpansionTile(
+                      tilePadding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 6),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      backgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      collapsedBackgroundColor:
+                          Theme.of(context).colorScheme.surfaceContainer,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      collapsedShape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16)),
+                      title: const Text('Ficha do carro'),
+                      subtitle: const Text(
+                          'Configuração atual, original e modificações'),
+                      children: [
+                        LayoutBuilder(builder: (context, constraints) {
+                          final singleColumn = constraints.maxWidth < 260 ||
+                              MediaQuery.textScalerOf(context).scale(14) > 18;
+                          final width = singleColumn
+                              ? constraints.maxWidth
+                              : (constraints.maxWidth - 16) / 2;
+                          return Wrap(spacing: 16, runSpacing: 20, children: [
+                            for (final spec in specs)
+                              SizedBox(
+                                  width: width,
+                                  child: Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 2),
+                                            child: Icon(spec.$3,
+                                                size: 20,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary)),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                            child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                              Text(spec.$1,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .labelMedium),
+                                              const SizedBox(height: 4),
+                                              Text(spec.$2!,
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .bodyLarge),
+                                            ])),
+                                      ])),
+                          ]);
+                        }),
+                        if (specs.isNotEmpty &&
+                            (_car.originalSpec != null ||
+                                _car.modifications != null))
+                          const Padding(
+                              padding: EdgeInsets.only(top: 20, bottom: 8),
+                              child: Divider()),
+                        if (_car.originalSpec != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Configuração original'),
+                              subtitle: Text(_car.originalSpec!)),
+                        if (_car.modifications != null)
+                          ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Modificações realizadas'),
+                              subtitle: Text(_car.modifications!)),
+                      ],
+                    ),
                   const SizedBox(height: 30),
                   Row(
                     children: [
@@ -779,136 +851,6 @@ class _CarDetailScreenState extends State<CarDetailScreen> {
                 ],
               ),
             ),
-    );
-  }
-}
-
-final class _ProjectCover extends StatelessWidget {
-  const _ProjectCover({
-    required this.car,
-    required this.canManage,
-    required this.updatingPhoto,
-    required this.onPhotoTap,
-    required this.onViewPhoto,
-  });
-
-  final Car car;
-  final bool canManage;
-  final bool updatingPhoto;
-  final VoidCallback onPhotoTap;
-  final VoidCallback onViewPhoto;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    final theme = Theme.of(context);
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surfaceContainer,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: colors.outlineVariant),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .16),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 6, 8, 4),
-            child: Row(
-              children: [
-                const GaronaLightSignature(width: 28),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text('GARONA / PROJETO',
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        letterSpacing: 1.6,
-                        color: colors.onSurfaceVariant,
-                      )),
-                ),
-                if (car.photoUrl != null)
-                  IconButton(
-                    onPressed: onViewPhoto,
-                    tooltip: 'Ver foto inteira',
-                    icon: const Icon(Icons.zoom_out_map_rounded, size: 20),
-                  ),
-              ],
-            ),
-          ),
-          AspectRatio(
-            aspectRatio: 4 / 3,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ColoredBox(
-                  color: colors.surfaceContainerLowest,
-                  child: GaronaImage(
-                    url: car.photoUrl,
-                    semanticLabel: car.model,
-                    fit: BoxFit.contain,
-                  ),
-                ),
-                if (car.photoUrl != null)
-                  Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: onViewPhoto,
-                      child: const SizedBox.expand(),
-                    ),
-                  ),
-                if (updatingPhoto)
-                  ColoredBox(
-                    color: colors.scrim.withValues(alpha: .4),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(18, 14, 14, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(car.model,
-                    style: theme.textTheme.headlineLarge?.copyWith(
-                      fontFamily: 'BarlowCondensed',
-                      fontWeight: FontWeight.w700,
-                      fontSize: 34,
-                      height: 1.05,
-                    )),
-                if (car.year != null || canManage) ...[
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      if (car.year != null)
-                        Text(
-                          '${car.year}',
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            letterSpacing: 2,
-                            color: colors.secondary,
-                          ),
-                        ),
-                      const Spacer(),
-                      if (canManage && !updatingPhoto)
-                        IconButton.filledTonal(
-                          onPressed: onPhotoTap,
-                          tooltip: 'Alterar foto principal',
-                          icon: const Icon(Icons.add_a_photo_outlined),
-                        ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -1039,37 +981,6 @@ final class _ProjectStatus extends StatelessWidget {
   }
 }
 
-final class _SectionHeading extends StatelessWidget {
-  const _SectionHeading({
-    required this.eyebrow,
-    required this.title,
-    required this.icon,
-    this.count,
-  });
-
-  final String eyebrow;
-  final String title;
-  final IconData icon;
-  final int? count;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return GaronaSectionTitle(
-      title: title,
-      eyebrow: eyebrow,
-      trailing: count == null
-          ? Icon(icon, color: colors.primary, size: 21)
-          : Text(
-              count.toString().padLeft(2, '0'),
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: colors.onSurfaceVariant,
-                  ),
-            ),
-    );
-  }
-}
-
 final class _DiarySummary extends StatelessWidget {
   const _DiarySummary(
       {required this.count, required this.latestDate, required this.mileage});
@@ -1094,89 +1005,6 @@ final class _DiarySummary extends StatelessWidget {
                   ?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           if (mileage != null)
             Text(mileage!, style: theme.textTheme.labelMedium),
-        ],
-      ),
-    );
-  }
-}
-
-final class _StoryCard extends StatelessWidget {
-  const _StoryCard({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) => Text(text,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            height: 1.6,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
-          ));
-}
-
-final class _SpecTile extends StatelessWidget {
-  const _SpecTile({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 3),
-          child: Icon(icon, size: 18, color: colors.secondary),
-        ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(label,
-                  style: theme.textTheme.labelSmall
-                      ?.copyWith(color: colors.onSurfaceVariant)),
-              const SizedBox(height: 5),
-              Text(value,
-                  style: theme.textTheme.titleSmall
-                      ?.copyWith(fontWeight: FontWeight.w700)),
-            ],
-          ),
-        ),
-      ]),
-    );
-  }
-}
-
-final class _EmptyProjectSection extends StatelessWidget {
-  const _EmptyProjectSection({
-    required this.icon,
-    required this.message,
-  });
-
-  final IconData icon;
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 30),
-          const SizedBox(width: 14),
-          Expanded(child: Text(message)),
         ],
       ),
     );

@@ -204,6 +204,8 @@ def listar_feed(
         consulta = consulta.where(
             or_(
                 Carro.modelo.ilike(padrao),
+                Carro.nome_projeto.icontains(termo, autoescape=True),
+                _comeca_em_palavra(Carro.proposta, termo),
                 _comeca_em_palavra(cast(Carro.ano, String), termo),
                 _comeca_em_palavra(Carro.cor, termo.upper()),
                 _comeca_em_palavra(Carro.historia, termo),

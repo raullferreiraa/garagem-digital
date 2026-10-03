@@ -8,6 +8,12 @@ final class Car {
     required this.ownerName,
     required this.ownerUsername,
     this.ownerAvatarUrl,
+    this.projectName,
+    this.proposal,
+    this.acquiredOn,
+    this.initialCondition,
+    this.originalSpec,
+    this.modifications,
     this.year,
     this.color,
     this.photoUrl,
@@ -35,6 +41,12 @@ final class Car {
       ownerName: owner['nome']! as String,
       ownerUsername: owner['username']! as String,
       ownerAvatarUrl: AppConfig.resolveApiUrl(owner['avatar_url'] as String?),
+      projectName: json['nome_projeto'] as String?,
+      proposal: json['proposta'] as String?,
+      acquiredOn: json['adquirido_em'] as String?,
+      initialCondition: json['estado_inicial'] as String?,
+      originalSpec: json['configuracao_original'] as String?,
+      modifications: json['modificacoes'] as String?,
       year: json['ano'] as int?,
       color: json['cor'] as String?,
       photoUrl: AppConfig.resolveApiUrl(
@@ -57,6 +69,12 @@ final class Car {
   }
 
   final String id;
+  final String? projectName;
+  final String? proposal;
+  final String? acquiredOn;
+  final String? initialCondition;
+  final String? originalSpec;
+  final String? modifications;
   final String model;
   final String ownerId;
   final String ownerName;
@@ -79,6 +97,9 @@ final class Car {
   final int likesCount;
   final int commentsCount;
 
+  String get displayName =>
+      projectName?.trim().isNotEmpty == true ? projectName! : model;
+
   Car withPrivateDataFrom(Car source) => Car(
         id: id,
         model: model,
@@ -86,6 +107,12 @@ final class Car {
         ownerName: ownerName,
         ownerUsername: ownerUsername,
         ownerAvatarUrl: ownerAvatarUrl,
+        projectName: projectName,
+        proposal: proposal,
+        acquiredOn: acquiredOn,
+        initialCondition: initialCondition,
+        originalSpec: originalSpec,
+        modifications: modifications,
         year: year,
         color: color,
         photoUrl: photoUrl,
@@ -109,6 +136,12 @@ final class CarInput {
   const CarInput({
     required this.model,
     required this.plateVisible,
+    this.projectName,
+    this.proposal,
+    this.acquiredOn,
+    this.initialCondition,
+    this.originalSpec,
+    this.modifications,
     this.year,
     this.color,
     this.projectStatus,
@@ -123,6 +156,12 @@ final class CarInput {
     this.plate,
   });
 
+  final String? projectName;
+  final String? proposal;
+  final String? acquiredOn;
+  final String? initialCondition;
+  final String? originalSpec;
+  final String? modifications;
   final String model;
   final int? year;
   final String? color;
@@ -140,6 +179,12 @@ final class CarInput {
 
   Map<String, Object?> toJson() => {
         'modelo': model.trim().toUpperCase(),
+        'nome_projeto': projectName,
+        'proposta': proposal,
+        'adquirido_em': acquiredOn,
+        'estado_inicial': initialCondition,
+        'configuracao_original': originalSpec,
+        'modificacoes': modifications,
         'ano': year,
         'cor': color,
         'status_projeto': projectStatus,

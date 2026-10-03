@@ -1,3 +1,5 @@
+import 'project_cover.dart';
+import 'acquisition_date.dart';
 import 'package:garona_mobile/core/widgets/form_photo.dart';
 import 'package:garona_mobile/core/widgets/form_validation.dart';
 import 'package:flutter/material.dart';
@@ -66,6 +68,10 @@ final class CarFormScreen extends StatefulWidget {
 }
 
 class _CarFormScreenState extends State<CarFormScreen> {
+  late final Map<String, TextEditingController> _identity;
+  String? _acquiredOn;
+  bool _dirty = false;
+  bool _allowPop = false;
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _modelController;
   late final TextEditingController _yearController;
@@ -91,6 +97,15 @@ class _CarFormScreenState extends State<CarFormScreen> {
   void initState() {
     super.initState();
     final car = widget.car;
+    _acquiredOn = car?.acquiredOn;
+    _identity = {
+      'projectName': TextEditingController(text: car?.projectName),
+      'proposal': TextEditingController(text: car?.proposal),
+      'initialCondition': TextEditingController(text: car?.initialCondition),
+      'originalSpec': TextEditingController(text: car?.originalSpec),
+      'modifications': TextEditingController(text: car?.modifications),
+    };
+
     _modelController = TextEditingController(text: car?.model);
     _yearController = TextEditingController(text: car?.year?.toString());
     _colorController = TextEditingController(text: car?.color);
@@ -115,6 +130,9 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
   @override
   void dispose() {
+    for (final controller in _identity.values) {
+      controller.dispose();
+    }
     _modelController.dispose();
     _yearController.dispose();
     _colorController.dispose();
@@ -183,6 +201,12 @@ class _CarFormScreenState extends State<CarFormScreen> {
     final power = _powerController.text.trim();
     final wheelSize = _wheelSizeController.text.trim();
     return CarInput(
+      projectName: _optional(_identity['projectName']!),
+      proposal: _optional(_identity['proposal']!),
+      initialCondition: _optional(_identity['initialCondition']!),
+      originalSpec: _optional(_identity['originalSpec']!),
+      modifications: _optional(_identity['modifications']!),
+      acquiredOn: _acquiredOn,
       model: _modelController.text,
       year: year.isEmpty ? null : int.parse(year),
       color: _optional(_colorController),
@@ -238,7 +262,15 @@ class _CarFormScreenState extends State<CarFormScreen> {
             () => widget.repository
                 .uploadMainPhoto(id, bytes: _photo!, fileName: 'projeto.jpg'));
       }
-      if (mounted) Navigator.of(context).pop(car);
+      if (mounted) {
+        setState(() {
+          _allowPop = true;
+          _submitting = false;
+        });
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.of(context).pop(car);
+        });
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() {
@@ -250,325 +282,525 @@ class _CarFormScreenState extends State<CarFormScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FormSaveGuard(
-        saving: _submitting,
-        child: Scaffold(
-          appBar: AppBar(
-              title: Text(_editing ? 'Editar carro' : 'Adicionar carro')),
-          body: SafeArea(
-            child: Form(
-              key: _formKey,
-              child: FormScrollView(
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
-                children: [
-                  GaronaIntro(
-                      eyebrow: 'Sua garagem / Identidade',
-                      title: _editing
-                          ? 'Dados do projeto'
-                          : 'Comece pelo essencial',
-                      description: _editing
-                          ? 'Mantenha a história e a ficha do carro atualizadas.'
-                          : 'Você poderá completar e atualizar o projeto a qualquer momento.'),
-                  const SizedBox(height: 24),
-                  if (!_editing)
-                    FormPhoto(
-                        label: 'Foto do projeto',
-                        bytes: _photo,
-                        enabled: !_submitting,
-                        onChanged: (value) => setState(() => _photo = value)),
-                  TextFormField(
-                    controller: _modelController,
-                    autofocus: false,
-                    textCapitalization: TextCapitalization.characters,
-                    inputFormatters: const [_UpperCaseTextFormatter()],
-                    decoration: const InputDecoration(
-                      labelText: 'Modelo *',
-                      hintText: 'Ex.: GOL CL',
-                      prefixIcon: Icon(Icons.directions_car_outlined),
-                    ),
-                    maxLength: 100,
-                    validator: _validateModel,
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: TextFormField(
-                          controller: _yearController,
-                          keyboardType: TextInputType.number,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly
-                          ],
-                          decoration: const InputDecoration(labelText: 'Ano'),
-                          maxLength: 4,
-                          validator: _validateYear,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _colorController,
-                          textCapitalization: TextCapitalization.characters,
-                          inputFormatters: const [_UpperCaseTextFormatter()],
-                          decoration: const InputDecoration(labelText: 'Cor'),
-                          maxLength: 50,
-                        ),
-                      ),
+    return PopScope(
+        canPop: _allowPop || (!_dirty && !_submitting),
+        onPopInvokedWithResult: (didPop, result) async {
+          if (didPop || _submitting) return;
+          final discard = await showDialog<bool>(
+              context: context,
+              builder: (context) => AlertDialog(
+                    title: const Text('Descartar alterações?'),
+                    content: const Text(
+                        'As informações ainda não salvas serão perdidas.'),
+                    actions: [
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          child: const Text('Continuar editando')),
+                      TextButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('Descartar'))
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    initialValue: _projectStatus,
-                    decoration: const InputDecoration(
-                      labelText: 'Fase do projeto',
-                      prefixIcon: Icon(Icons.build_outlined),
-                    ),
-                    items: _statusOptions()
-                        .map(
-                          (status) => DropdownMenuItem(
-                            value: status,
-                            child: Text(status),
-                          ),
-                        )
-                        .toList(growable: false),
-                    onChanged: _submitting
-                        ? null
-                        : (value) => setState(() => _projectStatus = value),
-                  ),
-                  const SizedBox(height: 20),
-                  TextFormField(
-                    controller: _historyController,
-                    textCapitalization: TextCapitalization.sentences,
-                    decoration: const InputDecoration(
-                      labelText: 'História do carro',
-                      hintText: 'Como esse projeto começou?',
-                      alignLabelWithHint: true,
-                    ),
-                    minLines: 3,
-                    maxLines: 6,
-                    maxLength: 10000,
-                  ),
-                  const SizedBox(height: 8),
-                  ExpansionTile(
-                    tilePadding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    backgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainer,
-                    collapsedBackgroundColor:
-                        Theme.of(context).colorScheme.surfaceContainer,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    collapsedShape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
-                    leading: Icon(Icons.tune_rounded,
-                        color: Theme.of(context).colorScheme.primary),
-                    title: const Text('Ficha técnica'),
-                    subtitle: const Text('Motor, câmbio, rodas e preparação'),
+                  ));
+          if (discard == true && mounted) {
+            setState(() => _allowPop = true);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) Navigator.of(context).pop();
+            });
+          }
+        },
+        child: FormSaveGuard(
+            saving: _submitting,
+            child: Scaffold(
+              appBar: AppBar(
+                  title: Text(_editing ? 'Editar carro' : 'Adicionar carro'),
+                  actions: [
+                    IconButton(
+                        onPressed: _submitting ? null : _preview,
+                        tooltip: 'Prévia do projeto',
+                        icon: const Icon(Icons.visibility_outlined))
+                  ]),
+              body: SafeArea(
+                child: Form(
+                  key: _formKey,
+                  onChanged: () {
+                    if (!_dirty) setState(() => _dirty = true);
+                  },
+                  child: FormScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
                     children: [
-                      _OptionalField(
-                        controller: _engineController,
-                        label: 'Motor',
-                        maxLength: 100,
-                        uppercase: true,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _transmission ?? '',
-                          decoration:
-                              const InputDecoration(labelText: 'Câmbio'),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('Não informar'),
-                            ),
-                            ..._availableTransmissionOptions.map(
-                              (transmission) => DropdownMenuItem(
-                                value: transmission,
-                                child: Text(transmission),
-                              ),
-                            ),
-                          ],
-                          onChanged: _submitting
-                              ? null
-                              : (value) => setState(
-                                    () => _transmission =
-                                        value == null || value.isEmpty
-                                            ? null
-                                            : value,
-                                  ),
+                      GaronaIntro(
+                          eyebrow: 'Sua garagem / Identidade',
+                          title: _editing
+                              ? 'Dados do projeto'
+                              : 'Comece pelo essencial',
+                          description: _editing
+                              ? 'Só o modelo é obrigatório. Complete o restante no seu tempo.'
+                              : 'Você poderá completar e atualizar o projeto a qualquer momento.'),
+                      const SizedBox(height: 24),
+                      if (!_editing)
+                        FormPhoto(
+                            label: 'Foto do projeto',
+                            bytes: _photo,
+                            enabled: !_submitting,
+                            onChanged: (value) => setState(() {
+                                  _photo = value;
+                                  _dirty = true;
+                                })),
+                      TextFormField(
+                        controller: _modelController,
+                        autofocus: false,
+                        textCapitalization: TextCapitalization.characters,
+                        inputFormatters: const [_UpperCaseTextFormatter()],
+                        decoration: const InputDecoration(
+                          labelText: 'Modelo *',
+                          hintText: 'Ex.: GOL CL',
+                          prefixIcon: Icon(Icons.directions_car_outlined),
                         ),
+                        maxLength: 100,
+                        validator: _validateModel,
                       ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 18, bottom: 8),
-                        child: Align(
-                          alignment: Alignment.centerLeft,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Combustível',
-                                style: Theme.of(context).textTheme.titleSmall,
+                      const SizedBox(height: 12),
+                      _OptionalField(
+                          controller: _identity['projectName']!,
+                          label: 'Nome do projeto (opcional)',
+                          hint: 'Ex.: Projeto Madrugada',
+                          helper:
+                              'Um apelido escolhido por você. Sem ele, usamos o modelo.',
+                          maxLength: 80),
+                      _OptionalField(
+                          controller: _identity['proposal']!,
+                          label: 'A ideia por trás do carro (opcional)',
+                          hint:
+                              'Ex.: Um clássico baixo para encontros e viagens.',
+                          helper:
+                              'Resuma o estilo e o objetivo do projeto. Aparece junto ao nome.',
+                          multiline: true,
+                          maxLength: 240),
+                      const SizedBox(height: 12),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: TextFormField(
+                              controller: _yearController,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly
+                              ],
+                              decoration:
+                                  const InputDecoration(labelText: 'Ano'),
+                              maxLength: 4,
+                              validator: _validateYear,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _colorController,
+                              textCapitalization: TextCapitalization.characters,
+                              inputFormatters: const [
+                                _UpperCaseTextFormatter()
+                              ],
+                              decoration:
+                                  const InputDecoration(labelText: 'Cor'),
+                              maxLength: 50,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _projectStatus,
+                        decoration: const InputDecoration(
+                          labelText: 'Fase do projeto',
+                          prefixIcon: Icon(Icons.build_outlined),
+                        ),
+                        items: _statusOptions()
+                            .map(
+                              (status) => DropdownMenuItem(
+                                value: status,
+                                child: Text(status),
                               ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Selecione uma ou mais opções.',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                              const SizedBox(height: 10),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
+                            )
+                            .toList(growable: false),
+                        onChanged: _submitting
+                            ? null
+                            : (value) => setState(() => _projectStatus = value),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: _historyController,
+                        textCapitalization: TextCapitalization.sentences,
+                        decoration: const InputDecoration(
+                          labelText: 'História do carro (opcional)',
+                          hintText:
+                              'Ex.: Era um sonho antigo. Encontrei este carro em 2022 e comecei pela mecânica…',
+                          helperText:
+                              'Conte a trajetória e sua relação com o carro. Fica em Sobre o projeto.',
+                          helperMaxLines: 3,
+                          alignLabelWithHint: true,
+                        ),
+                        minLines: 3,
+                        maxLines: 6,
+                        maxLength: 10000,
+                      ),
+                      const SizedBox(height: 24),
+                      ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        childrenPadding:
+                            const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        collapsedBackgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        collapsedShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        leading: Icon(Icons.history_rounded,
+                            color: Theme.of(context).colorScheme.primary),
+                        title: const Text('Como tudo começou'),
+                        subtitle:
+                            const Text('Aquisição e estado inicial — opcional'),
+                        children: [
+                          ListTile(
+                              title: const Text('Comigo desde'),
+                              subtitle: Text(_acquiredOn == null
+                                  ? 'Não informado'
+                                  : formatAcquisitionDate(_acquiredOn!)),
+                              trailing: _acquiredOn == null
+                                  ? const Icon(Icons.calendar_today_outlined)
+                                  : IconButton(
+                                      tooltip: 'Remover data',
+                                      icon: const Icon(Icons.close),
+                                      onPressed: () => setState(() {
+                                            _acquiredOn = null;
+                                            _dirty = true;
+                                          })),
+                              onTap: () async {
+                                final date = await pickAcquisitionDate(
+                                    context, _acquiredOn);
+                                if (date != null && mounted)
+                                  setState(() {
+                                    _acquiredOn = date;
+                                    _dirty = true;
+                                  });
+                              }),
+                          _OptionalField(
+                              controller: _identity['initialCondition']!,
+                              label: 'Como o carro chegou (opcional)',
+                              hint:
+                                  'Ex.: Rodando, mas com pintura cansada e suspensão para revisar.',
+                              helper:
+                                  'Descreva o estado na aquisição; não precisa repetir a história.',
+                              multiline: true,
+                              maxLength: 3000),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      ExpansionTile(
+                          tilePadding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 6),
+                          childrenPadding:
+                              const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                          backgroundColor:
+                              Theme.of(context).colorScheme.surfaceContainer,
+                          collapsedBackgroundColor:
+                              Theme.of(context).colorScheme.surfaceContainer,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          collapsedShape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                          leading: Icon(Icons.build_outlined,
+                              color: Theme.of(context).colorScheme.primary),
+                          title: const Text('Original e modificações'),
+                          subtitle: const Text(
+                              'Opcional — a base do carro e o que já mudou'),
+                          children: [
+                            _OptionalField(
+                                controller: _identity['originalSpec']!,
+                                label: 'Configuração original (opcional)',
+                                hint:
+                                    'Ex.: Motor e câmbio de fábrica, interior original.',
+                                helper:
+                                    'Registre a base original que você conhece.',
+                                multiline: true,
+                                maxLength: 3000),
+                            _OptionalField(
+                                controller: _identity['modifications']!,
+                                label: 'Modificações realizadas (opcional)',
+                                hint:
+                                    'Ex.: Rodas aro 17, suspensão refeita e escape novo.',
+                                helper:
+                                    'Conte o que já mudou. Use as etapas para planejar o que vem depois.',
+                                multiline: true,
+                                maxLength: 3000),
+                          ]),
+                      const SizedBox(height: 20),
+                      ExpansionTile(
+                        tilePadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 6),
+                        childrenPadding:
+                            const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        backgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        collapsedBackgroundColor:
+                            Theme.of(context).colorScheme.surfaceContainer,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        collapsedShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16)),
+                        leading: Icon(Icons.tune_rounded,
+                            color: Theme.of(context).colorScheme.primary),
+                        title: const Text('Ficha técnica'),
+                        subtitle:
+                            const Text('Motor, câmbio, suspensão e rodas'),
+                        children: [
+                          _OptionalField(
+                            controller: _engineController,
+                            label: 'Motor',
+                            maxLength: 100,
+                            uppercase: true,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _transmission ?? '',
+                              decoration:
+                                  const InputDecoration(labelText: 'Câmbio'),
+                              items: [
+                                const DropdownMenuItem(
+                                  value: '',
+                                  child: Text('Não informar'),
+                                ),
+                                ..._availableTransmissionOptions.map(
+                                  (transmission) => DropdownMenuItem(
+                                    value: transmission,
+                                    child: Text(transmission),
+                                  ),
+                                ),
+                              ],
+                              onChanged: _submitting
+                                  ? null
+                                  : (value) => setState(
+                                        () => _transmission =
+                                            value == null || value.isEmpty
+                                                ? null
+                                                : value,
+                                      ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 18, bottom: 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  for (final fuel in _availableFuelOptions)
-                                    FilterChip(
-                                      label: Text(fuel),
-                                      selected: _selectedFuels.contains(fuel),
-                                      onSelected: _submitting
-                                          ? null
-                                          : (selected) {
-                                              setState(() {
-                                                if (selected) {
-                                                  _selectedFuels.add(fuel);
-                                                } else {
-                                                  _selectedFuels.remove(fuel);
-                                                }
-                                              });
-                                            },
-                                    ),
+                                  Text(
+                                    'Combustível',
+                                    style:
+                                        Theme.of(context).textTheme.titleSmall,
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Selecione uma ou mais opções.',
+                                    style:
+                                        Theme.of(context).textTheme.bodySmall,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Wrap(
+                                    spacing: 8,
+                                    runSpacing: 8,
+                                    children: [
+                                      for (final fuel in _availableFuelOptions)
+                                        FilterChip(
+                                          label: Text(fuel),
+                                          selected:
+                                              _selectedFuels.contains(fuel),
+                                          onSelected: _submitting
+                                              ? null
+                                              : (selected) {
+                                                  setState(() {
+                                                    if (selected) {
+                                                      _selectedFuels.add(fuel);
+                                                    } else {
+                                                      _selectedFuels
+                                                          .remove(fuel);
+                                                    }
+                                                  });
+                                                },
+                                        ),
+                                    ],
+                                  ),
                                 ],
                               ),
+                            ),
+                          ),
+                          TextFormField(
+                            controller: _powerController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
                             ],
-                          ),
-                        ),
-                      ),
-                      TextFormField(
-                        controller: _powerController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        decoration: const InputDecoration(
-                          labelText: 'Potência estimada',
-                          hintText: 'Ex.: 180',
-                          suffixText: 'cv',
-                          helperText: 'Digite somente o número.',
-                        ),
-                        maxLength: 4,
-                        validator: _validatePower,
-                      ),
-                      _OptionalField(
-                        controller: _preparationController,
-                        label: 'Preparação',
-                        maxLength: 100,
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 12),
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _suspension ?? '',
-                          decoration: const InputDecoration(
-                            labelText: 'Suspensão',
-                          ),
-                          items: [
-                            const DropdownMenuItem(
-                              value: '',
-                              child: Text('Não informar'),
+                            decoration: const InputDecoration(
+                              labelText: 'Potência estimada',
+                              hintText: 'Ex.: 180',
+                              suffixText: 'cv',
+                              helperText: 'Digite somente o número.',
                             ),
-                            ..._availableSuspensionOptions.map(
-                              (suspension) => DropdownMenuItem(
-                                value: suspension,
-                                child: Text(suspension),
+                            maxLength: 4,
+                            validator: _validatePower,
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: DropdownButtonFormField<String>(
+                              initialValue: _suspension ?? '',
+                              decoration: const InputDecoration(
+                                labelText: 'Suspensão',
                               ),
-                            ),
-                          ],
-                          onChanged: _submitting
-                              ? null
-                              : (value) => setState(
-                                    () => _suspension =
-                                        value == null || value.isEmpty
-                                            ? null
-                                            : value,
+                              items: [
+                                const DropdownMenuItem(
+                                  value: '',
+                                  child: Text('Não informar'),
+                                ),
+                                ..._availableSuspensionOptions.map(
+                                  (suspension) => DropdownMenuItem(
+                                    value: suspension,
+                                    child: Text(suspension),
                                   ),
-                        ),
+                                ),
+                              ],
+                              onChanged: _submitting
+                                  ? null
+                                  : (value) => setState(
+                                        () => _suspension =
+                                            value == null || value.isEmpty
+                                                ? null
+                                                : value,
+                                      ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: _wheelSizeController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
+                            decoration: const InputDecoration(
+                              labelText: 'Aro da roda',
+                              helperText: 'Somente números, entre 1 e 40.',
+                            ),
+                            maxLength: 2,
+                            validator: _validateWheelSize,
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        controller: _wheelSizeController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
+                        controller: _plateController,
+                        textCapitalization: TextCapitalization.characters,
                         decoration: const InputDecoration(
-                          labelText: 'Aro da roda',
-                          helperText: 'Somente números, entre 1 e 40.',
+                          labelText: 'Placa',
+                          hintText: 'Ex.: ABC1D23',
+                          helperText: 'Também aceita ABC1234 ou AB1234.',
+                          prefixIcon: Icon(Icons.badge_outlined),
                         ),
-                        maxLength: 2,
-                        validator: _validateWheelSize,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp('[a-zA-Z0-9]')),
+                          const _UpperCaseTextFormatter(),
+                          LengthLimitingTextInputFormatter(7),
+                        ],
+                        validator: _validatePlate,
+                      ),
+                      SwitchListTile.adaptive(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Mostrar placa publicamente'),
+                        subtitle: const Text(
+                          'Desativado por padrão para proteger sua privacidade.',
+                        ),
+                        value: _plateVisible,
+                        onChanged: _submitting
+                            ? null
+                            : (value) => setState(() {
+                                  _plateVisible = value;
+                                  _dirty = true;
+                                }),
+                      ),
+                      if (_errorMessage != null) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          _errorMessage!,
+                          style: TextStyle(
+                              color: Theme.of(context).colorScheme.error),
+                        ),
+                      ],
+                      const SizedBox(height: 24),
+                      FilledButton.icon(
+                        onPressed: _submitting ? null : _submit,
+                        icon: _submitting
+                            ? const SizedBox.square(
+                                dimension: 18,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : Icon(_editing ? Icons.save_outlined : Icons.add),
+                        label: Text(
+                          _submitting
+                              ? 'Salvando...'
+                              : _editing
+                                  ? 'Salvar alterações'
+                                  : 'Adicionar à garagem',
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _plateController,
-                    textCapitalization: TextCapitalization.characters,
-                    decoration: const InputDecoration(
-                      labelText: 'Placa',
-                      hintText: 'Ex.: ABC1D23',
-                      helperText: 'Também aceita ABC1234 ou AB1234.',
-                      prefixIcon: Icon(Icons.badge_outlined),
-                    ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.allow(RegExp('[a-zA-Z0-9]')),
-                      const _UpperCaseTextFormatter(),
-                      LengthLimitingTextInputFormatter(7),
-                    ],
-                    validator: _validatePlate,
-                  ),
-                  SwitchListTile.adaptive(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Mostrar placa publicamente'),
-                    subtitle: const Text(
-                      'Desativado por padrão para proteger sua privacidade.',
-                    ),
-                    value: _plateVisible,
-                    onChanged: _submitting
-                        ? null
-                        : (value) => setState(() => _plateVisible = value),
-                  ),
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      _errorMessage!,
-                      style:
-                          TextStyle(color: Theme.of(context).colorScheme.error),
-                    ),
-                  ],
-                  const SizedBox(height: 24),
-                  FilledButton.icon(
-                    onPressed: _submitting ? null : _submit,
-                    icon: _submitting
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        : Icon(_editing ? Icons.save_outlined : Icons.add),
-                    label: Text(
-                      _submitting
-                          ? 'Salvando...'
-                          : _editing
-                              ? 'Salvar alterações'
-                              : 'Adicionar à garagem',
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
-        ));
+            )));
+  }
+
+  Future<void> _preview() async {
+    if (!validateAndReveal(_formKey)) return;
+    final data = _input();
+    await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        showDragHandle: true,
+        builder: (context) => SafeArea(
+              child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text('PRÉVIA / PROJETO'),
+                        const SizedBox(height: 12),
+                        ProjectCover(
+                            car: Car(
+                                id: widget.car?.id ?? 'preview',
+                                model: data.model,
+                                ownerId: '',
+                                ownerName: '',
+                                ownerUsername: '',
+                                projectName: data.projectName,
+                                year: data.year,
+                                proposal: data.proposal,
+                                photoUrl: widget.car?.photoUrl),
+                            previewImage: _photo == null
+                                ? null
+                                : Image.memory(_photo!, fit: BoxFit.contain)),
+                        const SizedBox(height: 16),
+                        Text(widget.car == null
+                            ? 'Confira a apresentação. Para publicar, volte e salve o projeto.'
+                            : 'Confira a apresentação. Para salvar as alterações, volte ao formulário.'),
+                      ])),
+            ));
   }
 
   List<String> _statusOptions() {
@@ -601,17 +833,22 @@ final class _OptionalField extends StatelessWidget {
     required this.label,
     required this.maxLength,
     this.uppercase = false,
+    this.hint,
+    this.helper,
+    this.multiline = false,
   });
 
   final TextEditingController controller;
   final String label;
   final int maxLength;
   final bool uppercase;
+  final String? hint, helper;
+  final bool multiline;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.only(top: 20, bottom: 12),
       child: TextFormField(
         controller: controller,
         textCapitalization: uppercase
@@ -620,7 +857,15 @@ final class _OptionalField extends StatelessWidget {
         inputFormatters: uppercase
             ? const <TextInputFormatter>[_UpperCaseTextFormatter()]
             : const <TextInputFormatter>[],
-        decoration: InputDecoration(labelText: label),
+        decoration: InputDecoration(
+            labelText: label,
+            hintText: hint,
+            helperText: helper,
+            helperMaxLines: 3,
+            alignLabelWithHint: multiline),
+        minLines: multiline ? 3 : 1,
+        maxLines: multiline ? 7 : 1,
+        keyboardType: multiline ? TextInputType.multiline : TextInputType.text,
         maxLength: maxLength,
       ),
     );

@@ -536,6 +536,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.textContaining('FUSCA').first);
     await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('Ficha do carro'), 250,
+        scrollable: find.byType(Scrollable).first);
+    await tester.tap(find.text('Ficha do carro'));
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(find.text('ABC1D23'), 250,
         scrollable: find.byType(Scrollable).first);
     await tester.pumpAndSettle();

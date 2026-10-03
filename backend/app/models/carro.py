@@ -25,6 +25,15 @@ class Carro(Base):
         ForeignKey("usuarios.id", ondelete="CASCADE"),
         index=True,
     )
+    nome_projeto: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    proposta: Mapped[str | None] = mapped_column(String(240), nullable=True)
+    adquirido_em: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    estado_inicial: Mapped[str | None] = mapped_column(Text, nullable=True)
+    configuracao_original: Mapped[str | None] = mapped_column(Text, nullable=True)
+    modificacoes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fotos_garagem = relationship("FotoProjeto", cascade="all, delete-orphan")
+    etapas = relationship("EtapaProjeto", cascade="all, delete-orphan")
+
     modelo: Mapped[str] = mapped_column(String(100))
     ano: Mapped[int | None] = mapped_column(SmallInteger, nullable=True)
     cor: Mapped[str | None] = mapped_column(String(50), nullable=True)

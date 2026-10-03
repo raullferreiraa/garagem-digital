@@ -22,6 +22,7 @@ abstract final class ShareContent {
 
   static GaronaSharePayload project(Car car) {
     final identity = [
+      if (car.projectName != null) car.projectName!,
       car.model,
       if (car.year != null) car.year.toString(),
     ].join(' ');

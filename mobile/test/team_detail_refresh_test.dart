@@ -1,3 +1,4 @@
+import 'package:garona_mobile/features/cars/project_card.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
@@ -191,14 +192,13 @@ void main() {
       ),
     ));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(find.text('OMEGA 1996'), 300);
+    await tester.scrollUntilVisible(find.text('OMEGA'), 300);
     final carCard = find.ancestor(
-      of: find.text('OMEGA 1996'),
-      matching: find.byType(Card),
+      of: find.text('OMEGA'),
+      matching: find.byType(GaronaProjectCard),
     );
-    // The photo showcase keeps its model and owner within half a viewport,
-    // including when the system font is enlarged.
-    expect(tester.getSize(carCard.first).height, lessThan(350));
+    // The responsive card keeps its content inside the panel at large text sizes.
+    expect(tester.getSize(carCard.first).width, lessThanOrEqualTo(320));
     expect(tester.getBottomRight(find.text('@raul')).dy,
         lessThan(tester.getBottomRight(carCard.first).dy));
     await tester.scrollUntilVisible(

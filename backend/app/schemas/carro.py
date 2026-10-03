@@ -93,7 +93,35 @@ def _normalizar_suspensao(value: str | None) -> str | None:
     return _SUSPENSOES.get(value.casefold(), value.upper())
 
 
-class CarroBase(BaseModel):
+class IdentidadeProjeto(BaseModel):
+    nome_projeto: Annotated[str | None, Field(max_length=80)] = None
+    proposta: Annotated[str | None, Field(max_length=240)] = None
+    adquirido_em: Annotated[str | None, Field(max_length=10)] = None
+    estado_inicial: Annotated[str | None, Field(max_length=3000)] = None
+    configuracao_original: Annotated[str | None, Field(max_length=3000)] = None
+    modificacoes: Annotated[str | None, Field(max_length=3000)] = None
+
+    @field_validator("nome_projeto", "proposta", "estado_inicial", "configuracao_original", "modificacoes")
+    @classmethod
+    def limpar_identidade(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+    @field_validator("adquirido_em")
+    @classmethod
+    def validar_aquisicao(cls, value: str | None) -> str | None:
+        from datetime import date
+        if not value:
+            return None
+        if not re.fullmatch(r"\d{4}(?:-\d{2})?(?:-\d{2})?", value):
+            raise ValueError("Informe ano, ano e mês ou uma data completa.")
+        parts = [int(part) for part in value.split("-")]
+        parsed = date(parts[0], parts[1] if len(parts) > 1 else 1, parts[2] if len(parts) > 2 else 1)
+        if parsed.year < 1886 or parsed > date.today():
+            raise ValueError("Informe uma aquisição entre 1886 e o presente.")
+        return value
+
+
+class CarroBase(IdentidadeProjeto):
     modelo: Annotated[str, Field(min_length=1, max_length=100)]
     ano: Annotated[int | None, Field(ge=1886, le=2200)] = None
     cor: Annotated[str | None, Field(max_length=50)] = None
@@ -171,7 +199,7 @@ class CarroCriacao(CarroBase):
         return value
 
 
-class CarroAtualizacao(BaseModel):
+class CarroAtualizacao(IdentidadeProjeto):
     modelo: Annotated[str | None, Field(min_length=1, max_length=100)] = None
     ano: Annotated[int | None, Field(ge=1886, le=2200)] = None
     cor: Annotated[str | None, Field(max_length=50)] = None
