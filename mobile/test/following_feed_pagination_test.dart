@@ -1,3 +1,5 @@
+import 'package:garona_mobile/core/widgets/garona_ui.dart';
+import 'package:garona_mobile/features/evolutions/evolution_gallery.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -40,6 +42,54 @@ Map<String, Object?> _feedItem(String id) => {
     };
 
 void main() {
+  testWidgets(
+      'sem foto usa capa somente na miniatura e mantém identidade e ações',
+      (tester) async {
+    tester.view.physicalSize = const Size(320, 900);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final api = ApiClient(
+        baseUrl: 'http://localhost/api/v1', tokenStorage: _EmptyTokenStorage());
+    final item = _feedItem('nova');
+    (item['carro'] as Map<String, Object>).addAll(<String, Object>{
+      'nome_projeto': 'Projeto Estrada',
+      'ano': 1998,
+      'foto_principal_url': 'http://localhost/capa.png'
+    });
+    api.dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) =>
+            handler.resolve(Response(requestOptions: options, data: {
+              'itens': [item],
+              'proximo_cursor': null
+            }))));
+    String? profile, evolution;
+    await tester.pumpWidget(MaterialApp(
+        builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context)
+                .copyWith(textScaler: const TextScaler.linear(1.4)),
+            child: child!),
+        home: Scaffold(
+            body: FollowingFeed(
+                repository: EvolutionsRepository(api),
+                onEvolutionTap: (value) async => evolution = value.id,
+                onProfileTap: (value) async => profile = value))));
+    await tester.pumpAndSettle();
+    expect(find.text('Projeto Estrada'), findsOneWidget);
+    expect(find.text('Omega · 1998'), findsOneWidget);
+    expect(find.byType(EvolutionPhotoFrame), findsNothing);
+    expect(tester.widget<GaronaImage>(find.byType(GaronaImage)).url,
+        'http://localhost/capa.png');
+    await tester.tap(find.text('@raul'));
+    await tester.pumpAndSettle();
+    expect(profile, 'raul');
+    await tester.ensureVisible(find.text('Abrir evolução'));
+    await tester.tap(find.text('Abrir evolução'));
+    await tester.pumpAndSettle();
+    expect(evolution, 'nova');
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('feed vazio oferece encontrar pessoas e atualiza ao voltar',
       (tester) async {
     final api = ApiClient(

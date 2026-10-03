@@ -231,6 +231,7 @@ class _ProjectGarageScreenState extends State<ProjectGarageScreen> {
                       icon: Icon(_organizing ? Icons.check : Icons.swap_vert),
                       label: Text(
                           _organizing ? 'Concluir organização' : 'Organizar'))),
+            if (!widget.canManage) const SizedBox(height: 16),
             LayoutBuilder(builder: (context, constraints) {
               final columns = constraints.maxWidth < 280 ||
                       MediaQuery.textScalerOf(context).scale(14) > 22

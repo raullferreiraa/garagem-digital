@@ -232,7 +232,7 @@ final class _EvolutionFeedCard extends StatelessWidget {
     final evolution = item.evolution;
     final car = item.car;
     final imageUrl =
-        evolution.photos.isNotEmpty ? evolution.photos.first.url : car.photoUrl;
+        evolution.photos.isNotEmpty ? evolution.photos.first.url : null;
 
     return Material(
       color: colors.surfaceContainer,
@@ -252,49 +252,55 @@ final class _EvolutionFeedCard extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(16, 14, 12, 12),
                 child: Row(
                   children: [
-                    InkWell(
-                      onTap: onProfileTap,
-                      customBorder: const CircleBorder(),
-                      child: GaronaAvatar(
-                        size: 38,
-                        url: car.ownerAvatarUrl,
-                        name: car.ownerName,
-                      ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                          width: 56,
+                          height: 56,
+                          child: GaronaImage(
+                              url: car.photoUrl,
+                              fit: BoxFit.contain,
+                              semanticLabel: 'Capa de ${car.displayName}')),
                     ),
-                    const SizedBox(width: 11),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: InkWell(
-                        onTap: onProfileTap,
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '@${car.ownerUsername}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            Text(
-                              [car.model, car.year]
-                                  .where((value) => value != null)
-                                  .join(' '),
-                              maxLines: 1,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text(car.displayName,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.bodySmall,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(left: 8),
-                      child: Text(
-                        _date(evolution.timelineDate),
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                              color: colors.onSurfaceVariant,
-                            ),
-                      ),
-                    ),
+                              style: Theme.of(context).textTheme.titleSmall),
+                          if (car.projectName?.isNotEmpty == true ||
+                              car.year != null)
+                            Text(
+                                [
+                                  if (car.projectName?.isNotEmpty == true)
+                                    car.model,
+                                  if (car.year != null) '${car.year}'
+                                ].join(' · '),
+                                style: Theme.of(context).textTheme.bodySmall),
+                          Wrap(
+                              spacing: 8,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                InkWell(
+                                    onTap: onProfileTap,
+                                    child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 8),
+                                        child: Text('@${car.ownerUsername}',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelMedium))),
+                                Text(_date(evolution.timelineDate),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                            color: colors.onSurfaceVariant)),
+                              ]),
+                        ])),
                   ],
                 ),
               ),
@@ -344,15 +350,16 @@ final class _EvolutionFeedCard extends StatelessWidget {
                     const SizedBox(height: 14),
                     Row(
                       children: [
-                        Text(
+                        Expanded(
+                            child: Text(
                           'Abrir evolução',
                           style:
                               Theme.of(context).textTheme.labelLarge?.copyWith(
                                     color: colors.primary,
                                     fontWeight: FontWeight.w800,
                                   ),
-                        ),
-                        const Spacer(),
+                        )),
+                        const SizedBox(width: 8),
                         Icon(Icons.arrow_outward_rounded,
                             size: 18, color: colors.primary),
                       ],

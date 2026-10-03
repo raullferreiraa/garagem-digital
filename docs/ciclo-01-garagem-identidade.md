@@ -79,3 +79,8 @@ Verificação desta revisão: 116 testes backend e 174 testes Flutter aprovados;
 - Evoluções sem foto com altura menor ajustada ao texto e à escala da fonte. Navegação ocultada quando há somente um resultado.
 - Prévia de edição orienta salvar alterações.
 - 21 testes dos fluxos afetados aprovados e análise estática sem problemas. Alterações apenas no app.
+
+### Seguindo e galeria pública
+- Seguindo mostra fotos apenas da própria evolução; sem fotos, usa card de texto. Capa fica na miniatura do cabeçalho, com nome do projeto, modelo/ano e autor.
+- Galeria do visitante ganhou espaço antes da grade. Ação Abrir evolução adapta o texto em telas estreitas e fonte ampliada.
+- Oito testes dos fluxos afetados aprovados; análise estática limpa. Apenas alterações no app.
